@@ -5,7 +5,7 @@ import { DesignCard } from "@/components/cards/DesignCard";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
-import { Library, Download, Crown, TrendingUp, Sparkles, Clock, ArrowRight } from "lucide-react";
+import { Library, Download, Crown, TrendingUp, Sparkles, Clock, ArrowRight, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
