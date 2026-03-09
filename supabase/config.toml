@@ -1,1 +1,4 @@
 project_id = "szncoppcatmwyurukpfg"
+
+[functions.generate-sales-text]
+verify_jwt = true
