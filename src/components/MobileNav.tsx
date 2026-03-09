@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import logoIcon from "@/assets/logo-icon.png";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
