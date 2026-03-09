@@ -312,7 +312,7 @@ const Dashboard = () => {
             ))}
             {suggestedDesigns.length === 0 && !loading && (
               <div className="col-span-4 text-center py-8 text-muted-foreground">
-                 Nenhuma matriz disponível
+                 Nenhuma matriz disponível no momento
               </div>
             )}
           </div>
