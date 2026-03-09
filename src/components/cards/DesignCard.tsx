@@ -57,7 +57,14 @@ export const DesignCard = ({ name, coverImage, category, tags = [], downloadCoun
       )}
     </div>
     <CardContent className="p-3.5 space-y-2">
-      <h3 className="font-display font-semibold text-sm leading-tight line-clamp-2">{name}</h3>
+      <div className="flex items-start justify-between gap-1">
+        <h3 className="font-display font-semibold text-sm leading-tight line-clamp-2">{name}</h3>
+        {downloadCount != null && downloadCount > 0 && (
+          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0 mt-0.5">
+            <Download className="h-3 w-3" /> {downloadCount}
+          </span>
+        )}
+      </div>
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {tags.slice(0, 3).map(tag => (
