@@ -306,7 +306,7 @@ const DesignDetail = () => {
                   name={related.name}
                   coverImage={related.cover_image}
                   category={related.categories?.name}
-                  tags={related.tags || []}
+                  tags={(related.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
                   onClick={() => navigate(`/library/${related.id}`)}
                 />
               ))}
