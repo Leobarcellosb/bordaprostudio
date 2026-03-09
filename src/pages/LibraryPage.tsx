@@ -81,11 +81,11 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} matrizes
+                {designs.length} matrizees
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              Biblioteca de Designs
+              Biblioteca deMatrizens
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
               Explore nossa coleção curada de bordados profissionais. Cada design foi selecionado para qualidade e versatilidade.
