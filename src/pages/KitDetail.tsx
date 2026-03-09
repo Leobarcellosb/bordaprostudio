@@ -427,10 +427,10 @@ const DesignDetail = () => {
                 <Layers className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-display font-bold">Designs Relacionados</h2>
-                <p className="text-sm text-muted-foreground">
-                  Outros designs que podem te interessar
-                </p>
+                 <h2 className="text-xl font-display font-bold">Matrizes Relacionadas</h2>
+                 <p className="text-sm text-muted-foreground">
+                   Outras matrizes que podem te interessar
+                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
