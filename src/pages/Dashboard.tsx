@@ -238,6 +238,38 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Favorites section */}
+        {favoriteDesigns.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-destructive/10">
+                  <Heart className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
+                  <p className="text-sm text-muted-foreground">Designs que você salvou</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs gap-1">
+                <Heart className="h-3 w-3" /> {favoriteDesigns.length}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {favoriteDesigns.map((kit: any) => (
+                <DesignCard
+                  key={kit.id}
+                  name={kit.name}
+                  coverImage={kit.cover_image}
+                  category={kit.categories?.name}
+                  tags={[]}
+                  onClick={() => navigate(`/library/${kit.id}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Suggested for today */}
         <section>
           <div className="flex items-center justify-between mb-4">
