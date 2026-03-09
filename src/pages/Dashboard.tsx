@@ -103,7 +103,7 @@ const Dashboard = () => {
 
         // Suggested for today - seeded random based on date
         const { data: allKits } = await db
-          .from("kits")
+          .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true);
 
