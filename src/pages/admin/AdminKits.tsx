@@ -124,7 +124,7 @@ export const AdminKits = () => {
       if (error) { toast.error(error.message); return; }
       kitId = editing.id;
     } else {
-      const { data, error } = await db.from("kits").insert(payload).select("id").single();
+      const { data, error } = await db.from("designs").insert(payload).select("id").single();
       if (error) { toast.error(error.message); return; }
       kitId = data.id;
     }
