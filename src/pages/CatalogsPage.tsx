@@ -90,7 +90,7 @@ const CatalogsPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> design{(cat.catalog_items?.length || 0) !== 1 ? "s" : ""}</p>
+                    <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> {(cat.catalog_items?.length || 0) !== 1 ? "matrizes" : "matriz"}</p>
                     <p className="text-xs text-muted-foreground">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
                   </div>
                 </CardContent>

@@ -67,15 +67,15 @@ const CatalogDetailPage = () => {
             Voltar aos catálogos
           </button>
           <h1 className="text-2xl md:text-3xl font-display font-bold">{catalog.name}</h1>
-          <p className="text-muted-foreground mt-1">{items.length} design{items.length !== 1 ? "s" : ""}</p>
+          <p className="text-muted-foreground mt-1">{items.length} {items.length !== 1 ? "matrizes" : "matriz"}</p>
         </div>
 
         {items.length === 0 ? (
           <Card className="border-border/60">
             <CardContent className="py-16 text-center text-muted-foreground">
               <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Este catálogo ainda não possui designs.</p>
-              <p className="text-sm mt-1">Adicione designs da biblioteca usando o botão "Adicionar ao catálogo".</p>
+              <p className="font-medium">Este catálogo ainda não possui matrizes.</p>
+              <p className="text-sm mt-1">Adicione matrizes da biblioteca usando o botão "Adicionar ao catálogo".</p>
             </CardContent>
           </Card>
         ) : (
