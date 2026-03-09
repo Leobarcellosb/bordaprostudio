@@ -38,11 +38,20 @@ const Dashboard = () => {
           .limit(6);
         setNewestDesigns(kits || []);
 
-        // Fetch download counts for most downloaded
-        const { data: downloads } = await db.from("downloads").select("kit_id");
-        if (downloads && downloads.length > 0) {
+        // Fetch all downloads for stats
+        const { data: allDownloads } = await db.from("downloads").select("kit_id, downloaded_at");
+        
+        // Calculate 7 days ago
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        // Split into recent (trending) and all-time
+        const recentDownloads = (allDownloads || []).filter((d: any) => new Date(d.downloaded_at) > sevenDaysAgo);
+        
+        // Most downloaded (all time)
+        if (allDownloads && allDownloads.length > 0) {
           const countMap: Record<string, number> = {};
-          downloads.forEach((d: any) => {
+          allDownloads.forEach((d: any) => {
             countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1;
           });
 
@@ -57,12 +66,37 @@ const Dashboard = () => {
               .in("id", sortedIds.map(([id]) => id))
               .eq("is_published", true);
 
-            // Re-sort by download count
             const kitMap = Object.fromEntries((topKits || []).map((k: any) => [k.id, k]));
             const sorted = sortedIds
               .map(([id, count]) => ({ ...kitMap[id], downloadCount: count }))
               .filter((k) => k.id);
             setMostDownloaded(sorted);
+          }
+        }
+
+        // Trending (last 7 days)
+        if (recentDownloads.length > 0) {
+          const trendingMap: Record<string, number> = {};
+          recentDownloads.forEach((d: any) => {
+            trendingMap[d.kit_id] = (trendingMap[d.kit_id] || 0) + 1;
+          });
+
+          const trendingIds = Object.entries(trendingMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6);
+
+          if (trendingIds.length > 0) {
+            const { data: trendingKits } = await db
+              .from("kits")
+              .select("*, categories(name)")
+              .in("id", trendingIds.map(([id]) => id))
+              .eq("is_published", true);
+
+            const kitMap = Object.fromEntries((trendingKits || []).map((k: any) => [k.id, k]));
+            const sorted = trendingIds
+              .map(([id, count]) => ({ ...kitMap[id], downloadCount: count }))
+              .filter((k) => k.id);
+            setTrendingDesigns(sorted);
           }
         }
 
