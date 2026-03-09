@@ -185,20 +185,20 @@ const Dashboard = () => {
     <AppLayout>
       <div className="space-y-12 animate-fade-in">
         {/* Welcome header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 md:p-10 lg:p-12">
           <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-display font-bold">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-md">
+            <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
               Explore novos designs, descubra tendências e transforme suas ideias em produtos incríveis.
             </p>
-            <Button onClick={() => navigate("/library")} className="mt-4 gap-2">
+            <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
               Explorar Biblioteca
             </Button>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 opacity-20 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-72 h-72 opacity-15 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
         </div>
 
         {/* Stats cards */}
