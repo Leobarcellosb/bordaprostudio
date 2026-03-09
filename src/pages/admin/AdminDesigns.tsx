@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2 } from "lucide-react";
 
 const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX"];
 
@@ -135,27 +135,6 @@ export const AdminDesigns = () => {
       if (error) { toast.error(error.message); return; }
       setEditing(data);
       designId = data.id;
-    }
-    
-    // Auto-generate preview if none provided
-    if (!form.cover_image && designId) {
-      const categoryName = categories.find((c: any) => c.id === form.category_id)?.name || "";
-      toast.info("Gerando preview automático com IA...");
-      supabase.functions.invoke("generate-design-preview", {
-        body: {
-          designId,
-          designName: form.name,
-          category: categoryName,
-          tags: form.tags_text,
-        },
-      }).then(({ data: previewData }) => {
-        if (previewData?.cover_image) {
-          toast.success("Preview gerado com IA!");
-          fetchData();
-        }
-      }).catch((err) => {
-        console.warn("Auto-preview generation failed:", err);
-      });
     }
     
     toast.success(editing ? "Design atualizado!" : "Design criado! Agora adicione arquivos e ideias.");
@@ -290,7 +269,7 @@ export const AdminDesigns = () => {
                     }}
                     disabled={!form.name.trim()}
                   >
-                    <Sparkles className="h-3.5 w-3.5" /> Gerar tags
+                    <Wand2 className="h-3.5 w-3.5" /> Gerar tags
                   </Button>
                 </div>
               </div>

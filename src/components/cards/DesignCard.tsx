@@ -21,8 +21,9 @@ export const DesignCard = ({ name, coverImage, category, tags = [], downloadCoun
       {coverImage ? (
         <img src={coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-accent">
-          <span className="text-5xl">🧵</span>
+        <div className="w-full h-full flex flex-col items-center justify-center bg-accent gap-2 px-4">
+          <span className="text-4xl opacity-30">🖼️</span>
+          <span className="text-xs text-muted-foreground text-center font-medium">Preview não disponível</span>
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/0 to-foreground/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
