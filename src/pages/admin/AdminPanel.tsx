@@ -5,7 +5,7 @@ import { AdminDesigns } from "./AdminDesigns";
 import { AdminCategories } from "./AdminCategories";
 import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
-import { AdminBulkImport } from "./AdminBulkImport";
+import { AdminSmartUpload } from "./AdminSmartUpload";
 import { Shield } from "lucide-react";
 
 const AdminPanel = () => {
