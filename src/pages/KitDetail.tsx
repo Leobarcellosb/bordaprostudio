@@ -45,7 +45,7 @@ const DesignDetail = () => {
       await db.from("downloads").insert({ user_id: user.id, design_id: id });
     }
     window.open(file.file_url, "_blank");
-    toast.success(`Download de ${file.format} iniciado!`);
+    toast.success(`Download de ${file.file_format || file.format} iniciado!`);
     setTimeout(() => setDownloading(null), 1500);
   };
 
