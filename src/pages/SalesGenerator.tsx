@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, MessageCircle, Instagram, Sparkles, ChevronRight, Check, RotateCcw } from "lucide-react";
+import { Copy, MessageCircle, Instagram, Sparkles, ChevronRight, Check, RotateCcw, DollarSign, Lightbulb } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,8 @@ const PRODUCT_TYPES = [
   { id: "caminho-mesa", label: "Caminho de Mesa", emoji: "🍽️" },
   { id: "avental", label: "Avental", emoji: "🧑‍🍳" },
   { id: "porta-panela", label: "Porta-panela", emoji: "🫕" },
+  { id: "babador", label: "Babador", emoji: "🍼" },
+  { id: "pano-prato", label: "Pano de Prato", emoji: "🧽" },
 ];
 
 interface Generated {
@@ -28,6 +30,10 @@ interface Generated {
   description: string;
   whatsapp: string;
   instagram: string;
+  priceMin: number;
+  priceMax: number;
+  productIdea: string;
+  productIdeaDescription: string;
 }
 
 const CopyButton = ({ text, label }: { text: string; label: string }) => {
@@ -57,10 +63,9 @@ const SalesGenerator = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
-    db.from("designs").select("*, categories(name)").eq("is_published", true).order("title")
+    db.from("kits").select("*, categories(name)").eq("is_published", true).order("name")
       .then(({ data }: any) => {
         setDesigns(data || []);
-        // Pre-select from URL param
         const designId = searchParams.get("design");
         if (designId && data) {
           const found = data.find((d: any) => d.id === designId);
@@ -94,9 +99,9 @@ const SalesGenerator = () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-sales-text", {
         body: {
-          designTitle: selectedDesign.title,
+          designName: selectedDesign.name,
           designDescription: selectedDesign.description || "",
-          designTags: selectedDesign.tags || [],
+          designTags: selectedDesign.tags_text || "",
           category: selectedDesign.categories?.name || "",
           productType: productLabel,
           price: customPrice || null,
@@ -170,7 +175,7 @@ const SalesGenerator = () => {
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">1</div>
             <h2 className="font-display font-semibold">Selecione o design</h2>
-            {selectedDesign && <Badge variant="secondary" className="ml-auto text-xs">{selectedDesign.title}</Badge>}
+            {selectedDesign && <Badge variant="secondary" className="ml-auto text-xs">{selectedDesign.name}</Badge>}
           </div>
 
           {step === 1 && (
@@ -181,13 +186,13 @@ const SalesGenerator = () => {
                   onClick={() => handleSelectDesign(d)}
                   className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-background hover:border-primary/40 hover:shadow-sm transition-all text-left group"
                 >
-                  {d.preview_image_url ? (
-                    <img src={d.preview_image_url} alt={d.title} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                  {d.cover_image ? (
+                    <img src={d.cover_image} alt={d.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
                   ) : (
                     <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center text-xl shrink-0">🧵</div>
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{d.title}</p>
+                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{d.name}</p>
                     {d.categories?.name && <p className="text-xs text-muted-foreground">{d.categories.name}</p>}
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary shrink-0 ml-auto transition-colors" />
@@ -207,7 +212,7 @@ const SalesGenerator = () => {
               <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">2</div>
               <h2 className="font-display font-semibold">Tipo de produto</h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {PRODUCT_TYPES.map(pt => (
                 <button
                   key={pt.id}
@@ -270,7 +275,7 @@ const SalesGenerator = () => {
         {/* STEP 3: Results */}
         {generated && !loading && (
           <div className="space-y-4 animate-fade-in">
-            {/* Title + Description row */}
+            {/* Title + Description */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card className="border-border/60">
                 <CardContent className="pt-4 pb-4">
@@ -296,33 +301,59 @@ const SalesGenerator = () => {
               </Card>
             </div>
 
-            {/* WhatsApp */}
-            <Card className="border-border/60 border-l-4 border-l-green-500">
-              <CardHeader className="pb-2 pt-4">
-                <CardTitle className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2 font-display">
-                    <MessageCircle className="h-4 w-4 text-green-500" /> WhatsApp
-                  </span>
-                  <CopyButton text={generated.whatsapp} label="Texto WhatsApp" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea value={generated.whatsapp} readOnly className="min-h-[160px] resize-none bg-muted/30 text-sm leading-relaxed" />
-              </CardContent>
-            </Card>
+            {/* Price range + Product idea */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card className="border-border/60 border-l-4 border-l-primary">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Faixa de Preço Sugerida</p>
+                  </div>
+                  <p className="font-display font-bold text-xl text-primary">
+                    R$ {generated.priceMin?.toFixed(2)} — R$ {generated.priceMax?.toFixed(2)}
+                  </p>
+                  <CopyButton text={`R$ ${generated.priceMin?.toFixed(2)} a R$ ${generated.priceMax?.toFixed(2)}`} label="Faixa de preço" />
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 border-l-4 border-l-secondary">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="h-4 w-4 text-secondary" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ideia de Produto</p>
+                  </div>
+                  <p className="font-display font-semibold text-sm">{generated.productIdea}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{generated.productIdeaDescription}</p>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Instagram */}
             <Card className="border-border/60 border-l-4 border-l-secondary">
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2 font-display">
-                    <Instagram className="h-4 w-4 text-secondary" /> Instagram
+                    <Instagram className="h-4 w-4 text-secondary" /> Caption Instagram
                   </span>
                   <CopyButton text={generated.instagram} label="Caption Instagram" />
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea value={generated.instagram} readOnly className="min-h-[160px] resize-none bg-muted/30 text-sm leading-relaxed" />
+              </CardContent>
+            </Card>
+
+            {/* WhatsApp */}
+            <Card className="border-border/60 border-l-4 border-l-green-500">
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 font-display">
+                    <MessageCircle className="h-4 w-4 text-green-500" /> Mensagem WhatsApp
+                  </span>
+                  <CopyButton text={generated.whatsapp} label="Texto WhatsApp" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea value={generated.whatsapp} readOnly className="min-h-[160px] resize-none bg-muted/30 text-sm leading-relaxed" />
               </CardContent>
             </Card>
 
