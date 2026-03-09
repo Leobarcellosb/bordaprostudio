@@ -1,28 +1,17 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { DesignCard } from "@/components/cards/DesignCard";
-import { ProductIdeaCard } from "@/components/cards/ProductIdeaCard";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, Sparkles, Lightbulb } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formats = ["PES", "EXP", "DST", "JEF", "XXX"];
 
-interface SearchResult {
-  designs: any[];
-  relatedDesigns: any[];
-  productIdeas: any[];
-  matchedTerms: string[];
-}
-
 const LibraryPage = () => {
   const [designs, setDesigns] = useState<any[]>([]);
-  const [productIdeas, setProductIdeas] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
