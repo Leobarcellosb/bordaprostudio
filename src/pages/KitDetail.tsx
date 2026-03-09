@@ -6,8 +6,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DesignCard } from "@/components/cards/DesignCard";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
