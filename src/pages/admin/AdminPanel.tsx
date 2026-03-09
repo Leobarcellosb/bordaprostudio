@@ -5,7 +5,7 @@ import { AdminDesigns } from "./AdminDesigns";
 import { AdminCategories } from "./AdminCategories";
 import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
-import { AdminBulkImport } from "./AdminBulkImport";
+import { AdminSmartUpload } from "./AdminSmartUpload";
 import { Shield } from "lucide-react";
 
 const AdminPanel = () => {
@@ -31,7 +31,7 @@ const AdminPanel = () => {
           </TabsList>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
-          <TabsContent value="import"><AdminBulkImport /></TabsContent>
+          <TabsContent value="import"><AdminSmartUpload /></TabsContent>
           <TabsContent value="categories"><AdminCategories /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>

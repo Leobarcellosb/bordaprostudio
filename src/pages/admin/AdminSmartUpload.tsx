@@ -1,0 +1,611 @@
+import { useState, useRef, useCallback, useEffect } from "react";
+import JSZip from "jszip";
+import { db } from "@/lib/db";
+import { generateTagsFromName } from "@/lib/generateTags";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  Upload,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  FileArchive,
+  Image as ImageIcon,
+  Pencil,
+  Trash2,
+  Sparkles,
+  FileUp,
+} from "lucide-react";
+
+const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx"];
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
+
+function getExtension(name: string) {
+  return name.split(".").pop()?.toLowerCase() || "";
+}
+
+function getBaseName(name: string) {
+  return name.replace(/\.[^.]+$/, "").trim();
+}
+
+function cleanTitle(name: string) {
+  return name
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function suggestCategory(name: string, categories: any[]): string | null {
+  const lower = name.toLowerCase();
+  for (const cat of categories) {
+    if (lower.includes(cat.name.toLowerCase())) return cat.id;
+  }
+  // keyword heuristics
+  const hints: Record<string, string[]> = {
+    bebe: ["bebê", "baby", "infantil", "maternidade"],
+    infantil: ["infantil", "criança", "kids", "menina", "menino"],
+    floral: ["flor", "flores", "floral", "rosa", "jardim"],
+    cozinha: ["cozinha", "prato", "galinha", "frutas"],
+    natal: ["natal", "natalino"],
+    animal: ["urso", "gato", "cachorro", "coelho", "borboleta"],
+  };
+  for (const cat of categories) {
+    const catLower = cat.name.toLowerCase();
+    for (const [key, keywords] of Object.entries(hints)) {
+      if (catLower.includes(key) && keywords.some((k) => lower.includes(k))) {
+        return cat.id;
+      }
+    }
+  }
+  return null;
+}
+
+interface DesignGroup {
+  id: string;
+  baseName: string;
+  title: string;
+  tags: string;
+  categoryId: string;
+  files: { name: string; blob: Blob; format: string }[];
+  previewFile: { name: string; blob: Blob } | null;
+  isZip: boolean;
+  status: "pending" | "editing" | "uploading" | "done" | "error";
+  error?: string;
+}
+
+export const AdminSmartUpload = () => {
+  const [groups, setGroups] = useState<DesignGroup[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    db.from("categories").select("*").order("name").then(({ data }: any) => {
+      setCategories(data || []);
+    });
+  }, []);
+
+  const processFiles = useCallback(
+    async (fileList: FileList) => {
+      const filesArr = Array.from(fileList);
+      const newGroups = new Map<string, DesignGroup>();
+
+      for (const file of filesArr) {
+        const ext = getExtension(file.name);
+        const baseName = getBaseName(file.name);
+
+        if (ext === "zip") {
+          // ZIP upload — try to extract embroidery files inside
+          try {
+            const zip = await JSZip.loadAsync(file);
+            const innerFiles: { name: string; blob: Blob; format: string }[] = [];
+            let previewFile: { name: string; blob: Blob } | null = null;
+
+            for (const [path, entry] of Object.entries(zip.files)) {
+              if (entry.dir) continue;
+              const innerName = path.split("/").pop() || path;
+              const innerExt = getExtension(innerName);
+
+              if (EMBROIDERY_EXTENSIONS.includes(innerExt)) {
+                innerFiles.push({
+                  name: innerName,
+                  blob: await entry.async("blob"),
+                  format: innerExt.toUpperCase(),
+                });
+              } else if (IMAGE_EXTENSIONS.includes(innerExt) && !previewFile) {
+                previewFile = { name: innerName, blob: await entry.async("blob") };
+              }
+            }
+
+            const title = cleanTitle(baseName);
+            const tags = generateTagsFromName(title);
+            const categoryId = suggestCategory(baseName, categories) || "";
+
+            if (innerFiles.length > 0) {
+              // ZIP contains embroidery files — create design with individual files
+              const groupId = crypto.randomUUID();
+              newGroups.set(groupId, {
+                id: groupId,
+                baseName,
+                title,
+                tags: tags.join(", "),
+                categoryId,
+                files: innerFiles,
+                previewFile,
+                isZip: false,
+                status: "pending",
+              });
+            } else {
+              // ZIP doesn't contain embroidery files — upload as-is
+              const groupId = crypto.randomUUID();
+              newGroups.set(groupId, {
+                id: groupId,
+                baseName,
+                title,
+                tags: tags.join(", "),
+                categoryId,
+                files: [{ name: file.name, blob: file, format: "ZIP" }],
+                previewFile,
+                isZip: true,
+                status: "pending",
+              });
+            }
+          } catch {
+            toast.error(`Erro ao processar ZIP: ${file.name}`);
+          }
+          continue;
+        }
+
+        if (EMBROIDERY_EXTENSIONS.includes(ext)) {
+          // Group by base name
+          const key = baseName.toLowerCase();
+          if (!newGroups.has(key)) {
+            const title = cleanTitle(baseName);
+            const tags = generateTagsFromName(title);
+            const categoryId = suggestCategory(baseName, categories) || "";
+            newGroups.set(key, {
+              id: crypto.randomUUID(),
+              baseName,
+              title,
+              tags: tags.join(", "),
+              categoryId,
+              files: [],
+              previewFile: null,
+              isZip: false,
+              status: "pending",
+            });
+          }
+          newGroups.get(key)!.files.push({
+            name: file.name,
+            blob: file,
+            format: ext.toUpperCase(),
+          });
+          continue;
+        }
+
+        if (IMAGE_EXTENSIONS.includes(ext)) {
+          // Try to attach to matching group
+          const key = baseName.toLowerCase();
+          if (newGroups.has(key)) {
+            newGroups.get(key)!.previewFile = { name: file.name, blob: file };
+          }
+          continue;
+        }
+      }
+
+      const entries = Array.from(newGroups.values());
+      if (entries.length === 0) {
+        toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX");
+        return;
+      }
+
+      setGroups((prev) => [...prev, ...entries]);
+      toast.success(`${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`);
+    },
+    [categories]
+  );
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    processFiles(files);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const updateGroup = (id: string, updates: Partial<DesignGroup>) => {
+    setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...updates } : g)));
+  };
+
+  const removeGroup = (id: string) => {
+    setGroups((prev) => prev.filter((g) => g.id !== id));
+  };
+
+  const importAll = async () => {
+    const pending = groups.filter((g) => g.status === "pending" || g.status === "editing");
+    if (pending.length === 0) return;
+
+    setImporting(true);
+    let completed = 0;
+
+    for (const group of pending) {
+      updateGroup(group.id, { status: "uploading" });
+
+      try {
+        // Upload preview image if present
+        let previewUrl: string | null = null;
+        if (group.previewFile) {
+          const ext = getExtension(group.previewFile.name);
+          const path = `smart/${crypto.randomUUID()}.${ext}`;
+          const { error } = await supabase.storage
+            .from("design-covers")
+            .upload(path, group.previewFile.blob, { contentType: `image/${ext === "jpg" ? "jpeg" : ext}` });
+          if (!error) {
+            const { data } = supabase.storage.from("design-covers").getPublicUrl(path);
+            previewUrl = data.publicUrl;
+          }
+        }
+
+        // Create design entry
+        const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
+        const { data: designData, error: designError } = await db
+          .from("designs")
+          .insert({
+            title: group.title,
+            preview_image_url: previewUrl,
+            category_id: group.categoryId || null,
+            tags,
+            tags_text: group.tags,
+            is_published: false,
+          })
+          .select("id")
+          .single();
+
+        if (designError) throw new Error(designError.message);
+        const designId = designData.id;
+
+        // Upload embroidery files
+        for (const file of group.files) {
+          const filePath = `${designId}/${crypto.randomUUID()}.${file.format.toLowerCase()}`;
+          const bucket = file.format === "ZIP" ? "kit-zips" : "design-files";
+          const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(filePath, file.blob);
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+            await db.from("files").insert({
+              design_id: designId,
+              format: file.format,
+              file_url: urlData.publicUrl,
+              size: file.blob.size,
+            });
+          }
+        }
+
+        updateGroup(group.id, { status: "done" });
+      } catch (err: any) {
+        console.error(`Import error for ${group.baseName}:`, err);
+        updateGroup(group.id, { status: "error", error: err.message });
+      }
+
+      completed++;
+      setProgress(Math.round((completed / pending.length) * 100));
+    }
+
+    setImporting(false);
+    const doneCount = groups.filter((g) => g.status === "done").length + pending.filter((g) => groups.find((gg) => gg.id === g.id)?.status === "done").length;
+    toast.success(`Importação concluída!`);
+  };
+
+  const reset = () => {
+    setGroups([]);
+    setProgress(0);
+  };
+
+  const pendingCount = groups.filter((g) => g.status === "pending" || g.status === "editing").length;
+  const doneCount = groups.filter((g) => g.status === "done").length;
+  const errorCount = groups.filter((g) => g.status === "error").length;
+
+  return (
+    <div className="space-y-6 mt-4">
+      {/* Upload area */}
+      <Card className="border-dashed border-2 border-border/60 bg-muted/20">
+        <CardContent className="py-8 flex flex-col items-center gap-4 text-center">
+          <div className="p-4 rounded-2xl bg-primary/10">
+            <FileUp className="h-10 w-10 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-display font-bold text-lg">Upload Inteligente</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-lg">
+              Envie arquivos de bordado (PES, EXP, JEF, DST, XXX), ZIPs ou imagens.
+              Arquivos com o mesmo nome base são agrupados automaticamente como um único design.
+            </p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pes,.exp,.dst,.jef,.xxx,.zip,.jpg,.jpeg,.png,.webp,.gif"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <Button
+            onClick={() => inputRef.current?.click()}
+            className="gap-2"
+            size="lg"
+          >
+            <Upload className="h-4 w-4" /> Selecionar arquivos
+          </Button>
+          <div className="text-xs text-muted-foreground space-y-1 mt-1">
+            <p>
+              <strong>Arquivo único:</strong> abelhas.PES → 1 design
+            </p>
+            <p>
+              <strong>Múltiplos formatos:</strong> abelhas.PES + abelhas.EXP + abelhas.JEF → 1 design com 3 formatos
+            </p>
+            <p>
+              <strong>ZIP:</strong> flores.zip → extrai arquivos de bordado internos ou importa como pacote
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grouped designs list */}
+      {groups.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">
+                {groups.length} design{groups.length !== 1 ? "s" : ""} para importar
+              </h3>
+              <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                {pendingCount > 0 && <span>⏳ {pendingCount} pendente{pendingCount !== 1 ? "s" : ""}</span>}
+                {doneCount > 0 && <span className="text-green-600">✓ {doneCount} importado{doneCount !== 1 ? "s" : ""}</span>}
+                {errorCount > 0 && <span className="text-destructive">✕ {errorCount} erro{errorCount !== 1 ? "s" : ""}</span>}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={reset} className="gap-1.5">
+                Limpar tudo
+              </Button>
+              {pendingCount > 0 && (
+                <Button onClick={importAll} disabled={importing} className="gap-1.5">
+                  {importing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Importando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" /> Importar {pendingCount} design{pendingCount !== 1 ? "s" : ""}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {importing && (
+            <div className="space-y-1">
+              <Progress value={progress} className="h-2" />
+              <p className="text-xs text-muted-foreground text-right">{progress}%</p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <DesignGroupCard
+                key={group.id}
+                group={group}
+                categories={categories}
+                onUpdate={updateGroup}
+                onRemove={removeGroup}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+function DesignGroupCard({
+  group,
+  categories,
+  onUpdate,
+  onRemove,
+}: {
+  group: DesignGroup;
+  categories: any[];
+  onUpdate: (id: string, updates: Partial<DesignGroup>) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  const isFinished = group.status === "done" || group.status === "error" || group.status === "uploading";
+
+  return (
+    <Card
+      className={`border-border/60 overflow-hidden transition-all ${
+        group.status === "done"
+          ? "border-green-500/40 bg-green-500/5"
+          : group.status === "error"
+          ? "border-destructive/40 bg-destructive/5"
+          : group.status === "uploading"
+          ? "border-primary/40 bg-primary/5"
+          : ""
+      }`}
+    >
+      <CardContent className="p-4">
+        <div className="flex gap-4">
+          {/* Preview thumbnail */}
+          <div className="w-20 h-20 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center border border-border/40">
+            {group.previewFile ? (
+              <img
+                src={URL.createObjectURL(group.previewFile.blob)}
+                alt={group.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
+                <ImageIcon className="h-6 w-6" />
+                <span className="text-[9px]">Sem imagem</span>
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                {editing && !isFinished ? (
+                  <Input
+                    value={group.title}
+                    onChange={(e) => onUpdate(group.id, { title: e.target.value })}
+                    className="h-8 text-sm font-medium"
+                  />
+                ) : (
+                  <p className="font-medium text-sm truncate">{group.title}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {group.status === "done" && (
+                  <div className="p-1 rounded-full bg-green-500 text-white">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  </div>
+                )}
+                {group.status === "error" && (
+                  <div className="p-1 rounded-full bg-destructive text-destructive-foreground">
+                    <XCircle className="h-3.5 w-3.5" />
+                  </div>
+                )}
+                {group.status === "uploading" && (
+                  <div className="p-1 rounded-full bg-primary text-primary-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  </div>
+                )}
+                {!isFinished && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setEditing(!editing)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onRemove(group.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* File format badges */}
+            <div className="flex flex-wrap gap-1.5">
+              {group.files.map((f, i) => (
+                <Badge key={i} variant="secondary" className="text-[10px]">
+                  {group.isZip ? <FileArchive className="h-3 w-3 mr-1" /> : null}
+                  {f.format}
+                </Badge>
+              ))}
+              {group.files.length > 1 && (
+                <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                  {group.files.length} formatos
+                </Badge>
+              )}
+            </div>
+
+            {/* Editable fields */}
+            {editing && !isFinished && (
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
+                  <Select
+                    value={group.categoryId}
+                    onValueChange={(v) => onUpdate(group.id, { categoryId: v })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Auto-detectar ou selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Tags</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={group.tags}
+                      onChange={(e) => onUpdate(group.id, { tags: e.target.value })}
+                      className="h-8 text-xs flex-1"
+                      placeholder="tag1, tag2, tag3"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[10px] gap-1 shrink-0"
+                      onClick={() => {
+                        const suggested = generateTagsFromName(group.title);
+                        const existing = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
+                        const merged = Array.from(new Set([...existing, ...suggested]));
+                        onUpdate(group.id, { tags: merged.join(", ") });
+                      }}
+                    >
+                      <Sparkles className="h-3 w-3" /> Gerar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Category & tags summary when not editing */}
+            {!editing && !isFinished && (
+              <div className="flex flex-wrap gap-1">
+                {group.categoryId && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {categories.find((c: any) => c.id === group.categoryId)?.name || "Categoria"}
+                  </Badge>
+                )}
+                {group.tags &&
+                  group.tags
+                    .split(",")
+                    .slice(0, 4)
+                    .map((tag) => (
+                      <Badge key={tag.trim()} variant="outline" className="text-[9px] text-muted-foreground">
+                        {tag.trim()}
+                      </Badge>
+                    ))}
+              </div>
+            )}
+
+            {group.status === "error" && (
+              <p className="text-xs text-destructive">{group.error}</p>
+            )}
+            {group.status === "done" && (
+              <p className="text-xs text-green-600 font-medium">✓ Importado como rascunho</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
