@@ -210,7 +210,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">Matrizes disponíveis</p>
+                <p className="text-sm text-muted-foreground">Matrize disponíveis</p>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +248,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
-                  <p className="text-sm text-muted-foregroundMatrizegns que você salvou</p>
+                  <p className="text-sm text-muted-foregroundM">Matrize que você salvou</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-xs gap-1">

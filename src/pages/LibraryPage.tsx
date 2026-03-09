@@ -140,7 +140,7 @@ const LibraryPage = () => {
         {hasActiveFilters && filtered.length > 0 && (
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1matriz encontrada" : "matrizes encontradaadados"}
+              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "matriz encontrada" : "matrizes encontradas"}
             </p>
             <Button
               variant="ghost"

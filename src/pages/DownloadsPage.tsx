@@ -104,7 +104,7 @@ const DownloadsPage = () => {
                 </div>
                 <CardContent className="p-4 space-y-1.5">
                   <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                    {dl.kit?.name ||Matriz removidado"}
+                    {dl.kit?.name || "Matriz removida"}
                   </p>
                   {dl.kit?.categories?.name && (
                     <Badge variant="secondary" className="text-[10px]">
