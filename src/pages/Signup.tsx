@@ -16,52 +16,49 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
-      },
+      email, password,
+      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
     });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Verifique seu email para confirmar a conta!");
-    }
+    if (error) toast.error(error.message);
+    else toast.success("Verifique seu email para confirmar a conta!");
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="text-4xl mb-2">✂️</div>
-          <CardTitle className="text-2xl font-serif">Criar Conta</CardTitle>
-          <CardDescription>Comece a usar o Borda Pro Studio</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Nome completo</label>
-              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Maria Silva" required />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Senha</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Criando conta..." : "Criar conta"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Já tem conta? <Link to="/login" className="text-primary hover:underline">Entrar</Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+            <span className="text-3xl">✂️</span>
+          </div>
+          <h1 className="text-2xl font-display font-bold">Criar Conta</h1>
+          <p className="text-muted-foreground text-sm mt-1">Comece a usar o Borda Pro Studio</p>
+        </div>
+        <Card className="border-border/60 shadow-lg">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Nome completo</label>
+                <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Maria Silva" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Email</label>
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Senha</label>
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Criando conta..." : "Criar conta"}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground pt-2">
+                Já tem conta? <Link to="/login" className="text-primary hover:underline font-medium">Entrar</Link>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

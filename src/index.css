@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,47 +6,47 @@
 
 @layer base {
   :root {
-    --background: 30 25% 97%;
-    --foreground: 240 10% 10%;
+    --background: 210 40% 98%;
+    --foreground: 220 13% 26%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 220 13% 26%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
+    --popover-foreground: 220 13% 26%;
 
-    --primary: 263 70% 50%;
+    --primary: 263 84% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 30% 93%;
-    --secondary-foreground: 240 10% 15%;
+    --secondary: 330 81% 60%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 30 15% 94%;
-    --muted-foreground: 240 5% 45%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 340 75% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 263 84% 96%;
+    --accent-foreground: 263 84% 40%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 88%;
-    --ring: 263 70% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 263 84% 58%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 263 25% 12%;
-    --sidebar-foreground: 263 10% 90%;
-    --sidebar-primary: 263 70% 60%;
+    --sidebar-background: 263 30% 14%;
+    --sidebar-foreground: 263 10% 92%;
+    --sidebar-primary: 263 84% 68%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 20% 20%;
-    --sidebar-accent-foreground: 263 10% 90%;
-    --sidebar-border: 263 15% 22%;
-    --sidebar-ring: 263 70% 50%;
+    --sidebar-accent: 263 25% 22%;
+    --sidebar-accent-foreground: 263 10% 92%;
+    --sidebar-border: 263 20% 24%;
+    --sidebar-ring: 263 84% 58%;
 
-    --chart-1: 263 70% 50%;
-    --chart-2: 340 75% 55%;
+    --chart-1: 263 84% 58%;
+    --chart-2: 330 81% 60%;
     --chart-3: 30 80% 55%;
     --chart-4: 170 60% 45%;
     --chart-5: 200 70% 50%;
@@ -54,46 +54,46 @@
     --success: 150 60% 40%;
     --success-foreground: 0 0% 100%;
     --warning: 40 90% 50%;
-    --warning-foreground: 240 10% 10%;
+    --warning-foreground: 220 13% 26%;
   }
 
   .dark {
-    --background: 240 10% 8%;
-    --foreground: 30 15% 92%;
+    --background: 240 10% 6%;
+    --foreground: 210 20% 92%;
 
-    --card: 240 10% 12%;
-    --card-foreground: 30 15% 92%;
+    --card: 240 10% 10%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 240 10% 12%;
-    --popover-foreground: 30 15% 92%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 263 70% 60%;
+    --primary: 263 84% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 8% 18%;
-    --secondary-foreground: 30 15% 92%;
+    --secondary: 330 81% 55%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 8% 18%;
+    --muted: 240 8% 16%;
     --muted-foreground: 240 5% 55%;
 
-    --accent: 340 75% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 263 30% 20%;
+    --accent-foreground: 263 84% 75%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 22%;
-    --input: 240 8% 22%;
-    --ring: 263 70% 60%;
+    --border: 240 8% 20%;
+    --input: 240 8% 20%;
+    --ring: 263 84% 65%;
 
-    --sidebar-background: 240 10% 6%;
-    --sidebar-foreground: 263 10% 90%;
-    --sidebar-primary: 263 70% 60%;
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 263 10% 92%;
+    --sidebar-primary: 263 84% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 8% 15%;
-    --sidebar-accent-foreground: 263 10% 90%;
-    --sidebar-border: 240 8% 15%;
-    --sidebar-ring: 263 70% 60%;
+    --sidebar-accent: 240 8% 13%;
+    --sidebar-accent-foreground: 263 10% 92%;
+    --sidebar-border: 240 8% 13%;
+    --sidebar-ring: 263 84% 65%;
   }
 }
 
@@ -102,9 +102,10 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
   }
-  h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+  h1, h2, h3, h4 {
+    font-family: 'Poppins', system-ui, sans-serif;
   }
 }

@@ -3,9 +3,9 @@ import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { DesignCard } from "@/components/cards/DesignCard";
 import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formats = ["PES", "EXP", "DST", "JEF"];
@@ -54,47 +54,50 @@ const LibraryPage = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-3xl font-serif font-bold">Biblioteca de Designs</h1>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Biblioteca de Designs</h1>
           <p className="text-muted-foreground mt-1">Explore nossa coleção de bordados profissionais</p>
         </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar designs..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todas categorias</SelectItem>{categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={formatFilter} onValueChange={setFormatFilter}>
-            <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Formato" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos formatos</SelectItem>{formats.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={tagFilter} onValueChange={setTagFilter}>
-            <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tag" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todas tags</SelectItem>{tags.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todas categorias</SelectItem>{categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={formatFilter} onValueChange={setFormatFilter}>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Formato" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos formatos</SelectItem>{formats.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tag" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todas tags</SelectItem>{tags.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
         </div>
+
         {filtered.length === 0 ? (
-          <Card><CardContent className="py-16 text-center text-muted-foreground">Nenhum design encontrado.</CardContent></Card>
+          <Card className="border-border/60"><CardContent className="py-16 text-center text-muted-foreground">
+            <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhum design encontrado.</p>
+            <p className="text-sm mt-1">Tente ajustar os filtros.</p>
+          </CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((kit: any) => (
-              <Card key={kit.id} className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-0.5" onClick={() => navigate(`/library/${kit.id}`)}>
-                <div className="aspect-square bg-muted rounded-t-lg overflow-hidden">
-                  {kit.cover_image ? <img src={kit.cover_image} alt={kit.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-5xl">🧵</div>}
-                </div>
-                <CardContent className="pt-3 space-y-2">
-                  <h3 className="font-medium truncate">{kit.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{kit.description}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {(kitTags[kit.id] || []).slice(0, 3).map((t: any) => <Badge key={t?.id} variant="secondary" className="text-xs">{t?.name}</Badge>)}
-                    {(kitFiles[kit.id] || []).slice(0, 2).map((f: string) => <Badge key={f} variant="outline" className="text-xs">{f}</Badge>)}
-                  </div>
-                </CardContent>
-              </Card>
+              <DesignCard
+                key={kit.id}
+                name={kit.name}
+                coverImage={kit.cover_image}
+                category={categories.find((c: any) => c.id === kit.category_id)?.name}
+                tags={(kitTags[kit.id] || []).map((t: any) => t?.name).filter(Boolean)}
+                onClick={() => navigate(`/library/${kit.id}`)}
+              />
             ))}
           </div>
         )}

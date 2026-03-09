@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, BookOpen } from "lucide-react";
+import { Plus, Trash2, BookOpen, FolderOpen } from "lucide-react";
 
 const CatalogsPage = () => {
   const { user } = useAuth();
@@ -39,34 +39,54 @@ const CatalogsPage = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
-          <div><h1 className="text-3xl font-serif font-bold">Meus Catálogos</h1><p className="text-muted-foreground mt-1">Organize seus produtos para venda</p></div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">Meus Catálogos</h1>
+            <p className="text-muted-foreground mt-1">Organize seus produtos para venda</p>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Novo Catálogo</Button></DialogTrigger>
-            <DialogContent><DialogHeader><DialogTitle>Criar Catálogo</DialogTitle></DialogHeader>
+            <DialogTrigger asChild><Button className="gap-1.5"><Plus className="h-4 w-4" /> Novo Catálogo</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle className="font-display">Criar Catálogo</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do catálogo" />
                 <Input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Descrição (opcional)" />
                 <Button onClick={createCatalog} className="w-full">Criar</Button>
-              </div></DialogContent>
+              </div>
+            </DialogContent>
           </Dialog>
         </div>
+
         {catalogs.length === 0 ? (
-          <Card><CardContent className="py-16 text-center text-muted-foreground">
-            <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-30" /><p>Nenhum catálogo criado ainda.</p><p className="text-sm mt-1">Crie seu primeiro catálogo para organizar seus produtos!</p>
-          </CardContent></Card>
+          <Card className="border-border/60">
+            <CardContent className="py-16 text-center text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Nenhum catálogo criado ainda.</p>
+              <p className="text-sm mt-1">Crie seu primeiro catálogo para organizar seus produtos!</p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {catalogs.map((cat: any) => (
-              <Card key={cat.id}><CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg">{cat.name}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => deleteCatalog(cat.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-              </CardHeader><CardContent>
-                {cat.description && <p className="text-sm text-muted-foreground mb-2">{cat.description}</p>}
-                <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> itens</p>
-                <p className="text-xs text-muted-foreground mt-1">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
-              </CardContent></Card>
+              <Card key={cat.id} className="border-border/60 hover:shadow-md transition-shadow">
+                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-base font-display">{cat.name}</CardTitle>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => deleteCatalog(cat.id)} className="h-8 w-8">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {cat.description && <p className="text-sm text-muted-foreground mb-3">{cat.description}</p>}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> itens</p>
+                    <p className="text-xs text-muted-foreground">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
