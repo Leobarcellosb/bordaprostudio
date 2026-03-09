@@ -32,7 +32,7 @@ const Dashboard = () => {
       try {
         // Fetch newest designs (kits)
         const { data: kits } = await db
-          .from("kits")
+          .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
