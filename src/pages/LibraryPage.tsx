@@ -20,6 +20,7 @@ const LibraryPage = () => {
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
+  const { favoriteIds, toggle: toggleFavorite } = useFavorites();
 
   useEffect(() => {
     const fetchData = async () => {
