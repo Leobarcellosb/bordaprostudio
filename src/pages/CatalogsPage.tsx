@@ -25,7 +25,7 @@ const CatalogsPage = () => {
 
   const createCatalog = async () => {
     if (!user || !newTitle.trim()) return;
-    const { error } = await db.from("catalogs").insert({ user_id: user.id, nam: newTitle.trim() });
+    const { error } = await db.from("catalogs").insert({ user_id: user.id, name: newTitle.trim() });
     if (error) toast.error(error.message);
     else { toast.success("Catálogo criado!"); setNewTitle(""); setDialogOpen(false); fetchCatalogs(); }
   };
