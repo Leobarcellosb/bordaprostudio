@@ -8,6 +8,7 @@ const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: Library, label: "Biblioteca", path: "/library" },
   { icon: Heart, label: "Favoritos", path: "/favorites" },
+  { icon: Download, label: "Downloads", path: "/downloads" },
   { icon: TrendingUp, label: "Tendências", path: "/trends" },
   { icon: Lightbulb, label: "Ideias", path: "/product-ideas" },
   { icon: Sparkles, label: "Vendas", path: "/sales-generator" },
