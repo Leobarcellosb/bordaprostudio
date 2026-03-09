@@ -291,7 +291,7 @@ const DesignDetail = () => {
         </div>
 
         {/* Product Ideas section */}
-        {productIdeas.length > 0 && (
+        {(productIdeas.length > 0 || generatingIdeas) && (
           <div className="space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-secondary/10">
