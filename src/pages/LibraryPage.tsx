@@ -112,7 +112,7 @@ const LibraryPage = () => {
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
+                <SelectItem value="all">Todas as as categorias</SelectItem>
                 {categories.map((c: any) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
@@ -125,7 +125,7 @@ const LibraryPage = () => {
                 <SelectValue placeholder="Formato" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos formatos</SelectItem>
+                <SelectItem value="all">Todos os formatos</SelectItem>
                 {formats.map((f) => (
                   <SelectItem key={f} value={f}>
                     {f}
