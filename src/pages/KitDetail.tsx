@@ -92,10 +92,10 @@ const DesignDetail = () => {
           {/* Large preview image */}
           <div className="lg:col-span-3">
             <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden border border-border/60 shadow-sm">
-              {design.preview_image_url ? (
+              {design.cover_image ? (
                 <img
-                  src={design.preview_image_url}
-                  alt={design.title}
+                  src={design.cover_image}
+                  alt={design.name}
                   className="w-full h-full object-cover"
                 />
               ) : (
