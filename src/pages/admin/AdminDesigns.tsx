@@ -230,7 +230,7 @@ export const AdminDesigns = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">{editing ? "Editar Design" : "Novo Design"}</DialogTitle>
+            <DialogTitle className="font-display">{editing ? "Editar Matriz" : "Nova Matriz"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             {/* Basic info */}
