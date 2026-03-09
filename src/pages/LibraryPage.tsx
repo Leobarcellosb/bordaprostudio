@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
+import { useFavorites } from "@/hooks/useFavorites";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
