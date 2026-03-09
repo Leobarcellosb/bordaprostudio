@@ -222,6 +222,30 @@ export const AdminSmartUpload = () => {
 
   const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+  const uploadWithRetry = async (
+    bucket: string,
+    filePath: string,
+    blob: Blob,
+    maxRetries = 3
+  ): Promise<{ path: string } | null> => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (attempt > 0) {
+        const backoff = Math.min(2000 * Math.pow(2, attempt), 10000);
+        console.log(`Retry ${attempt}/${maxRetries} for ${filePath}, waiting ${backoff}ms...`);
+        await delay(backoff);
+      }
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, blob, { upsert: false });
+      if (!error && data?.path) return data;
+      console.warn(`Upload attempt ${attempt + 1} failed:`, error?.message);
+      if (error && !error.message?.includes("timeout") && !error.message?.includes("Timeout")) {
+        return null; // Non-timeout error, don't retry
+      }
+    }
+    return null;
+  };
+
   const importAll = async () => {
     const pending = groups.filter((g) => g.status === "pending" || g.status === "editing");
     if (pending.length === 0) return;
@@ -235,22 +259,24 @@ export const AdminSmartUpload = () => {
       updateGroup(group.id, { status: "uploading" });
 
       try {
-        // Small delay before starting each group to avoid connection saturation
-        if (completed > 0) await delay(500);
+        // Longer delay between groups to let DB connections recover
+        if (completed > 0) await delay(2000);
 
         // Step 1: Upload preview image if present
         let previewUrl: string | null = null;
         if (group.previewFile) {
           const ext = getExtension(group.previewFile.name);
           const path = `smart/${crypto.randomUUID()}.${ext}`;
-          const { error } = await supabase.storage
-            .from("design-covers")
-            .upload(path, group.previewFile.blob, { contentType: `image/${ext === "jpg" ? "jpeg" : ext}` });
-          if (!error) {
-            const { data } = supabase.storage.from("design-covers").getPublicUrl(path);
+          const uploadResult = await uploadWithRetry(
+            "design-covers",
+            path,
+            group.previewFile.blob
+          );
+          if (uploadResult) {
+            const { data } = supabase.storage.from("design-covers").getPublicUrl(uploadResult.path);
             previewUrl = data.publicUrl;
           }
-          await delay(300);
+          await delay(1000);
         }
 
         // Step 2: Find or create design
@@ -260,7 +286,7 @@ export const AdminSmartUpload = () => {
           .select("id, name")
           .ilike("name", normalizedTitle);
 
-        await delay(200);
+        await delay(500);
 
         let designId: string;
         const existingDesign = existingDesigns?.find(
@@ -271,7 +297,7 @@ export const AdminSmartUpload = () => {
           designId = existingDesign.id;
           if (previewUrl) {
             await db.from("kits").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
-            await delay(200);
+            await delay(500);
           }
         } else {
           const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
@@ -290,10 +316,10 @@ export const AdminSmartUpload = () => {
 
           if (designError) throw new Error(designError.message);
           designId = designData.id;
-          await delay(300);
+          await delay(1000);
         }
 
-        // Step 3: Upload files ONE BY ONE with delay between each
+        // Step 3: Upload files ONE BY ONE with generous delay between each
         for (let fi = 0; fi < group.files.length; fi++) {
           const file = group.files[fi];
           const fileFormat = file.format.toUpperCase();
@@ -312,26 +338,24 @@ export const AdminSmartUpload = () => {
 
           if (existingFile) continue;
 
-          await delay(200);
+          await delay(1000);
 
-          // Upload to storage
+          // Upload to storage with retry
           const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(filePath, file.blob, { upsert: false });
+          const uploadResult = await uploadWithRetry(bucket, filePath, file.blob);
 
-          if (uploadError || !uploadData?.path) {
-            console.error(`Upload failed for ${file.name}:`, uploadError);
-            continue; // Skip this file, continue with others
+          if (!uploadResult) {
+            console.error(`Upload failed permanently for ${file.name}`);
+            continue;
           }
 
-          await delay(300);
+          await delay(1000);
 
           // Insert record
-          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(uploadResult.path);
           const { error: fileRecordError } = await db.from("kit_arquivos").insert({
             design_id: designId,
             file_name: file.name,
@@ -341,12 +365,11 @@ export const AdminSmartUpload = () => {
 
           if (fileRecordError) {
             console.error(`Record insert failed for ${file.name}:`, fileRecordError);
-            continue; // Skip this file, continue with others
+            continue;
           }
 
-          await delay(200);
+          await delay(500);
         }
-
         updateGroup(group.id, { status: "done" });
         successCount++;
       } catch (err: any) {
