@@ -165,7 +165,7 @@ const Dashboard = () => {
       );
     }
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {designs.map((kit: any) => (
           <DesignCard
             key={kit.id}
@@ -183,26 +183,26 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-10 animate-fade-in">
+      <div className="space-y-12 animate-fade-in">
         {/* Welcome header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 md:p-10 lg:p-12">
           <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-display font-bold">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
-            <p className="text-muted-foreground mt-1 max-w-md">
+            <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
               Explore novos designs, descubra tendências e transforme suas ideias em produtos incríveis.
             </p>
-            <Button onClick={() => navigate("/library")} className="mt-4 gap-2">
+            <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
               Explorar Biblioteca
             </Button>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 opacity-20 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-72 h-72 opacity-15 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <Card className="border-border/60 hover:shadow-md transition-shadow group">
             <CardContent className="pt-6 flex items-center gap-4">
               <div className="p-3 rounded-xl bg-accent group-hover:bg-primary/10 transition-colors">
@@ -255,7 +255,7 @@ const Dashboard = () => {
                 <Heart className="h-3 w-3" /> {favoriteDesigns.length}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {favoriteDesigns.map((kit: any) => (
                 <DesignCard
                   key={kit.id}
@@ -286,7 +286,7 @@ const Dashboard = () => {
               {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
             </Badge>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {suggestedDesigns.map((kit: any) => (
               <Card
                 key={kit.id}
@@ -352,7 +352,7 @@ const Dashboard = () => {
               </div>
               <Badge variant="outline" className="text-xs">🔥 Trending</Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {trendingDesigns.map((kit: any, index: number) => (
                 <Card
                   key={kit.id}
