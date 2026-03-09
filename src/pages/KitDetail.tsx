@@ -22,6 +22,7 @@ const DesignDetail = () => {
   const [files, setFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
   const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
+  const [downloadCount, setDownloadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
 
