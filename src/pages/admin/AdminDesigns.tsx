@@ -124,6 +124,7 @@ export const AdminDesigns = () => {
       category_id: form.category_id || null,
       is_published: form.is_published,
       tags,
+      tags_text: form.tags,
     };
     if (editing) {
       const { error } = await db.from("designs").update(payload).eq("id", editing.id);
