@@ -146,7 +146,7 @@ export const AdminDesigns = () => {
   const deleteDesign = async (id: string) => {
     const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Design excluído!"); fetchData(); }
+    else { toast.success("Matriz excluída!"); fetchData(); }
   };
 
   const addProductIdea = async () => {
