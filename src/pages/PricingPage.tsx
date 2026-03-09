@@ -124,9 +124,13 @@ const PricingPage = () => {
           })}
         </div>
 
-        <div className="text-center text-xs text-muted-foreground space-y-1">
-          <p>Pagamento processado com segurança pela Eduzz.</p>
-          <p>Cancele quando quiser. Sem taxas de cancelamento.</p>
+        <div className="text-center text-xs text-muted-foreground space-y-2">
+          <p>Pagamento processado com segurança pela Eduzz</p>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <span>✔ Checkout seguro</span>
+            <span>✔ Garantia de 7 dias</span>
+            <span>✔ Cancelamento a qualquer momento</span>
+          </div>
         </div>
       </div>
     </AppLayout>
