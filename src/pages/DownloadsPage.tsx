@@ -33,7 +33,7 @@ const DownloadsPage = () => {
         .from("downloads")
         .select("id, kit_id, created_at, designs:kit_id(id, name, cover_image, categories(name))")
         .eq("user_id", user.id)
-        .order("downloaded_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
       const mapped = (data || []).map((d: any) => ({
         id: d.id,
