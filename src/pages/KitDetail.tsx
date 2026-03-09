@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers, Loader2 } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
@@ -24,6 +25,7 @@ const DesignDetail = () => {
   const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
   const [downloadCount, setDownloadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [generatingIdeas, setGeneratingIdeas] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +41,31 @@ const DesignDetail = () => {
       setFiles(filesData || []);
       setProductIdeas(ideasData || []);
       setDownloadCount(dlCount || 0);
+
+      // Auto-generate product ideas if none exist
+      if (designData && (!ideasData || ideasData.length === 0)) {
+        setGeneratingIdeas(true);
+        try {
+          const { data: aiData, error: aiError } = await supabase.functions.invoke("generate-product-ideas", {
+            body: {
+              designName: designData.name,
+              category: designData.categories?.name || "",
+              tags: designData.tags_text || "",
+              description: designData.description || "",
+            },
+          });
+          if (!aiError && aiData?.ideas) {
+            setProductIdeas(aiData.ideas.map((idea: any, i: number) => ({
+              id: `ai-${i}`,
+              title: idea.title,
+              description: idea.description,
+            })));
+          }
+        } catch (e) {
+          console.error("Failed to generate product ideas:", e);
+        }
+        setGeneratingIdeas(false);
+      }
 
       // Fetch related designs by same category or overlapping tags
       if (designData) {
@@ -264,7 +291,7 @@ const DesignDetail = () => {
         </div>
 
         {/* Product Ideas section */}
-        {productIdeas.length > 0 && (
+        {(productIdeas.length > 0 || generatingIdeas) && (
           <div className="space-y-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-secondary/10">
@@ -273,11 +300,25 @@ const DesignDetail = () => {
               <div>
                 <h2 className="text-xl font-display font-bold">Ideias de Produtos</h2>
                 <p className="text-sm text-muted-foreground">
-                  Veja o que você pode vender com esse design
+                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com esse design"}
                 </p>
               </div>
+              {generatingIdeas && <Loader2 className="h-5 w-5 animate-spin text-secondary ml-auto" />}
             </div>
 
+            {generatingIdeas ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="border-border/60 animate-pulse">
+                    <CardContent className="p-5 space-y-3">
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                      <div className="h-3 bg-muted rounded w-full" />
+                      <div className="h-3 bg-muted rounded w-4/5" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {productIdeas.map((idea: any) => (
                 <Card
@@ -303,19 +344,22 @@ const DesignDetail = () => {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
-                      onClick={() => navigate(`/sales-generator?design=${id}&product=${idea.id}`)}
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Gerar texto de venda
-                    </Button>
+                    {!String(idea.id).startsWith("ai-") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
+                        onClick={() => navigate(`/sales-generator?design=${id}&product=${idea.id}`)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Gerar texto de venda
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
+            )}
           </div>
         )}
 
