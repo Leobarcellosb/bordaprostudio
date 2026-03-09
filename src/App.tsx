@@ -15,6 +15,7 @@ import KitDetail from "./pages/KitDetail";
 import ProductIdeasPage from "./pages/ProductIdeasPage";
 import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
+import CatalogDetailPage from "./pages/CatalogDetailPage";
 import MockupSimulator from "./pages/MockupSimulator";
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
