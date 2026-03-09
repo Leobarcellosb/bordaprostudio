@@ -34,7 +34,7 @@ const DesignDetail = () => {
     const fetchDesign = async () => {
       if (!id) return;
       const [{ data: designData }, { data: filesData }, { data: ideasData }, { count: dlCount }] = await Promise.all([
-        db.from("kits").select("*, categories(name)").eq("id", id).single(),
+        db.from("designs").select("*, categories(name)").eq("id", id).single(),
         db.from("kit_arquivos").select("*").eq("design_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
         db.from("downloads").select("*", { count: "exact", head: true }).eq("kit_id", id),
@@ -71,7 +71,7 @@ const DesignDetail = () => {
 
       // Fetch related designs by same category or overlapping tags
       if (designData) {
-        let query = db.from("kits").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
+        let query = db.from("designs").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
         if (designData.category_id) {
           query = query.eq("category_id", designData.category_id);
         }

@@ -200,7 +200,7 @@ export const AdminBulkImport = () => {
 
         // Create kit entry
         const { data: kitData, error: kitError } = await db
-          .from("kits")
+          .from("designs")
           .insert({
             name: title,
             description: design.metadata?.description || null,

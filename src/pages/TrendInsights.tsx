@@ -44,7 +44,7 @@ const TrendInsights = () => {
 
       // Fetch all published kits
       const { data: allKits } = await db
-        .from("kits")
+        .from("designs")
         .select("*, categories(name)")
         .eq("is_published", true);
 

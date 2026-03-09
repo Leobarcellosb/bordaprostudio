@@ -20,7 +20,7 @@ const FavoritesPage = () => {
     const ids = Array.from(favoriteIds);
     if (ids.length === 0) { setDesigns([]); setLoading(false); return; }
 
-    db.from("kits")
+    db.from("designs")
       .select("*, categories(name)")
       .in("id", ids)
       .eq("is_published", true)

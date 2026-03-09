@@ -19,8 +19,7 @@ export const AdminCategories = () => {
 
   const addCategory = async () => {
     if (!newCat.trim()) return;
-    const slug = newCat.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    const { error } = await db.from("categories").insert({ name: newCat.trim(), slug });
+    const { error } = await db.from("categories").insert({ name: newCat.trim() });
     if (error) toast.error(error.message); else { toast.success("Categoria adicionada!"); setNewCat(""); fetchData(); }
   };
 
@@ -40,7 +39,7 @@ export const AdminCategories = () => {
         <div className="flex flex-wrap gap-2">{categories.map((c: any) => (
           <Card key={c.id} className="inline-flex"><CardContent className="py-2 px-3 flex items-center gap-2">
             <span className="text-sm">{c.name}</span>
-            <span className="text-xs text-muted-foreground">({c.slug})</span>
+            
             <button onClick={() => deleteCategory(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></button>
           </CardContent></Card>
         ))}</div>

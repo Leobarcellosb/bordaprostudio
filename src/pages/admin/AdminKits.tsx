@@ -31,7 +31,7 @@ export const AdminKits = () => {
 
   const fetchData = async () => {
     const [{ data: kitsData }, { data: catsData }] = await Promise.all([
-      db.from("kits").select("*, categories(name)").order("created_at", { ascending: false }),
+      db.from("designs").select("*, categories(name)").order("created_at", { ascending: false }),
       db.from("categories").select("*").order("name"),
     ]);
     setKits(kitsData || []);
@@ -120,11 +120,11 @@ export const AdminKits = () => {
     let kitId: string;
 
     if (editing) {
-      const { error } = await db.from("kits").update(payload).eq("id", editing.id);
+      const { error } = await db.from("designs").update(payload).eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
       kitId = editing.id;
     } else {
-      const { data, error } = await db.from("kits").insert(payload).select("id").single();
+      const { data, error } = await db.from("designs").insert(payload).select("id").single();
       if (error) { toast.error(error.message); return; }
       kitId = data.id;
     }
@@ -148,7 +148,7 @@ export const AdminKits = () => {
 
   const deleteKit = async (id: string) => {
     await db.from("kit_files").delete().eq("kit_id", id);
-    const { error } = await db.from("kits").delete().eq("id", id);
+    const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Design excluído!"); fetchData(); }
   };

@@ -282,7 +282,7 @@ export const AdminSmartUpload = () => {
         // Step 2: Find or create design
         const normalizedTitle = group.title.trim().toLowerCase();
         const { data: existingDesigns } = await db
-          .from("kits")
+          .from("designs")
           .select("id, name")
           .ilike("name", normalizedTitle);
 
@@ -296,13 +296,13 @@ export const AdminSmartUpload = () => {
         if (existingDesign) {
           designId = existingDesign.id;
           if (previewUrl) {
-            await db.from("kits").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
+            await db.from("designs").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
             await delay(500);
           }
         } else {
           const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
           const { data: designData, error: designError } = await db
-            .from("kits")
+            .from("designs")
             .insert({
               name: group.title,
               cover_image: previewUrl,

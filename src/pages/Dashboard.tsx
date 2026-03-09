@@ -32,7 +32,7 @@ const Dashboard = () => {
       try {
         // Fetch newest designs (kits)
         const { data: kits } = await db
-          .from("kits")
+          .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
@@ -62,7 +62,7 @@ const Dashboard = () => {
 
           if (sortedIds.length > 0) {
             const { data: topKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", sortedIds.map(([id]) => id))
               .eq("is_published", true);
@@ -88,7 +88,7 @@ const Dashboard = () => {
 
           if (trendingIds.length > 0) {
             const { data: trendingKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", trendingIds.map(([id]) => id))
               .eq("is_published", true);
@@ -103,7 +103,7 @@ const Dashboard = () => {
 
         // Suggested for today - seeded random based on date
         const { data: allKits } = await db
-          .from("kits")
+          .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true);
 
@@ -124,7 +124,7 @@ const Dashboard = () => {
           if (userFavorites && userFavorites.length > 0) {
             const favKitIds = userFavorites.map((f: any) => f.kit_id);
             const { data: favKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", favKitIds)
               .eq("is_published", true);
@@ -141,7 +141,7 @@ const Dashboard = () => {
           setStats((prev) => ({ ...prev, downloads: dlCount || 0 }));
         }
         const { count: designCount } = await db
-          .from("kits")
+          .from("designs")
           .select("*", { count: "exact", head: true })
           .eq("is_published", true);
         setStats((prev) => ({ ...prev, designs: designCount || 0 }));

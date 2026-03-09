@@ -32,11 +32,11 @@ export const AdminDashboard = () => {
 
     const fetchTopDesigns = async () => {
       // Get download counts per design
-      const { data: downloads } = await db.from("downloads").select("design_id");
+      const { data: downloads } = await db.from("downloads").select("kit_id");
       if (!downloads || downloads.length === 0) { setTopDesigns([]); return; }
       
       const countMap: Record<string, number> = {};
-      downloads.forEach((d: any) => { countMap[d.design_id] = (countMap[d.design_id] || 0) + 1; });
+      downloads.forEach((d: any) => { countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1; });
       
       const sortedIds = Object.entries(countMap)
         .sort((a, b) => b[1] - a[1])
@@ -44,11 +44,11 @@ export const AdminDashboard = () => {
       
       if (sortedIds.length === 0) { setTopDesigns([]); return; }
       
-      const { data: designs } = await db.from("designs").select("id, title, preview_image_url").in("id", sortedIds.map(([id]) => id));
+      const { data: designs } = await db.from("designs").select("id, name, cover_image").in("id", sortedIds.map(([id]) => id));
       
       const result = sortedIds.map(([id, count]) => {
         const design = (designs || []).find((d: any) => d.id === id);
-        return { id, title: design?.title || "—", preview: design?.preview_image_url, downloads: count };
+        return { id, title: design?.name || "—", preview: design?.cover_image, downloads: count };
       });
       setTopDesigns(result);
     };
