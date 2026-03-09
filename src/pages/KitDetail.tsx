@@ -153,14 +153,18 @@ const DesignDetail = () => {
             )}
 
             {/* Tags */}
-            {(design.tags || []).length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {design.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="font-normal text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+            {(() => {
+              const tags = (design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean);
+              return tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="font-normal text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null;
+            })()}
             )}
 
             {/* Available formats */}
