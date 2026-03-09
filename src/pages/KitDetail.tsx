@@ -29,14 +29,16 @@ const DesignDetail = () => {
   useEffect(() => {
     const fetchDesign = async () => {
       if (!id) return;
-      const [{ data: designData }, { data: filesData }, { data: ideasData }] = await Promise.all([
+      const [{ data: designData }, { data: filesData }, { data: ideasData }, { count: dlCount }] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("id", id).single(),
         db.from("kit_files").select("*").eq("kit_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
+        db.from("downloads").select("*", { count: "exact", head: true }).eq("kit_id", id),
       ]);
       setDesign(designData);
       setFiles(filesData || []);
       setProductIdeas(ideasData || []);
+      setDownloadCount(dlCount || 0);
 
       // Fetch related designs by same category or overlapping tags
       if (designData) {
