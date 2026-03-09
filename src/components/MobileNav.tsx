@@ -1,4 +1,4 @@
-import { Home, Library, Sparkles, BookOpen, Menu, X, Shield, LogOut, Lightbulb } from "lucide-react";
+import { Home, Library, Sparkles, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Layers } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const navItems = [
   { icon: Library, label: "Biblioteca", path: "/library" },
   { icon: Lightbulb, label: "Ideias", path: "/product-ideas" },
   { icon: Sparkles, label: "Vendas", path: "/sales-generator" },
+  { icon: Layers, label: "Mockups", path: "/mockup-simulator" },
   { icon: BookOpen, label: "Catálogos", path: "/catalogs" },
 ];
 
