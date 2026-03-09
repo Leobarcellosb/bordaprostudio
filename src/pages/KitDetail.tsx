@@ -197,7 +197,7 @@ const DesignDetail = () => {
     <AppLayout>
       <div className="text-center py-20 space-y-4">
         <p className="text-6xl">🧵</p>
-        <p className="text-muted-foreground font-medium">Design não encontrado.</p>
+        <p className="text-muted-foreground font-medium">Matriz não encontrada.</p>
         <Button variant="outline" onClick={() => navigate("/library")} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar à biblioteca
         </Button>
