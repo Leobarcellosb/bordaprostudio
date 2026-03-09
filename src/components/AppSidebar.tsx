@@ -84,9 +84,6 @@ export const AppSidebar = () => {
         <div className="px-3 py-2.5 rounded-lg bg-sidebar-accent/30">
           <p className="text-xs font-medium truncate text-sidebar-foreground/90">{profile?.name || "Usuário"}</p>
           <p className="text-[11px] text-sidebar-foreground/45 truncate">{profile?.email}</p>
-          <span className="inline-block mt-1.5 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-sidebar-primary/20 text-sidebar-primary font-semibold">
-            {profile?.plan || "basic"}
-          </span>
         </div>
         <button
           onClick={() => navigate("/settings")}
