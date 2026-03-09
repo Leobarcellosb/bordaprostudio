@@ -9,13 +9,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { designTitle, designDescription, designTags, category, productType, price } = await req.json();
+    const { designName, designDescription, designTags, category, productType, price } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const priceInfo = price ? `Preço sugerido: R$ ${price}` : "";
-    const tagsInfo = designTags?.length ? `Tags do design: ${designTags.join(", ")}` : "";
+    const priceInfo = price ? `Preço sugerido pelo usuário: R$ ${price}` : "Sugira uma faixa de preço realista para o mercado brasileiro de artesanato.";
+    const tagsInfo = designTags || "";
 
     const systemPrompt = `Você é uma especialista em marketing para bordadeiras artesanais brasileiras que vendem produtos bordados no WhatsApp e Instagram. 
 Seu tom é caloroso, feminino, profissional e persuasivo. 
@@ -24,25 +24,23 @@ Escreva sempre em português brasileiro.`;
 
     const userPrompt = `Crie textos de venda para o seguinte produto bordado:
 
-Design: ${designTitle}
+Design: ${designName}
 ${designDescription ? `Descrição do design: ${designDescription}` : ""}
 ${category ? `Categoria: ${category}` : ""}
-${tagsInfo}
+${tagsInfo ? `Tags: ${tagsInfo}` : ""}
 Tipo de produto: ${productType}
 ${priceInfo}
 
-Gere exatamente 4 itens no seguinte formato JSON (sem markdown, apenas o JSON puro):
-{
-  "title": "título do produto com nome do design e tipo (máx 60 caracteres)",
-  "description": "descrição comercial do produto com 2-3 frases destacando o bordado, qualidade e apelo emocional",
-  "whatsapp": "texto completo para WhatsApp com saudação, descrição do produto, preço se disponível, call to action. Use *negrito* para destaques. Máx 300 palavras.",
-  "instagram": "caption para Instagram com ✨ emojis estratégicos, hashtags relevantes sobre bordado no final. Máx 200 palavras."
-}`;
+Gere:
+1. Uma caption para Instagram com emojis estratégicos e hashtags relevantes sobre bordado (máx 200 palavras)
+2. Um texto de venda para WhatsApp com saudação, descrição, preço, call to action. Use *negrito* (máx 300 palavras)
+3. Uma faixa de preço sugerida (mínimo e máximo em reais)
+4. Uma ideia de produto diferenciada para vender com esse design`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -51,47 +49,63 @@ Gere exatamente 4 itens no seguinte formato JSON (sem markdown, apenas o JSON pu
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        stream: false,
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_sales_content",
+              description: "Return generated sales content for an embroidery product",
+              parameters: {
+                type: "object",
+                properties: {
+                  instagram: { type: "string", description: "Caption para Instagram com emojis e hashtags" },
+                  whatsapp: { type: "string", description: "Texto de venda para WhatsApp com *negrito* para destaques" },
+                  priceMin: { type: "number", description: "Preço mínimo sugerido em reais" },
+                  priceMax: { type: "number", description: "Preço máximo sugerido em reais" },
+                  productIdea: { type: "string", description: "Título curto da ideia de produto" },
+                  productIdeaDescription: { type: "string", description: "Descrição de 2-3 frases da ideia de produto e como vender" },
+                  title: { type: "string", description: "Título comercial do produto (máx 60 caracteres)" },
+                  description: { type: "string", description: "Descrição comercial do produto com 2-3 frases" },
+                },
+                required: ["instagram", "whatsapp", "priceMin", "priceMax", "productIdea", "productIdeaDescription", "title", "description"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "return_sales_content" } },
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Muitas requisições. Tente novamente em alguns segundos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao seu workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "Erro ao gerar texto. Tente novamente." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-
-    // Parse JSON from the AI response
-    let parsed: any = null;
-    try {
-      // Strip markdown code blocks if present
-      const clean = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      console.error("Failed to parse AI response as JSON:", content);
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (!toolCall?.function?.arguments) {
+      console.error("No tool call in response:", JSON.stringify(aiData));
       return new Response(JSON.stringify({ error: "Erro ao processar resposta da IA." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const parsed = JSON.parse(toolCall.function.arguments);
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -99,8 +113,7 @@ Gere exatamente 4 itens no seguinte formato JSON (sem markdown, apenas o JSON pu
   } catch (e) {
     console.error("generate-sales-text error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erro desconhecido" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
