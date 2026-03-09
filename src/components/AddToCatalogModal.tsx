@@ -64,7 +64,7 @@ export const AddToCatalogModal = ({ open, onOpenChange, designId }: AddToCatalog
       .insert({ catalog_id: catalogId, design_id: designId });
     if (error) {
       if (error.code === "23505") {
-        toast.info("Design já está neste catálogo");
+        toast.info("Matriz já está neste catálogo");
       } else {
         toast.error(error.message);
       }
