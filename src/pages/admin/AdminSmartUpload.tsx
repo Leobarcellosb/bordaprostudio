@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 import { db } from "@/lib/db";
-import { generateTagsFromName } from "@/lib/generateTags";
+import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
