@@ -121,7 +121,7 @@ const DesignDetail = () => {
 
   const handleDownload = async (file: any) => {
     setDownloading(file.id);
-    await trackAndDownload(file.file_url, file.file_format || file.format);
+    await trackAndDownload(file.file_url, file.format || file.file_format);
     setTimeout(() => setDownloading(null), 1500);
   };
 
