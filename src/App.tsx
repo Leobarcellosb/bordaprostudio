@@ -17,6 +17,7 @@ import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
 import MockupSimulator from "./pages/MockupSimulator";
 import ProfitCalculator from "./pages/ProfitCalculator";
+import TrendInsights from "./pages/TrendInsights";
 import Settings from "./pages/Settings";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
+            <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
