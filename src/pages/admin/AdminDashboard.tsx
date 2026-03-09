@@ -36,7 +36,7 @@ export const AdminDashboard = () => {
       if (!downloads || downloads.length === 0) { setTopDesigns([]); return; }
       
       const countMap: Record<string, number> = {};
-      downloads.forEach((d: any) => { countMap[d.design_id] = (countMap[d.design_id] || 0) + 1; });
+      downloads.forEach((d: any) => { countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1; });
       
       const sortedIds = Object.entries(countMap)
         .sort((a, b) => b[1] - a[1])
