@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 import { db } from "@/lib/db";
+import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
