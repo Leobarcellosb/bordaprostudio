@@ -87,7 +87,7 @@ const SalesGenerator = () => {
 
   const generate = async () => {
     if (!selectedDesign || !selectedProductType) {
-      toast.error("Selecione uma matrizzz e um tipo de produto.");
+      toast.error("Selecione uma matriz um tipo de produto.");
       return;
     }
     setLoading(true);
@@ -174,7 +174,7 @@ const SalesGenerator = () => {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">1</div>
-            <h2 className="font-display font-semibold">Selecionea matrizn</h2>
+            <h2 className="font-display font-semibold">Selecione a matriz</h2>
             {selectedDesign && <Badge variant="secondary" className="ml-auto text-xs">{selectedDesign.name}</Badge>}
           </div>
 

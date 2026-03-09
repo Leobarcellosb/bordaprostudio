@@ -191,7 +191,7 @@ const Dashboard = () => {
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              Explore novas matrizeees, descubra tendências e transforme suas ideias em produtos incríveis.
+              Explore novas matrizeescubra tendências e transforme suas ideias em produtos incríveis.
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
@@ -210,7 +210,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">Matrize disponíveis</p>
+                <p className="text-sm text-muted-foreground">Matrize dsissponíveis</p>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +248,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
-                  <p className="text-sm text-muted-foregroundM">Matrize que você salvou</p>
+                  <p className="text-sm text-muted-foreground">Matrizes que você salvou</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-xs gap-1">
