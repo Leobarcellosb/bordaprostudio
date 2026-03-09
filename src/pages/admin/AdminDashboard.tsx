@@ -32,7 +32,7 @@ export const AdminDashboard = () => {
 
     const fetchTopDesigns = async () => {
       // Get download counts per design
-      const { data: downloads } = await db.from("downloads").select("design_id");
+      const { data: downloads } = await db.from("downloads").select("kit_id");
       if (!downloads || downloads.length === 0) { setTopDesigns([]); return; }
       
       const countMap: Record<string, number> = {};
