@@ -5,6 +5,7 @@ import { AdminDesigns } from "./AdminDesigns";
 import { AdminCategories } from "./AdminCategories";
 import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
+import { AdminBulkImport } from "./AdminBulkImport";
 import { Shield } from "lucide-react";
 
 const AdminPanel = () => {
@@ -20,15 +21,17 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard" className="font-medium">Visão Geral</TabsTrigger>
             <TabsTrigger value="designs" className="font-medium">Designs</TabsTrigger>
+            <TabsTrigger value="import" className="font-medium">Importar</TabsTrigger>
             <TabsTrigger value="categories" className="font-medium">Categorias</TabsTrigger>
             <TabsTrigger value="users" className="font-medium">Usuários</TabsTrigger>
             <TabsTrigger value="downloads" className="font-medium">Downloads</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
+          <TabsContent value="import"><AdminBulkImport /></TabsContent>
           <TabsContent value="categories"><AdminCategories /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
