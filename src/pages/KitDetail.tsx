@@ -382,7 +382,7 @@ const DesignDetail = () => {
               <div>
                 <h2 className="text-xl font-display font-bold">Ideias de Produtos</h2>
                 <p className="text-sm text-muted-foreground">
-                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com esse design"}
+                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com essa matriz"}
                 </p>
               </div>
               {generatingIdeas && <Loader2 className="h-5 w-5 animate-spin text-secondary ml-auto" />}
