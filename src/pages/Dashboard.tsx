@@ -62,7 +62,7 @@ const Dashboard = () => {
 
           if (sortedIds.length > 0) {
             const { data: topKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", sortedIds.map(([id]) => id))
               .eq("is_published", true);
