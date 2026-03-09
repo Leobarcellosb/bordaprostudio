@@ -31,7 +31,7 @@ const AdminPanel = () => {
           </TabsList>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
-          <TabsContent value="import"><AdminBulkImport /></TabsContent>
+          <TabsContent value="import"><AdminSmartUpload /></TabsContent>
           <TabsContent value="categories"><AdminCategories /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
