@@ -90,6 +90,7 @@ const LibraryPage = () => {
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
               Explore nossa coleção curada de matrizes de bordado selecionadas por qualidade e versatilidade.
             </p>
+          </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
           <div className="absolute bottom-0 left-1/2 w-48 h-48 opacity-8 blur-3xl bg-secondary rounded-full translate-y-1/2" />
         </div>

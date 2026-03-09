@@ -56,7 +56,7 @@ const DownloadsPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold">Meus Downloads</h1>
-            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadas</p>
+            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadas<>
           </div>
           <Badge variant="outline" className="ml-auto text-xs gap-1">
             <Download className="h-3 w-3" /> {downloads.length}
@@ -79,7 +79,7 @@ const DownloadsPage = () => {
           <Card className="border-border/60 bg-muted/30">
             <CardContent className="py-16 text-center">
               <Download className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground">Você ainda não baixou neuma matriz.<iz/p>
+              <p className="text-muted-foreground">Você ainda não baixou neumnhuma matriz.<>
               <p className="text-sm text-muted-foreground/60 mt-1">Explore a biblioteca para começar!</p>
             </CardContent>
           </Card>
