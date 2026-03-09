@@ -47,37 +47,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle className="font-display flex items-center gap-2"><Crown className="h-5 w-5 text-primary" /> Planos</CardTitle>
-            <CardDescription>Seu plano atual: <Badge className="capitalize ml-1">{profile?.plan || "basic"}</Badge></CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {plans.map(plan => (
-                <Card key={plan.id} className={`relative overflow-hidden ${plan.id === profile?.plan ? "border-primary border-2 shadow-md" : "border-border/60"}`}>
-                  {plan.popular && <div className="absolute top-0 right-0 bg-secondary text-secondary-foreground text-[10px] font-bold px-3 py-0.5 rounded-bl-lg">POPULAR</div>}
-                  <CardContent className="pt-6 space-y-4">
-                    <div>
-                      <h3 className="font-display font-bold text-lg">{plan.name}</h3>
-                      <p className="text-primary font-bold text-xl mt-1">{plan.price}</p>
-                    </div>
-                    <ul className="space-y-2">{plan.features.map(f => (
-                      <li key={f} className="text-sm flex items-start gap-2">
-                        <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> {f}
-                      </li>
-                    ))}</ul>
-                    {plan.id === profile?.plan ? (
-                      <Badge variant="outline" className="w-full justify-center py-1.5">Plano atual</Badge>
-                    ) : (
-                      <Button variant="outline" size="sm" className="w-full" disabled>Em breve</Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <SubscriptionCard />
       </div>
     </AppLayout>
   );
