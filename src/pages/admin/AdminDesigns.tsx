@@ -65,7 +65,7 @@ export const AdminDesigns = () => {
       preview_image_url: design.preview_image_url || "",
       category_id: design.category_id || "",
       is_published: design.is_published,
-      tags: (design.tags || []).join(", "),
+      tags: design.tags_text || (design.tags || []).join(", "),
     });
     setNewIdea({ title: "", description: "", image_url: "" });
     await fetchDesignDetails(design.id);
