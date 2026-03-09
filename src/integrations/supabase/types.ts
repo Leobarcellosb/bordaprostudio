@@ -14,6 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      designs: {
+        Row: {
+          category_id: string | null
+          colors_count: number | null
+          cover_image: string | null
+          created_at: string | null
+          description: string | null
+          height_mm: number | null
+          id: string
+          is_published: boolean | null
+          name: string
+          stitch_count: number | null
+          tags_text: string | null
+          updated_at: string | null
+          width_mm: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          colors_count?: number | null
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          height_mm?: number | null
+          id?: string
+          is_published?: boolean | null
+          name: string
+          stitch_count?: number | null
+          tags_text?: string | null
+          updated_at?: string | null
+          width_mm?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          colors_count?: number | null
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          height_mm?: number | null
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          stitch_count?: number | null
+          tags_text?: string | null
+          updated_at?: string | null
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "designs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      downloads: {
+        Row: {
+          created_at: string | null
+          id: string
+          kit_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          kit_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          kit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "downloads_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          kit_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          kit_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          kit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kit_arquivos: {
+        Row: {
+          created_at: string | null
+          design_id: string
+          file_name: string
+          file_url: string
+          format: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          design_id: string
+          file_name: string
+          file_url: string
+          format: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          design_id?: string
+          file_name?: string
+          file_url?: string
+          format?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kit_arquivos_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_ideas: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          design_id: string | null
+          id: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          design_id?: string | null
+          id?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          design_id?: string | null
+          id?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ideas_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          plan: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+          name?: string | null
+          plan?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          plan?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
