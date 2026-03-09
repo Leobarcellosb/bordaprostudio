@@ -202,7 +202,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <Card className="border-border/60 hover:shadow-md transition-shadow group">
             <CardContent className="pt-6 flex items-center gap-4">
               <div className="p-3 rounded-xl bg-accent group-hover:bg-primary/10 transition-colors">
