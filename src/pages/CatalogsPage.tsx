@@ -78,10 +78,7 @@ const CatalogsPage = () => {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> itens</p>
-                    <p className="text-xs text-muted-foreground">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
                 </CardContent>
               </Card>
             ))}
