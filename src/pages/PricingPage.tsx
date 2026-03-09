@@ -2,8 +2,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, Star } from "lucide-react";
+import { Check, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import logoIcon from "@/assets/logo-icon.png";
 
 const CHECKOUT_MENSAL = "https://chk.eduzz.com/E0D6ON5691";
 const CHECKOUT_ANUAL = "https://chk.eduzz.com/G961DZBEW1";
