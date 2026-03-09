@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import logoHorizontal from "@/assets/logo-horizontal.png";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
