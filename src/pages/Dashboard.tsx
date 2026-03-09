@@ -334,7 +334,7 @@ const Dashboard = () => {
               Ver todos <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível ainda." />
+          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível no momento." />
         </section>
 
         {/* Trending (last 7 days) */}
