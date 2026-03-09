@@ -120,7 +120,7 @@ export const AdminKits = () => {
     let kitId: string;
 
     if (editing) {
-      const { error } = await db.from("kits").update(payload).eq("id", editing.id);
+      const { error } = await db.from("designs").update(payload).eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
       kitId = editing.id;
     } else {
