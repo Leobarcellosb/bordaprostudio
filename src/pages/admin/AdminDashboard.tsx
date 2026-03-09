@@ -44,7 +44,7 @@ export const AdminDashboard = () => {
       
       if (sortedIds.length === 0) { setTopDesigns([]); return; }
       
-      const { data: designs } = await db.from("designs").select("id, title, preview_image_url").in("id", sortedIds.map(([id]) => id));
+      const { data: designs } = await db.from("designs").select("id, name, cover_image").in("id", sortedIds.map(([id]) => id));
       
       const result = sortedIds.map(([id, count]) => {
         const design = (designs || []).find((d: any) => d.id === id);
