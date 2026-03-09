@@ -282,7 +282,7 @@ export const AdminSmartUpload = () => {
         // Step 2: Find or create design
         const normalizedTitle = group.title.trim().toLowerCase();
         const { data: existingDesigns } = await db
-          .from("kits")
+          .from("designs")
           .select("id, name")
           .ilike("name", normalizedTitle);
 
