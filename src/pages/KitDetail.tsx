@@ -287,25 +287,26 @@ const DesignDetail = () => {
                       {files.map((file: any) => {
                         const format = file.format || file.file_format;
                         return (
-                        <button
-                          key={file.id}
-                          onClick={() => handleDownload(file)}
-                          className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
-                        >
-                          <span className="text-base">{formatIcons[format] || "📄"}</span>
-                          <div className="text-left">
-                            <p className="text-xs font-bold">{format}</p>
-                            {file.size && (
-                              <p className="text-[10px] text-muted-foreground">
-                                {file.size > 1048576
-                                  ? `${(file.size / 1048576).toFixed(1)} MB`
-                                  : `${(file.size / 1024).toFixed(0)} KB`}
-                              </p>
-                            )}
-                          </div>
-                          <Download className={`h-3.5 w-3.5 text-muted-foreground group-hover/file:text-primary transition-colors ${downloading === file.id ? "animate-bounce" : ""}`} />
-                        </button>
-                      ))}
+                          <button
+                            key={file.id}
+                            onClick={() => handleDownload(file)}
+                            className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
+                          >
+                            <span className="text-base">{formatIcons[format] || "📄"}</span>
+                            <div className="text-left">
+                              <p className="text-xs font-bold">{format}</p>
+                              {file.size && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {file.size > 1048576
+                                    ? `${(file.size / 1048576).toFixed(1)} MB`
+                                    : `${(file.size / 1024).toFixed(0)} KB`}
+                                </p>
+                              )}
+                            </div>
+                            <Download className={`h-3.5 w-3.5 text-muted-foreground group-hover/file:text-primary transition-colors ${downloading === file.id ? "animate-bounce" : ""}`} />
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* Download all button */}
