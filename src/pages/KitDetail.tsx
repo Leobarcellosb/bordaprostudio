@@ -27,6 +27,8 @@ const DesignDetail = () => {
   const [loading, setLoading] = useState(true);
   const [generatingIdeas, setGeneratingIdeas] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   useEffect(() => {
     const fetchDesign = async () => {
