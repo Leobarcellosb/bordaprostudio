@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
+import { useFavorites } from "@/hooks/useFavorites";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +20,7 @@ const LibraryPage = () => {
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
+  const { favoriteIds, toggle: toggleFavorite } = useFavorites();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,6 +136,8 @@ const LibraryPage = () => {
                 category={design.categories?.name}
                 tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
                 downloadCount={downloadCounts[design.id]}
+                isFavorite={favoriteIds.has(design.id)}
+                onToggleFavorite={() => toggleFavorite(design.id)}
                 onClick={() => navigate(`/library/${design.id}`)}
               />
             ))}
