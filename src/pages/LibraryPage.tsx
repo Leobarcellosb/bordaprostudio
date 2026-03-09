@@ -17,6 +17,7 @@ const LibraryPage = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
+  const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
