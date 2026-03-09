@@ -89,6 +89,9 @@ const PricingPage = () => {
                       <span className="text-4xl font-bold text-primary">{plan.price}</span>
                       <span className="text-muted-foreground text-sm">{plan.period}</span>
                     </div>
+                    {plan.subtitle && (
+                      <p className="text-xs text-muted-foreground/80 mt-1">{plan.subtitle}</p>
+                    )}
                   </div>
 
                   <ul className="space-y-3">
