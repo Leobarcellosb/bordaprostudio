@@ -220,18 +220,25 @@ export const AdminSmartUpload = () => {
     setGroups((prev) => prev.filter((g) => g.id !== id));
   };
 
+  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   const importAll = async () => {
     const pending = groups.filter((g) => g.status === "pending" || g.status === "editing");
     if (pending.length === 0) return;
 
     setImporting(true);
     let completed = 0;
+    let successCount = 0;
+    let failCount = 0;
 
     for (const group of pending) {
       updateGroup(group.id, { status: "uploading" });
 
       try {
-        // Upload preview image if present
+        // Small delay before starting each group to avoid connection saturation
+        if (completed > 0) await delay(500);
+
+        // Step 1: Upload preview image if present
         let previewUrl: string | null = null;
         if (group.previewFile) {
           const ext = getExtension(group.previewFile.name);
@@ -243,14 +250,17 @@ export const AdminSmartUpload = () => {
             const { data } = supabase.storage.from("design-covers").getPublicUrl(path);
             previewUrl = data.publicUrl;
           }
+          await delay(300);
         }
 
-        // Check for existing design with same normalized title
+        // Step 2: Find or create design
         const normalizedTitle = group.title.trim().toLowerCase();
         const { data: existingDesigns } = await db
           .from("kits")
           .select("id, name")
           .ilike("name", normalizedTitle);
+
+        await delay(200);
 
         let designId: string;
         const existingDesign = existingDesigns?.find(
@@ -258,14 +268,12 @@ export const AdminSmartUpload = () => {
         );
 
         if (existingDesign) {
-          // Attach files to existing design
           designId = existingDesign.id;
-          // Update preview if provided and design doesn't have one
           if (previewUrl) {
             await db.from("kits").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
+            await delay(200);
           }
         } else {
-          // Create new design entry
           const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
           const { data: designData, error: designError } = await db
             .from("kits")
@@ -282,18 +290,19 @@ export const AdminSmartUpload = () => {
 
           if (designError) throw new Error(designError.message);
           designId = designData.id;
+          await delay(300);
         }
 
-        // Upload embroidery files and create file records
-        for (const file of group.files) {
+        // Step 3: Upload files ONE BY ONE with delay between each
+        for (let fi = 0; fi < group.files.length; fi++) {
+          const file = group.files[fi];
           const fileFormat = file.format.toUpperCase();
 
-          // Skip unsupported formats (except ZIP flow)
           if (fileFormat !== "ZIP" && !EMBROIDERY_EXTENSIONS.includes(fileFormat.toLowerCase())) {
             continue;
           }
 
-          // Skip if this format already exists for the design
+          // Check duplicate
           const { data: existingFile } = await db
             .from("kit_arquivos")
             .select("id")
@@ -303,6 +312,9 @@ export const AdminSmartUpload = () => {
 
           if (existingFile) continue;
 
+          await delay(200);
+
+          // Upload to storage
           const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
@@ -312,9 +324,13 @@ export const AdminSmartUpload = () => {
             .upload(filePath, file.blob, { upsert: false });
 
           if (uploadError || !uploadData?.path) {
-            throw new Error(`Falha no upload de ${file.name}: ${uploadError?.message || "sem retorno do storage"}`);
+            console.error(`Upload failed for ${file.name}:`, uploadError);
+            continue; // Skip this file, continue with others
           }
 
+          await delay(300);
+
+          // Insert record
           const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
           const { error: fileRecordError } = await db.from("kit_arquivos").insert({
             design_id: designId,
@@ -324,14 +340,19 @@ export const AdminSmartUpload = () => {
           });
 
           if (fileRecordError) {
-            throw new Error(`Falha ao salvar registro do arquivo ${file.name}: ${fileRecordError.message}`);
+            console.error(`Record insert failed for ${file.name}:`, fileRecordError);
+            continue; // Skip this file, continue with others
           }
+
+          await delay(200);
         }
 
         updateGroup(group.id, { status: "done" });
+        successCount++;
       } catch (err: any) {
         console.error(`Import error for ${group.baseName}:`, err);
         updateGroup(group.id, { status: "error", error: err.message });
+        failCount++;
       }
 
       completed++;
@@ -339,8 +360,7 @@ export const AdminSmartUpload = () => {
     }
 
     setImporting(false);
-    const doneCount = groups.filter((g) => g.status === "done").length + pending.filter((g) => groups.find((gg) => gg.id === g.id)?.status === "done").length;
-    toast.success(`Importação concluída!`);
+    toast.success(`Importação concluída: ${successCount} sucesso, ${failCount} erro${failCount !== 1 ? "s" : ""}`);
   };
 
   const reset = () => {
