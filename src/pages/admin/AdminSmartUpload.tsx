@@ -286,31 +286,46 @@ export const AdminSmartUpload = () => {
 
         // Upload embroidery files and create file records
         for (const file of group.files) {
+          const fileFormat = file.format.toUpperCase();
+
+          // Skip unsupported formats (except ZIP flow)
+          if (fileFormat !== "ZIP" && !EMBROIDERY_EXTENSIONS.includes(fileFormat.toLowerCase())) {
+            continue;
+          }
+
           // Skip if this format already exists for the design
           const { data: existingFile } = await db
             .from("kit_files")
             .select("id")
             .eq("kit_id", designId)
-            .eq("file_format", file.format)
+            .eq("file_format", fileFormat)
             .maybeSingle();
 
           if (existingFile) continue;
 
-          const filePath = `${designId}/${crypto.randomUUID()}.${file.format.toLowerCase()}`;
-          const bucket = file.format === "ZIP" ? "kit-zips" : "design-files";
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
+          const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
+
           const { error: uploadError } = await supabase.storage
             .from(bucket)
-            .upload(filePath, file.blob);
+            .upload(filePath, file.blob, { upsert: false });
 
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            await db.from("kit_files").insert({
-              kit_id: designId,
-              file_name: file.name,
-              file_url: urlData.publicUrl,
-              file_format: file.format,
-              file_size: file.blob.size,
-            });
+          if (uploadError) {
+            throw new Error(`Falha no upload de ${file.name}: ${uploadError.message}`);
+          }
+
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+          const { error: fileRecordError } = await db.from("kit_files").insert({
+            kit_id: designId,
+            file_name: file.name,
+            file_url: urlData.publicUrl,
+            file_format: fileFormat,
+            file_size: file.blob.size,
+          });
+
+          if (fileRecordError) {
+            throw new Error(`Falha ao salvar registro do arquivo ${file.name}: ${fileRecordError.message}`);
           }
         }
 
