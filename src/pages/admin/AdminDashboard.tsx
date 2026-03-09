@@ -95,7 +95,7 @@ export const AdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHeadMatrizn</TableHead>
+                  <TableHead>Matriz</TableHead>
                   <TableHead className="text-right">Downloads</TableHead>
                 </TableRow>
               </TableHeader>
