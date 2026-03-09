@@ -124,7 +124,6 @@ export const AdminDesigns = () => {
       preview_image_url: form.preview_image_url || null,
       category_id: form.category_id || null,
       is_published: form.is_published,
-      tags,
       tags_text: form.tags,
     };
     if (editing) {

@@ -207,7 +207,6 @@ export const AdminBulkImport = () => {
             cover_image: coverUrl,
             zip_url: zipUrl,
             category_id: categoryId,
-            tags,
             tags_text: tags.join(", "),
             is_published: false,
           })

@@ -113,8 +113,6 @@ export const AdminKits = () => {
       category_id: form.category_id || null,
       is_published: form.is_published,
       tags_text: form.tags_text,
-      tags,
-      zip_url: form.zip_url || null,
     };
 
     let kitId: string;
