@@ -6,8 +6,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DesignCard } from "@/components/cards/DesignCard";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
@@ -20,6 +21,7 @@ const DesignDetail = () => {
   const [design, setDesign] = useState<any>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
+  const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
 
@@ -27,13 +29,35 @@ const DesignDetail = () => {
     const fetchDesign = async () => {
       if (!id) return;
       const [{ data: designData }, { data: filesData }, { data: ideasData }] = await Promise.all([
-        db.from("designs").select("*, categories(name)").eq("id", id).single(),
-        db.from("files").select("*").eq("design_id", id),
+        db.from("kits").select("*, categories(name)").eq("id", id).single(),
+        db.from("kit_files").select("*").eq("kit_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
       ]);
       setDesign(designData);
       setFiles(filesData || []);
       setProductIdeas(ideasData || []);
+
+      // Fetch related designs by same category or overlapping tags
+      if (designData) {
+        let query = db.from("kits").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
+        if (designData.category_id) {
+          query = query.eq("category_id", designData.category_id);
+        }
+        const { data: relatedData } = await query;
+        let related = relatedData || [];
+
+        // Sort by tag overlap
+        const designTags = designData.tags || [];
+        if (designTags.length > 0) {
+          related.sort((a: any, b: any) => {
+            const aOverlap = (a.tags || []).filter((t: string) => designTags.includes(t)).length;
+            const bOverlap = (b.tags || []).filter((t: string) => designTags.includes(t)).length;
+            return bOverlap - aOverlap;
+          });
+        }
+        setRelatedDesigns(related.slice(0, 6));
+      }
+
       setLoading(false);
     };
     fetchDesign();
@@ -45,7 +69,7 @@ const DesignDetail = () => {
       await db.from("downloads").insert({ user_id: user.id, design_id: id });
     }
     window.open(file.file_url, "_blank");
-    toast.success(`Download de ${file.format} iniciado!`);
+    toast.success(`Download de ${file.file_format || file.format} iniciado!`);
     setTimeout(() => setDownloading(null), 1500);
   };
 
@@ -92,10 +116,10 @@ const DesignDetail = () => {
           {/* Large preview image */}
           <div className="lg:col-span-3">
             <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden border border-border/60 shadow-sm">
-              {design.preview_image_url ? (
+              {design.cover_image ? (
                 <img
-                  src={design.preview_image_url}
-                  alt={design.title}
+                  src={design.cover_image}
+                  alt={design.name}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -116,7 +140,7 @@ const DesignDetail = () => {
                 </Badge>
               )}
               <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
-                {design.title}
+                {design.name}
               </h1>
             </div>
 
@@ -164,9 +188,9 @@ const DesignDetail = () => {
                           onClick={() => handleDownload(file)}
                           className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
                         >
-                          <span className="text-base">{formatIcons[file.format] || "📄"}</span>
+                          <span className="text-base">{formatIcons[file.file_format] || "📄"}</span>
                           <div className="text-left">
-                            <p className="text-xs font-bold">{file.format}</p>
+                            <p className="text-xs font-bold">{file.file_format}</p>
                             {file.size && (
                               <p className="text-[10px] text-muted-foreground">
                                 {file.size > 1048576
@@ -191,7 +215,7 @@ const DesignDetail = () => {
                     {files.length === 1 && (
                       <Button onClick={() => handleDownload(files[0])} className="w-full gap-2">
                         <Download className="h-4 w-4" />
-                        Baixar {files[0].format}
+                        Baixar {files[0].file_format}
                       </Button>
                     )}
                   </>
@@ -252,6 +276,35 @@ const DesignDetail = () => {
                     </Button>
                   </CardContent>
                 </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Related Designs */}
+        {relatedDesigns.length > 0 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Layers className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-display font-bold">Designs Relacionados</h2>
+                <p className="text-sm text-muted-foreground">
+                  Outros designs que podem te interessar
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {relatedDesigns.map((related: any) => (
+                <DesignCard
+                  key={related.id}
+                  name={related.name}
+                  coverImage={related.cover_image}
+                  category={related.categories?.name}
+                  tags={related.tags || []}
+                  onClick={() => navigate(`/library/${related.id}`)}
+                />
               ))}
             </div>
           </div>
