@@ -357,6 +357,7 @@ const DesignDetail = () => {
                 </Card>
               ))}
             </div>
+            )}
           </div>
         )}
 
