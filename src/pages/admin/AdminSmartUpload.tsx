@@ -318,6 +318,30 @@ export const AdminSmartUpload = () => {
           await delay(1000);
         }
 
+        // Auto-generate preview if none was provided
+        if (!previewUrl) {
+          try {
+            const { data: existingDesignData } = await db.from("designs").select("cover_image").eq("id", designId).single();
+            if (!existingDesignData?.cover_image) {
+              const categoryName = categories.find((c: any) => c.id === group.categoryId)?.name || "";
+              supabase.functions.invoke("generate-design-preview", {
+                body: {
+                  designId,
+                  designName: group.title,
+                  category: categoryName,
+                  tags: group.tags,
+                },
+              }).then(() => {
+                console.log(`Preview generation started for ${group.title}`);
+              }).catch((err: any) => {
+                console.warn(`Preview generation failed for ${group.title}:`, err);
+              });
+            }
+          } catch (e) {
+            console.warn("Preview check failed:", e);
+          }
+        }
+
         // Step 3: Upload files ONE BY ONE with generous delay between each
         for (let fi = 0; fi < group.files.length; fi++) {
           const file = group.files[fi];
