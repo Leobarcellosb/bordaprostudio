@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { toast } from "sonner";
 import { Check, Crown } from "lucide-react";
+import { SubscriptionCard } from "@/components/SubscriptionCard";
 
 const plans = [
   { id: "basic", name: "Basic", price: "Grátis", features: ["Acesso à biblioteca", "Downloads limitados", "1 catálogo"] },
