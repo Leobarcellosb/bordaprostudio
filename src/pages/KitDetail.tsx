@@ -35,7 +35,7 @@ const DesignDetail = () => {
       if (!id) return;
       const [{ data: designData }, { data: filesData }, { data: ideasData }, { count: dlCount }] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("id", id).single(),
-        db.from("kit_files").select("*").eq("kit_id", id),
+        db.from("kit_arquivos").select("*").eq("design_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
         db.from("downloads").select("*", { count: "exact", head: true }).eq("kit_id", id),
       ]);
