@@ -255,8 +255,8 @@ const Dashboard = () => {
         <section>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-green-500/10">
-                <TrendingUp className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-xl bg-secondary/10">
+                <TrendingUp className="h-5 w-5 text-secondary" />
               </div>
               <div>
                 <h2 className="text-lg font-display font-bold">Mais Baixados</h2>
