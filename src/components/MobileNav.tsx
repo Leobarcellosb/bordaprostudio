@@ -26,20 +26,20 @@ export const MobileNav = () => {
 
   return (
     <>
-      <header className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border">
-        <div className="flex items-center gap-2">
+      <header className="md:hidden flex items-center justify-between px-5 py-4 bg-card border-b border-border">
+        <div className="flex items-center gap-2.5">
           <span className="text-lg">✂️</span>
-          <h1 className="text-sm font-display font-bold text-primary">Borda Pro Studio</h1>
+          <h1 className="text-sm font-display font-bold text-gradient-brand">Borda Pro</h1>
         </div>
-        <button onClick={() => setOpen(!open)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+        <button onClick={() => setOpen(!open)} className="p-2 rounded-xl hover:bg-muted transition-colors">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </header>
       {open && (
-        <div className="md:hidden fixed inset-0 top-[57px] bg-background z-50 p-4 space-y-1 animate-fade-in">
+        <div className="md:hidden fixed inset-0 top-[61px] bg-background z-50 p-4 space-y-1 animate-fade-in overflow-y-auto">
           {navItems.map(({ icon: Icon, label, path }) => (
             <button key={path} onClick={() => { navigate(path); setOpen(false); }}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
               )}>
               <Icon className="h-4 w-4" />{label}
@@ -47,13 +47,13 @@ export const MobileNav = () => {
           ))}
           {isAdmin && (
             <button onClick={() => { navigate("/admin"); setOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted">
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
               <Shield className="h-4 w-4" />Painel Admin
             </button>
           )}
           <div className="h-px bg-border my-2" />
           <button onClick={() => { signOut(); setOpen(false); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted">
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
             <LogOut className="h-4 w-4" />Sair
           </button>
         </div>

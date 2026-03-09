@@ -27,52 +27,60 @@ export const AppSidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-sidebar text-sidebar-foreground min-h-screen border-r border-sidebar-border">
-      <div className="p-5 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center text-lg">✂️</div>
+    <aside className="hidden md:flex flex-col w-[17rem] bg-sidebar text-sidebar-foreground min-h-screen border-r border-sidebar-border">
+      {/* Brand */}
+      <div className="px-6 py-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sidebar-primary to-secondary flex items-center justify-center text-lg shadow-lg shadow-sidebar-primary/20">
+            ✂️
+          </div>
           <div>
-            <h1 className="text-sm font-display font-bold text-sidebar-primary-foreground tracking-tight">
-              Borda Pro Studio
+            <h1 className="text-[15px] font-display font-bold text-sidebar-primary-foreground tracking-tight">
+              Borda Pro
             </h1>
-            <p className="text-[11px] text-sidebar-foreground/50">Plataforma de bordados</p>
+            <p className="text-[11px] text-sidebar-foreground/40 font-medium">Plataforma de bordados</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-3 space-y-0.5">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3 py-2">Menu</p>
-        {navItems.map(({ icon: Icon, label, path }) => (
-          <button
-            key={path}
-            onClick={() => navigate(path)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-              location.pathname === path
-                ? "bg-sidebar-accent text-sidebar-primary"
-                : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-          </button>
-        ))}
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">Menu</p>
+        {navItems.map(({ icon: Icon, label, path }) => {
+          const active = location.pathname === path;
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+                active
+                  ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
+                  : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/85"
+              )}
+            >
+              <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
+              {label}
+            </button>
+          );
+        })}
 
         {isAdmin && (
           <>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3 pt-4 pb-2">Admin</p>
+            <div className="h-px bg-sidebar-border/50 my-3 mx-3" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">Admin</p>
             {adminItems.map(({ icon: Icon, label, path }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
                   location.pathname.startsWith(path)
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
+                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/85"
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-[18px] w-[18px] shrink-0" />
                 {label}
               </button>
             ))}
@@ -80,25 +88,43 @@ export const AppSidebar = () => {
         )}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3 space-y-1">
-        <div className="px-3 py-2.5 rounded-lg bg-sidebar-accent/30">
-          <p className="text-xs font-medium truncate text-sidebar-foreground/90">{profile?.name || "Usuário"}</p>
-          <p className="text-[11px] text-sidebar-foreground/45 truncate">{profile?.email}</p>
+      {/* Footer */}
+      <div className="border-t border-sidebar-border px-3 pt-3 pb-2 space-y-2">
+        {/* User card */}
+        <div className="px-3 py-3 rounded-xl bg-sidebar-accent/40 border border-sidebar-border/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/80 to-secondary/60 flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground">
+              {(profile?.name || "U").charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium truncate text-sidebar-foreground/90">{profile?.name || "Usuário"}</p>
+              <p className="text-[11px] text-sidebar-foreground/35 truncate">{profile?.email}</p>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => navigate("/settings")}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent/50 transition-colors"
-        >
-          <Settings className="h-4 w-4" />
-          Configurações
-        </button>
-        <button
-          onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent/50 transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair
-        </button>
+
+        {/* Action buttons */}
+        <div className="flex gap-1">
+          <button
+            onClick={() => navigate("/settings")}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Configurações
+          </button>
+          <button
+            onClick={signOut}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </button>
+        </div>
+
+        {/* Brand signature */}
+        <p className="text-[10px] text-sidebar-foreground/20 text-center py-1 tracking-wide">
+          Feito com ❤️ por G Bordados
+        </p>
       </div>
     </aside>
   );

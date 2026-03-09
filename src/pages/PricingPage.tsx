@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap } from "lucide-react";
+import { Check, Crown, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const CHECKOUT_MENSAL = import.meta.env.VITE_EDUZZ_CHECKOUT_MENSAL_URL || "#";
@@ -34,7 +34,7 @@ const plans = [
     subtitle: "equivalente a R$ 49,75/mês",
     checkoutUrl: CHECKOUT_ANUAL,
     popular: true,
-    savings: "Economia de R$ 361,80 por ano",
+    savings: "Economia de R$ 361,80",
     features: [
       "Tudo do plano Mensal",
       "Prioridade em novos designs",
@@ -51,65 +51,77 @@ const PricingPage = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+      <div className="max-w-4xl mx-auto space-y-10 animate-fade-in">
+        {/* Header */}
+        <div className="text-center space-y-4 pt-4">
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 text-primary text-sm font-semibold">
             <Crown className="h-4 w-4" />
-            Planos Borda Pro Studio
+            Planos Borda Pro
           </div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold">
-            Escolha seu plano
+          <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight">
+            Invista no seu negócio <br className="hidden md:block" />
+            <span className="text-gradient-brand">de bordados</span>
           </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto">
+          <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
             Acesse toda a biblioteca de bordados, ferramentas exclusivas e atualizações constantes.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {plans.map((plan) => {
             const isCurrentPlan = subscription?.plan_code === plan.id && subscription?.status === "active";
             return (
               <Card
                 key={plan.id}
-                className={`relative overflow-hidden transition-shadow ${
+                className={`relative overflow-hidden transition-all duration-300 ${
                   plan.popular
-                    ? "border-primary border-2 shadow-lg"
-                    : "border-border/60"
+                    ? "border-primary/60 border-2 shadow-xl shadow-primary/10 scale-[1.02] md:scale-105"
+                    : "border-border/50 hover:border-primary/30 hover:shadow-lg"
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center text-xs font-bold py-1.5">
+                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-secondary text-primary-foreground text-center text-xs font-bold py-2 tracking-wide">
+                    <Star className="h-3 w-3 inline mr-1 -mt-0.5" />
                     MAIS POPULAR — {plan.savings}
                   </div>
                 )}
-                <CardContent className={`space-y-6 ${plan.popular ? "pt-12" : "pt-8"} pb-8`}>
+                <CardContent className={`space-y-7 ${plan.popular ? "pt-14" : "pt-8"} pb-8 px-7`}>
                   <div>
                     <h3 className="font-display font-bold text-xl">{plan.name}</h3>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-4xl font-bold text-primary">{plan.price}</span>
+                    <div className="flex items-baseline gap-1.5 mt-3">
+                      <span className="text-4xl font-bold text-gradient-brand">{plan.price}</span>
                       <span className="text-muted-foreground text-sm">{plan.period}</span>
                     </div>
                     {plan.subtitle && (
-                      <p className="text-xs text-muted-foreground/80 mt-1">{plan.subtitle}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1.5 italic">{plan.subtitle}</p>
                     )}
                   </div>
 
-                  <ul className="space-y-3">
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+                  <ul className="space-y-3.5">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm">
-                        <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        {f}
+                      <li key={f} className="flex items-start gap-3 text-sm">
+                        <div className="mt-0.5 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="text-foreground/80">{f}</span>
                       </li>
                     ))}
                   </ul>
 
                   {isCurrentPlan ? (
-                    <Badge variant="outline" className="w-full justify-center py-2.5 text-sm">
+                    <Badge variant="outline" className="w-full justify-center py-3 text-sm font-semibold">
                       ✓ Plano atual
                     </Badge>
                   ) : (
                     <Button
-                      className="w-full py-5 text-sm font-semibold"
+                      className={`w-full py-6 text-sm font-semibold shadow-md ${
+                        plan.popular
+                          ? "bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 shadow-primary/25"
+                          : ""
+                      }`}
                       variant={plan.popular ? "default" : "outline"}
                       onClick={() => window.open(plan.checkoutUrl, "_blank")}
                       disabled={plan.checkoutUrl === "#"}
@@ -124,13 +136,14 @@ const PricingPage = () => {
           })}
         </div>
 
-        <div className="text-center text-xs text-muted-foreground space-y-2">
-          <p>Pagamento processado com segurança pela Eduzz</p>
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
-            <span>✔ Checkout seguro</span>
-            <span>✔ Garantia de 7 dias</span>
-            <span>✔ Cancelamento a qualquer momento</span>
+        {/* Trust */}
+        <div className="text-center space-y-3 pb-4">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Checkout seguro</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Garantia de 7 dias</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Cancelamento a qualquer momento</span>
           </div>
+          <p className="text-[11px] text-muted-foreground/40">Feito com ❤️ por G Bordados</p>
         </div>
       </div>
     </AppLayout>
