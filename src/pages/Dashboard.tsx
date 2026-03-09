@@ -114,6 +114,24 @@ const Dashboard = () => {
           setSuggestedDesigns(shuffled.slice(0, 4));
         }
 
+        // Fetch user favorites
+        if (user) {
+          const { data: userFavorites } = await db
+            .from("favorites")
+            .select("kit_id")
+            .eq("user_id", user.id);
+
+          if (userFavorites && userFavorites.length > 0) {
+            const favKitIds = userFavorites.map((f: any) => f.kit_id);
+            const { data: favKits } = await db
+              .from("kits")
+              .select("*, categories(name)")
+              .in("id", favKitIds)
+              .eq("is_published", true);
+            setFavoriteDesigns(favKits || []);
+          }
+        }
+
         // Stats
         if (user) {
           const { count: dlCount } = await db
