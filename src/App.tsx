@@ -18,6 +18,7 @@ import CatalogsPage from "./pages/CatalogsPage";
 import MockupSimulator from "./pages/MockupSimulator";
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
+import FavoritesPage from "./pages/FavoritesPage";
 import Settings from "./pages/Settings";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
