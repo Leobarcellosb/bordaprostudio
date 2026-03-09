@@ -25,7 +25,7 @@ const CatalogsPage = () => {
 
   const createCatalog = async () => {
     if (!user || !newTitle.trim()) return;
-    const { error } = await db.from("catalogs").insert({ user_id: user.id, name: newTitle.trim() });
+    const { error } = await db.from("catalogs").insert({ user_id: user.id, nam: newTitle.trim() });
     if (error) toast.error(error.message);
     else { toast.success("Catálogo criado!"); setNewTitle(""); setDialogOpen(false); fetchCatalogs(); }
   };
@@ -71,7 +71,7 @@ const CatalogsPage = () => {
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex items-center gap-2">
                     <FolderOpen className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-base font-display">{cat.title}</CardTitle>
+                    <CardTitle className="text-base font-display">{cat.tnam}</CardTitle>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => deleteCatalog(cat.id)} className="h-8 w-8">
                     <Trash2 className="h-4 w-4 text-destructive" />
