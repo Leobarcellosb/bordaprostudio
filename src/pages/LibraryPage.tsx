@@ -32,7 +32,7 @@ const LibraryPage = () => {
       ] = await Promise.all([
         db.from("designs").select("*, categories(name)").eq("is_published", true).order("created_at", { ascending: false }),
         db.from("categories").select("*").order("name"),
-        db.from("kit_files").select("kit_id, file_format"),
+        db.from("kit_arquivos").select("design_id, format"),
         db.from("downloads").select("kit_id"),
       ]);
 
