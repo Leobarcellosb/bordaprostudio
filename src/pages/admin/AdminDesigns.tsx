@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/db";
+import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
