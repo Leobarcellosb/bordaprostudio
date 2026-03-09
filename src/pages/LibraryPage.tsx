@@ -81,12 +81,12 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} matrize           </Badge>
+                {designs.length} matrize      </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              BibliotecMatria de Matrize         </h1>
+              BibliotecMatria de a de Matrize</h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
-              Explore nossa coleção curada de bordados profissionaimatriz foi selecionadadadadado para qualidade e versatilidade.
+              Explore nossa coleção curada de bordados matrizes de bordado selecionadas pore e versatilidade.
             </p>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
