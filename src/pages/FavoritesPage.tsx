@@ -41,8 +41,8 @@ const FavoritesPage = () => {
             <h1 className="text-2xl md:text-3xl font-display font-bold">Meus Favoritos</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
               {designs.length > 0
-                ? `${designs.length} design${designs.length !== 1 ? "s" : ""} salvo${designs.length !== 1 ? "s" : ""}`
-                : "Seus designs favoritos aparecerão aqui"}
+                 ? `${designs.length} ${designs.length !== 1 ? "matrizes salvas" : "matriz salva"}`
+                 : "Suas matrizes favoritas aparecerão aqui"}
             </p>
           </div>
         </div>
