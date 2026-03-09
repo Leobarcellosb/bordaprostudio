@@ -223,12 +223,24 @@ const DesignDetail = () => {
               <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
                 {design.name}
               </h1>
-              {downloadCount > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 text-muted-foreground text-sm">
-                  <Download className="h-3.5 w-3.5" />
-                  {downloadCount} download{downloadCount !== 1 ? "s" : ""}
-                </div>
-              )}
+              <div className="flex items-center gap-4 mt-2">
+                {downloadCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                    <Download className="h-3.5 w-3.5" />
+                    {downloadCount} download{downloadCount !== 1 ? "s" : ""}
+                  </div>
+                )}
+                <Button
+                  variant={isFavorite ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleFavorite}
+                  disabled={togglingFavorite}
+                  className={`gap-1.5 ${isFavorite ? "bg-destructive hover:bg-destructive/90" : ""}`}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                  {isFavorite ? "Favoritado" : "Favoritar"}
+                </Button>
+              </div>
             </div>
 
             {/* Description */}
