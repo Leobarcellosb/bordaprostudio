@@ -16,7 +16,7 @@ const seededRandom = (seed: number) => {
 };
 
 const Dashboard = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, subscription } = useAuth();
   const navigate = useNavigate();
   const [newestDesigns, setNewestDesigns] = useState<any[]>([]);
   const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
