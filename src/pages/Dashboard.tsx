@@ -191,7 +191,7 @@ const Dashboard = () => {
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              Explore novas matrizes, acompanhe te tendências e transforme suas ideias em produtos incríveis.
+              Explore novas matrizes, acompanhe te e transforme suas ideias em produtos incríveis.
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
@@ -210,7 +210,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">rizes dispo diníveis</p>
+                <p className="text-sm text-muted-foreground">Matrizes disponíveis</p>
               </div>
             </CardContent>
           </Card>
@@ -312,7 +312,7 @@ const Dashboard = () => {
             ))}
             {suggestedDesigns.length === 0 && !loading && (
               <div className="col-span-4 text-center py-8 text-muted-foreground">
-                 Nenhuma matriz disponível
+                 Nenhuma matriz disponível no momento
               </div>
             )}
           </div>
@@ -331,10 +331,10 @@ const Dashboard = () => {
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
-              Ver todos <ArrowRight className="h-3.5 w-3.5" />
+              Ver todas <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível ainda." />
+          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível no momento." />
         </section>
 
         {/* Trending (last 7 days) */}
@@ -350,7 +350,7 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground">Mais baixados nos últimos 7 dias</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs">🔥 Trending</Badge>
+              <Badge variant="outline" className="text-xs">🔥 Em alta</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {trendingDesigns.map((kit: any, index: number) => (
