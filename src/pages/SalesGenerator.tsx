@@ -87,7 +87,7 @@ const SalesGenerator = () => {
 
   const generate = async () => {
     if (!selectedDesign || !selectedProductType) {
-      toast.error("Selecione uma matriz e um tipo de produto.");
+      toast.error("Selecione uma matrizz e um tipo de produto.");
       return;
     }
     setLoading(true);
@@ -152,7 +152,7 @@ const SalesGenerator = () => {
         {/* Steps indicator */}
         <div className="flex items-center gap-2 text-sm">
           {[
-            { n: 1, label: "Design" },
+            { n: 1, label: Matrizn" },
             { n: 2, label: "Produto" },
             { n: 3, label: "Resultado" },
           ].map(({ n, label }, i) => (
