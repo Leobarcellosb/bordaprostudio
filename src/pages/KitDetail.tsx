@@ -62,10 +62,15 @@ const DesignDetail = () => {
         setRelatedDesigns(related.slice(0, 6));
       }
 
+      // Track view
+      if (user && id) {
+        db.from("views").insert({ user_id: user.id, kit_id: id }).then(() => {});
+      }
+
       setLoading(false);
     };
     fetchDesign();
-  }, [id]);
+  }, [id, user]);
 
   const trackAndDownload = async (url: string, label: string) => {
     if (user && id) {
