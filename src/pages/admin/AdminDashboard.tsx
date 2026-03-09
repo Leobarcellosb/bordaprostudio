@@ -83,7 +83,7 @@ export const AdminDashboard = () => {
       </div>
 
       <div>
-        <h3 className="font-semibold mb-3">Matrizes Mais Baixadaas</h3>
+        <h3 className="font-semibold mb-3">Matrizes Mais Baixadas</h3>
         {topDesigns.length === 0 ? (
           <Card className="border-border/60">
             <CardContent className="py-10 text-center text-muted-foreground text-sm">

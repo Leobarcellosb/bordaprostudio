@@ -248,7 +248,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
-                  <p className="text-sm text-muted-foregroundM">Matrizesque você salvou</p>
+                  <p className="text-sm text-muted-foreground">Matrizes que você salvou</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-xs gap-1">
