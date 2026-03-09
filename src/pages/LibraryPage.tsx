@@ -8,48 +8,41 @@ import { useNavigate } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const formats = ["PES", "EXP", "DST", "JEF"];
+const formats = ["PES", "EXP", "DST", "JEF", "XXX"];
 
 const LibraryPage = () => {
-  const [kits, setKits] = useState<any[]>([]);
+  const [designs, setDesigns] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
-  const [tagFilter, setTagFilter] = useState("all");
-  const [kitTags, setKitTags] = useState<Record<string, any[]>>({});
-  const [kitFiles, setKitFiles] = useState<Record<string, any[]>>({});
+  const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
-      const [{ data: kitsData }, { data: catsData }, { data: tagsData }, { data: ktData }, { data: kfData }] = await Promise.all([
-        db.from("kits").select("*").eq("is_published", true).order("created_at", { ascending: false }),
+      const [{ data: designsData }, { data: catsData }, { data: filesData }] = await Promise.all([
+        db.from("designs").select("*, categories(name)").eq("is_published", true).order("created_at", { ascending: false }),
         db.from("categories").select("*").order("name"),
-        db.from("tags").select("*").order("name"),
-        db.from("kit_tags").select("*, tags(*)"),
-        db.from("kit_files").select("kit_id, file_format"),
+        db.from("files").select("design_id, format"),
       ]);
-      setKits(kitsData || []);
+      setDesigns(designsData || []);
       setCategories(catsData || []);
-      setTags(tagsData || []);
-      const tagMap: Record<string, any[]> = {};
-      (ktData || []).forEach((kt: any) => { if (!tagMap[kt.kit_id]) tagMap[kt.kit_id] = []; tagMap[kt.kit_id].push(kt.tags); });
-      setKitTags(tagMap);
-      const fileMap: Record<string, any[]> = {};
-      (kfData || []).forEach((kf: any) => { if (!fileMap[kf.kit_id]) fileMap[kf.kit_id] = []; if (!fileMap[kf.kit_id].includes(kf.file_format)) fileMap[kf.kit_id].push(kf.file_format); });
-      setKitFiles(fileMap);
+      const fileMap: Record<string, string[]> = {};
+      (filesData || []).forEach((f: any) => {
+        if (!fileMap[f.design_id]) fileMap[f.design_id] = [];
+        if (!fileMap[f.design_id].includes(f.format)) fileMap[f.design_id].push(f.format);
+      });
+      setDesignFiles(fileMap);
     };
     fetchData();
   }, []);
 
-  const filtered = kits.filter((kit: any) => {
-    const matchSearch = !search || kit.name.toLowerCase().includes(search.toLowerCase()) || kit.description?.toLowerCase().includes(search.toLowerCase());
-    const matchCat = categoryFilter === "all" || kit.category_id === categoryFilter;
-    const matchFormat = formatFilter === "all" || (kitFiles[kit.id] || []).some((f: string) => f.toUpperCase() === formatFilter);
-    const matchTag = tagFilter === "all" || (kitTags[kit.id] || []).some((t: any) => t?.id === tagFilter);
-    return matchSearch && matchCat && matchFormat && matchTag;
+  const filtered = designs.filter((d: any) => {
+    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.description?.toLowerCase().includes(search.toLowerCase()) || (d.tags || []).some((t: string) => t.toLowerCase().includes(search.toLowerCase()));
+    const matchCat = categoryFilter === "all" || d.category_id === categoryFilter;
+    const matchFormat = formatFilter === "all" || (designFiles[d.id] || []).some((f: string) => f.toUpperCase() === formatFilter);
+    return matchSearch && matchCat && matchFormat;
   });
 
   return (
@@ -74,10 +67,6 @@ const LibraryPage = () => {
               <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Formato" /></SelectTrigger>
               <SelectContent><SelectItem value="all">Todos formatos</SelectItem>{formats.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={tagFilter} onValueChange={setTagFilter}>
-              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Tag" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Todas tags</SelectItem>{tags.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -89,14 +78,14 @@ const LibraryPage = () => {
           </CardContent></Card>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((kit: any) => (
+            {filtered.map((design: any) => (
               <DesignCard
-                key={kit.id}
-                name={kit.name}
-                coverImage={kit.cover_image}
-                category={categories.find((c: any) => c.id === kit.category_id)?.name}
-                tags={(kitTags[kit.id] || []).map((t: any) => t?.name).filter(Boolean)}
-                onClick={() => navigate(`/library/${kit.id}`)}
+                key={design.id}
+                name={design.title}
+                coverImage={design.preview_image_url}
+                category={design.categories?.name}
+                tags={design.tags || []}
+                onClick={() => navigate(`/library/${design.id}`)}
               />
             ))}
           </div>

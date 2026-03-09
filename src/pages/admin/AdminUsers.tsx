@@ -18,7 +18,7 @@ export const AdminUsers = () => {
           <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email</TableHead><TableHead>Plano</TableHead><TableHead>Papel</TableHead><TableHead>Cadastro</TableHead></TableRow></TableHeader>
           <TableBody>{users.map((u: any) => (
             <TableRow key={u.id}>
-              <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
+              <TableCell className="font-medium">{u.name || "—"}</TableCell>
               <TableCell>{u.email}</TableCell>
               <TableCell><Badge variant="secondary" className="capitalize">{u.plan}</Badge></TableCell>
               <TableCell>{(u.user_roles || []).map((r: any) => <Badge key={r.role} variant={r.role === "admin" ? "default" : "outline"} className="mr-1">{r.role}</Badge>)}</TableCell>

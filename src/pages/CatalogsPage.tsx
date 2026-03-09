@@ -12,23 +12,22 @@ import { Plus, Trash2, BookOpen, FolderOpen } from "lucide-react";
 const CatalogsPage = () => {
   const { user } = useAuth();
   const [catalogs, setCatalogs] = useState<any[]>([]);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
+  const [newTitle, setNewTitle] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchCatalogs = async () => {
     if (!user) return;
-    const { data } = await db.from("catalogs").select("*, catalog_items(*, kits(*), product_ideas(*))").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await db.from("catalogs").select("*, catalog_items(*, designs(*))").eq("user_id", user.id).order("created_at", { ascending: false });
     setCatalogs(data || []);
   };
 
   useEffect(() => { fetchCatalogs(); }, [user]);
 
   const createCatalog = async () => {
-    if (!user || !newName.trim()) return;
-    const { error } = await db.from("catalogs").insert({ user_id: user.id, name: newName.trim(), description: newDesc.trim() || null });
+    if (!user || !newTitle.trim()) return;
+    const { error } = await db.from("catalogs").insert({ user_id: user.id, title: newTitle.trim() });
     if (error) toast.error(error.message);
-    else { toast.success("Catálogo criado!"); setNewName(""); setNewDesc(""); setDialogOpen(false); fetchCatalogs(); }
+    else { toast.success("Catálogo criado!"); setNewTitle(""); setDialogOpen(false); fetchCatalogs(); }
   };
 
   const deleteCatalog = async (id: string) => {
@@ -50,8 +49,7 @@ const CatalogsPage = () => {
             <DialogContent>
               <DialogHeader><DialogTitle className="font-display">Criar Catálogo</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do catálogo" />
-                <Input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Descrição (opcional)" />
+                <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Título do catálogo" />
                 <Button onClick={createCatalog} className="w-full">Criar</Button>
               </div>
             </DialogContent>
@@ -73,14 +71,13 @@ const CatalogsPage = () => {
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex items-center gap-2">
                     <FolderOpen className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-base font-display">{cat.name}</CardTitle>
+                    <CardTitle className="text-base font-display">{cat.title}</CardTitle>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => deleteCatalog(cat.id)} className="h-8 w-8">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  {cat.description && <p className="text-sm text-muted-foreground mb-3">{cat.description}</p>}
                   <div className="flex items-center justify-between">
                     <p className="text-sm"><strong>{cat.catalog_items?.length || 0}</strong> itens</p>
                     <p className="text-xs text-muted-foreground">{new Date(cat.created_at).toLocaleDateString("pt-BR")}</p>
