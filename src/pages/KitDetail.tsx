@@ -116,7 +116,7 @@ const DesignDetail = () => {
                 </Badge>
               )}
               <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
-                {design.title}
+                {design.name}
               </h1>
             </div>
 
