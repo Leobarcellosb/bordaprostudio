@@ -27,8 +27,8 @@ const DesignDetail = () => {
     const fetchDesign = async () => {
       if (!id) return;
       const [{ data: designData }, { data: filesData }, { data: ideasData }] = await Promise.all([
-        db.from("designs").select("*, categories(name)").eq("id", id).single(),
-        db.from("files").select("*").eq("design_id", id),
+        db.from("kits").select("*, categories(name)").eq("id", id).single(),
+        db.from("kit_files").select("*").eq("kit_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
       ]);
       setDesign(designData);
