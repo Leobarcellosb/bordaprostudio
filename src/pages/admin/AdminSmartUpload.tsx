@@ -245,26 +245,57 @@ export const AdminSmartUpload = () => {
           }
         }
 
-        // Create design entry
-        const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
-        const { data: designData, error: designError } = await db
-          .from("designs")
-          .insert({
-            title: group.title,
-            preview_image_url: previewUrl,
-            category_id: group.categoryId || null,
-            tags,
-            tags_text: group.tags,
-            is_published: false,
-          })
-          .select("id")
-          .single();
+        // Check for existing design with same normalized title
+        const normalizedTitle = group.title.trim().toLowerCase();
+        const { data: existingDesigns } = await db
+          .from("kits")
+          .select("id, name")
+          .ilike("name", normalizedTitle);
 
-        if (designError) throw new Error(designError.message);
-        const designId = designData.id;
+        let designId: string;
+        const existingDesign = existingDesigns?.find(
+          (d: any) => d.name.trim().toLowerCase() === normalizedTitle
+        );
 
-        // Upload embroidery files
+        if (existingDesign) {
+          // Attach files to existing design
+          designId = existingDesign.id;
+          // Update preview if provided and design doesn't have one
+          if (previewUrl) {
+            await db.from("kits").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
+          }
+        } else {
+          // Create new design entry
+          const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
+          const { data: designData, error: designError } = await db
+            .from("kits")
+            .insert({
+              name: group.title,
+              cover_image: previewUrl,
+              category_id: group.categoryId || null,
+              tags,
+              tags_text: group.tags,
+              is_published: true,
+            })
+            .select("id")
+            .single();
+
+          if (designError) throw new Error(designError.message);
+          designId = designData.id;
+        }
+
+        // Upload embroidery files and create file records
         for (const file of group.files) {
+          // Skip if this format already exists for the design
+          const { data: existingFile } = await db
+            .from("kit_files")
+            .select("id")
+            .eq("kit_id", designId)
+            .eq("file_format", file.format)
+            .maybeSingle();
+
+          if (existingFile) continue;
+
           const filePath = `${designId}/${crypto.randomUUID()}.${file.format.toLowerCase()}`;
           const bucket = file.format === "ZIP" ? "kit-zips" : "design-files";
           const { error: uploadError } = await supabase.storage
@@ -273,11 +304,12 @@ export const AdminSmartUpload = () => {
 
           if (!uploadError) {
             const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-            await db.from("files").insert({
-              design_id: designId,
-              format: file.format,
+            await db.from("kit_files").insert({
+              kit_id: designId,
+              file_name: file.name,
               file_url: urlData.publicUrl,
-              size: file.blob.size,
+              file_format: file.format,
+              file_size: file.blob.size,
             });
           }
         }
