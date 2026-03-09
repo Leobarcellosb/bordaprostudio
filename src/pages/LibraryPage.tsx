@@ -131,6 +131,7 @@ const LibraryPage = () => {
             {filtered.map((design: any) => (
               <DesignCard
                 key={design.id}
+                id={design.id}
                 name={design.name}
                 coverImage={design.cover_image}
                 category={design.categories?.name}

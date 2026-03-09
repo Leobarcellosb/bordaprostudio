@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_items: {
+        Row: {
+          catalog_id: string
+          created_at: string | null
+          design_id: string
+          id: string
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string | null
+          design_id: string
+          id?: string
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string | null
+          design_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_items_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogs: {
         Row: {
           created_at: string | null

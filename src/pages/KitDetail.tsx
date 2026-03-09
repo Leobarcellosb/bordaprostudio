@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DesignCard } from "@/components/cards/DesignCard";
+import { AddToCatalogModal } from "@/components/AddToCatalogModal";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers, Loader2, Heart } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers, Loader2, Heart, BookOpen } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
@@ -29,6 +30,7 @@ const DesignDetail = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchDesign = async () => {
@@ -240,6 +242,15 @@ const DesignDetail = () => {
                   <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
                   {isFavorite ? "Favoritado" : "Favoritar"}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCatalogModalOpen(true)}
+                  className="gap-1.5"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Adicionar ao catálogo
+                </Button>
               </div>
             </div>
 
@@ -438,6 +449,14 @@ const DesignDetail = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {id && (
+          <AddToCatalogModal
+            open={catalogModalOpen}
+            onOpenChange={setCatalogModalOpen}
+            designId={id}
+          />
         )}
       </div>
     </AppLayout>
