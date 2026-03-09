@@ -210,7 +210,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">rizMatMatMatrizes dispop>
+                <p className="text-sm text-muted-foreground">Matrizes disponíveis</p>
               </div>
             </CardContent>
           </Card>
