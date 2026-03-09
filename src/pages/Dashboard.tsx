@@ -191,7 +191,7 @@ const Dashboard = () => {
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              Explore novas matrizes, acompanhe te e transforme suas ideias em produtos incríveis.
+              Explore novas matrizes, descubra tendências e transforme seus bordados em produtos incríveis.
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
