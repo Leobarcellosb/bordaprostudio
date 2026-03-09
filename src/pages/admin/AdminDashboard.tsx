@@ -60,7 +60,7 @@ export const AdminDashboard = () => {
   const statCards = [
     { icon: Users, label: "Total Usuários", value: stats.users, color: "text-primary" },
     { icon: Download, label: "Total Downloads", value: stats.downloads, color: "text-green-600" },
-    { icon: FileText, label: "Designs Criados", value: stats.designs, color: "text-blue-600" },
+    { icon: FileText, label: "Matrizes Criadas", value: stats.designs, color: "text-blue-600" },
     { icon: TrendingUp, label: "Publicados", value: stats.published, color: "text-secondary" },
   ];
 

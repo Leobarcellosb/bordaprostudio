@@ -93,7 +93,7 @@ const MockupSimulator = () => {
 
     try {
       const link = document.createElement("a");
-      link.download = `mockup-${selectedMockup.id}-${selectedKit?.name || "design"}.png`;
+      link.download = `mockup-${selectedMockup.id}-${selectedKit?.name || "matriz"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Mockup baixado com sucesso!");

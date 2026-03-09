@@ -24,7 +24,7 @@ const AdminPanel = () => {
         <Tabs defaultValue="dashboard">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="dashboard" className="font-medium">Visão Geral</TabsTrigger>
-            <TabsTrigger value="designs" className="font-medium">Designs</TabsTrigger>
+            <TabsTrigger value="designs" className="font-medium">Matrizes</TabsTrigger>
             <TabsTrigger value="import" className="font-medium">Importar</TabsTrigger>
             <TabsTrigger value="categories" className="font-medium">Categorias</TabsTrigger>
             <TabsTrigger value="users" className="font-medium">Usuários</TabsTrigger>
