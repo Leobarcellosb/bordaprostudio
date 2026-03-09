@@ -13,7 +13,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const prompt = `Você é um especialista em produtos de bordado e artesanato.
+    const prompt = `Você é um especialista em produtos artesanais bordados no Brasil.
 
 Dado o seguinte design de bordado:
 - Nome: ${designName || "Sem nome"}
@@ -21,10 +21,24 @@ Dado o seguinte design de bordado:
 - Tags: ${tags || "nenhuma"}
 - Descrição: ${description || "Sem descrição"}
 
-Gere exatamente 5 ideias de produtos que podem ser feitos com esse bordado.
-Para cada ideia, forneça um título curto e uma descrição de 1-2 frases explicando o produto e como vender.
+Gere exatamente 5 ideias de produtos que podem ser feitos com esse bordado para venda.
 
-Considere o contexto brasileiro de bordado e artesanato.`;
+Para cada ideia forneça:
+- title: Nome do produto (ex: "Almofada bordada infantil", "Toalha de lavabo personalizada")
+- description: Descrição curta adequada para anúncio de venda online (1-2 frases)
+- price_range: Faixa de preço sugerida no formato "R$XX - R$XX" baseada em valores reais de artesanato bordado brasileiro
+- profit_example: Exemplo de lucro estimado (ex: "Custo ~R$15, venda por R$45 = lucro de R$30")
+
+Use valores realistas do mercado brasileiro de bordado artesanal:
+- Toalhas de lavabo: R$25-50
+- Toalhas de banho: R$40-80
+- Almofadas: R$35-70
+- Fraldas/babadores: R$20-45
+- Ecobags: R$25-55
+- Quadros em bastidor: R$30-60
+- Capas de agenda: R$35-65
+- Kits de bebê: R$80-200
+- Jogos americanos: R$30-60 cada`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -35,7 +49,7 @@ Considere o contexto brasileiro de bordado e artesanato.`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "Você gera ideias de produtos de bordado em formato JSON. Responda apenas com o JSON solicitado." },
+          { role: "system", content: "Você gera ideias de produtos bordados com preços realistas. Use a função fornecida para retornar os dados." },
           { role: "user", content: prompt },
         ],
         tools: [
@@ -43,7 +57,7 @@ Considere o contexto brasileiro de bordado e artesanato.`;
             type: "function",
             function: {
               name: "return_product_ideas",
-              description: "Return product ideas for an embroidery design",
+              description: "Return product ideas for an embroidery design with pricing",
               parameters: {
                 type: "object",
                 properties: {
@@ -53,9 +67,11 @@ Considere o contexto brasileiro de bordado e artesanato.`;
                       type: "object",
                       properties: {
                         title: { type: "string", description: "Nome curto do produto" },
-                        description: { type: "string", description: "Descrição de 1-2 frases do produto e dica de venda" },
+                        description: { type: "string", description: "Descrição curta para venda online" },
+                        price_range: { type: "string", description: "Faixa de preço sugerida ex: R$35 - R$60" },
+                        profit_example: { type: "string", description: "Exemplo de lucro ex: Custo ~R$15, venda por R$45 = lucro de R$30" },
                       },
-                      required: ["title", "description"],
+                      required: ["title", "description", "price_range", "profit_example"],
                       additionalProperties: false,
                     },
                   },

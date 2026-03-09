@@ -1,29 +1,65 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Layers, DollarSign, TrendingUp } from "lucide-react";
 
 interface ProductIdeaCardProps {
   name: string;
   description?: string | null;
   imageUrl?: string | null;
+  priceRange?: string | null;
+  profitExample?: string | null;
   onGenerate?: () => void;
+  onMockup?: () => void;
 }
 
-export const ProductIdeaCard = ({ name, description, imageUrl, onGenerate }: ProductIdeaCardProps) => (
-  <Card className="overflow-hidden border-border/60 hover:shadow-md transition-all duration-300">
+export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onMockup }: ProductIdeaCardProps) => (
+  <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-secondary/20 transition-all duration-300 hover:-translate-y-1">
     {imageUrl && (
-      <div className="aspect-video bg-muted overflow-hidden">
-        <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+      <div className="aspect-video bg-muted overflow-hidden relative">
+        <img src={imageUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
     )}
-    <CardContent className="p-4 space-y-3">
+    <CardContent className={`p-4 space-y-3 ${!imageUrl ? "pt-5" : ""}`}>
       <div>
-        <h3 className="font-display font-semibold">{name}</h3>
-        {description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{description}</p>}
+        <h3 className="font-display font-semibold text-sm">{name}</h3>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
+            {description}
+          </p>
+        )}
       </div>
-      <Button onClick={onGenerate} variant="outline" className="w-full gap-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
-        <Sparkles className="h-4 w-4" /> Gerar texto de venda
-      </Button>
+
+      {(priceRange || profitExample) && (
+        <div className="space-y-1.5">
+          {priceRange && (
+            <div className="flex items-center gap-1.5">
+              <DollarSign className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-xs font-medium text-foreground">{priceRange}</span>
+            </div>
+          )}
+          {profitExample && (
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-green-500 shrink-0" />
+              <span className="text-xs text-muted-foreground">{profitExample}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {onMockup && (
+          <Button onClick={onMockup} variant="outline" size="sm" className="w-full gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
+            <Layers className="h-3.5 w-3.5" /> Gerar mockup deste produto
+          </Button>
+        )}
+        {onGenerate && (
+          <Button onClick={onGenerate} variant="outline" size="sm" className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors">
+            <Sparkles className="h-3.5 w-3.5" /> Gerar texto de venda
+          </Button>
+        )}
+      </div>
     </CardContent>
   </Card>
 );

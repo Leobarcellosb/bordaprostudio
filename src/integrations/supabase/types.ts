@@ -244,6 +244,8 @@ export type Database = {
           description: string | null
           design_id: string | null
           id: string
+          price_range: string | null
+          profit_example: string | null
           title: string
           user_id: string | null
         }
@@ -252,6 +254,8 @@ export type Database = {
           description?: string | null
           design_id?: string | null
           id?: string
+          price_range?: string | null
+          profit_example?: string | null
           title: string
           user_id?: string | null
         }
@@ -260,6 +264,8 @@ export type Database = {
           description?: string | null
           design_id?: string | null
           id?: string
+          price_range?: string | null
+          profit_example?: string | null
           title?: string
           user_id?: string | null
         }
