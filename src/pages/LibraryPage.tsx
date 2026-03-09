@@ -49,7 +49,8 @@ const LibraryPage = () => {
     const query = search.toLowerCase().trim();
     const matchSearch = !query || 
       (d.name || "").toLowerCase().includes(query) || 
-      (d.description || "").toLowerCase().includes(query);
+      (d.description || "").toLowerCase().includes(query) ||
+      (d.tags_text || "").toLowerCase().includes(query);
     const matchCat = categoryFilter === "all" || d.category_id === categoryFilter;
     const matchFormat = formatFilter === "all" || (designFiles[d.id] || []).some((f: string) => f.toUpperCase() === formatFilter);
     return matchSearch && matchCat && matchFormat;
