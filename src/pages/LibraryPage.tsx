@@ -81,14 +81,14 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} matrizeeees
+                {designs.length} matrizeeeees
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              Biblioteca Matrizezezens
+              BibliotecaMatrizezezezens
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
-              Explore nossa coleção curada de bordados profissionais. Cmatriz foi selecionadadado para qualidade e versatilidade.
+              Explore nossa coleção curada de bordados profissionais.matriz foi selecionadadadado para qualidade e versatilidade.
             </p>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
@@ -140,7 +140,7 @@ const LibraryPage = () => {
         {hasActiveFilters && filtered.length > 0 && (
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "design encontrado" : "designs encontrados"}
+              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ?matriz encontrada" : "matrizes encontradados"}
             </p>
             <Button
               variant="ghost"
