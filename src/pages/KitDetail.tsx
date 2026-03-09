@@ -94,6 +94,15 @@ const DesignDetail = () => {
       // Track view
       if (user && id) {
         db.from("views").insert({ user_id: user.id, kit_id: id }).then(() => {});
+        
+        // Check if design is favorited
+        const { data: favData } = await db
+          .from("favorites")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("kit_id", id)
+          .maybeSingle();
+        setIsFavorite(!!favData);
       }
 
       setLoading(false);
