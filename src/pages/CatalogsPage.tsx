@@ -17,7 +17,7 @@ const CatalogsPage = () => {
 
   const fetchCatalogs = async () => {
     if (!user) return;
-    const { data } = await db.from("catalogs").select("*, catalog_items(*, designs(*))").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await db.from("catalogs").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setCatalogs(data || []);
   };
 
