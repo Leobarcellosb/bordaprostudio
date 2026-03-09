@@ -43,6 +43,12 @@ const LibraryPage = () => {
         if (!fileMap[f.kit_id].includes(f.file_format)) fileMap[f.kit_id].push(f.file_format);
       });
       setDesignFiles(fileMap);
+
+      const countMap: Record<string, number> = {};
+      (downloadsData || []).forEach((d: any) => {
+        countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1;
+      });
+      setDownloadCounts(countMap);
     };
     fetchData();
   }, []);
