@@ -35,7 +35,7 @@ const DesignDetail = () => {
       if (!id) return;
       const [{ data: designData }, { data: filesData }, { data: ideasData }, { count: dlCount }] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("id", id).single(),
-        db.from("kit_files").select("*").eq("kit_id", id),
+        db.from("kit_arquivos").select("*").eq("design_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
         db.from("downloads").select("*", { count: "exact", head: true }).eq("kit_id", id),
       ]);
@@ -121,7 +121,7 @@ const DesignDetail = () => {
 
   const handleDownload = async (file: any) => {
     setDownloading(file.id);
-    await trackAndDownload(file.file_url, file.file_format || file.format);
+    await trackAndDownload(file.file_url, file.format || file.file_format);
     setTimeout(() => setDownloading(null), 1500);
   };
 
@@ -279,31 +279,34 @@ const DesignDetail = () => {
               </CardHeader>
               <CardContent className="px-4 pb-4 space-y-2">
                 {files.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">Nenhum arquivo disponível.</p>
+                  <p className="text-sm text-muted-foreground py-2">No files available.</p>
                 ) : (
                   <>
                     {/* Format chips */}
                     <div className="flex flex-wrap gap-2 pb-2">
-                      {files.map((file: any) => (
-                        <button
-                          key={file.id}
-                          onClick={() => handleDownload(file)}
-                          className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
-                        >
-                          <span className="text-base">{formatIcons[file.file_format] || "📄"}</span>
-                          <div className="text-left">
-                            <p className="text-xs font-bold">{file.file_format}</p>
-                            {file.size && (
-                              <p className="text-[10px] text-muted-foreground">
-                                {file.size > 1048576
-                                  ? `${(file.size / 1048576).toFixed(1)} MB`
-                                  : `${(file.size / 1024).toFixed(0)} KB`}
-                              </p>
-                            )}
-                          </div>
-                          <Download className={`h-3.5 w-3.5 text-muted-foreground group-hover/file:text-primary transition-colors ${downloading === file.id ? "animate-bounce" : ""}`} />
-                        </button>
-                      ))}
+                      {files.map((file: any) => {
+                        const format = file.format || file.file_format;
+                        return (
+                          <button
+                            key={file.id}
+                            onClick={() => handleDownload(file)}
+                            className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
+                          >
+                            <span className="text-base">{formatIcons[format] || "📄"}</span>
+                            <div className="text-left">
+                              <p className="text-xs font-bold">{format}</p>
+                              {file.size && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {file.size > 1048576
+                                    ? `${(file.size / 1048576).toFixed(1)} MB`
+                                    : `${(file.size / 1024).toFixed(0)} KB`}
+                                </p>
+                              )}
+                            </div>
+                            <Download className={`h-3.5 w-3.5 text-muted-foreground group-hover/file:text-primary transition-colors ${downloading === file.id ? "animate-bounce" : ""}`} />
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* Download all button */}
@@ -317,7 +320,7 @@ const DesignDetail = () => {
                     {files.length === 1 && (
                       <Button onClick={() => handleDownload(files[0])} className="w-full gap-2">
                         <Download className="h-4 w-4" />
-                        Baixar {files[0].file_format}
+                        Baixar {files[0].format || files[0].file_format}
                       </Button>
                     )}
                   </>

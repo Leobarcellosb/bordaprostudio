@@ -295,10 +295,10 @@ export const AdminSmartUpload = () => {
 
           // Skip if this format already exists for the design
           const { data: existingFile } = await db
-            .from("kit_files")
+            .from("kit_arquivos")
             .select("id")
-            .eq("kit_id", designId)
-            .eq("file_format", fileFormat)
+            .eq("design_id", designId)
+            .eq("format", fileFormat)
             .maybeSingle();
 
           if (existingFile) continue;
@@ -307,21 +307,20 @@ export const AdminSmartUpload = () => {
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
 
-          const { error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(filePath, file.blob, { upsert: false });
 
-          if (uploadError) {
-            throw new Error(`Falha no upload de ${file.name}: ${uploadError.message}`);
+          if (uploadError || !uploadData?.path) {
+            throw new Error(`Falha no upload de ${file.name}: ${uploadError?.message || "sem retorno do storage"}`);
           }
 
-          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-          const { error: fileRecordError } = await db.from("kit_files").insert({
-            kit_id: designId,
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
+          const { error: fileRecordError } = await db.from("kit_arquivos").insert({
+            design_id: designId,
             file_name: file.name,
             file_url: urlData.publicUrl,
-            file_format: fileFormat,
-            file_size: file.blob.size,
+            format: fileFormat,
           });
 
           if (fileRecordError) {
