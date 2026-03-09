@@ -41,6 +41,7 @@ const App = () => (
             <Route path="/product-ideas" element={<ProtectedRoute><ProductIdeasPage /></ProtectedRoute>} />
             <Route path="/sales-generator" element={<ProtectedRoute><SalesGenerator /></ProtectedRoute>} />
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
+            <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
