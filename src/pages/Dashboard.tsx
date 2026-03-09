@@ -5,7 +5,7 @@ import { DesignCard } from "@/components/cards/DesignCard";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
-import { Library, Download, Crown, TrendingUp, Sparkles, Clock, ArrowRight, Flame } from "lucide-react";
+import { Library, Download, Crown, TrendingUp, Sparkles, Clock, ArrowRight, Flame, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
   const [trendingDesigns, setTrendingDesigns] = useState<any[]>([]);
   const [suggestedDesigns, setSuggestedDesigns] = useState<any[]>([]);
+  const [favoriteDesigns, setFavoriteDesigns] = useState<any[]>([]);
   const [stats, setStats] = useState({ designs: 0, downloads: 0, views: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -111,6 +112,24 @@ const Dashboard = () => {
           const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
           const shuffled = [...allKits].sort(() => seededRandom(seed) - 0.5);
           setSuggestedDesigns(shuffled.slice(0, 4));
+        }
+
+        // Fetch user favorites
+        if (user) {
+          const { data: userFavorites } = await db
+            .from("favorites")
+            .select("kit_id")
+            .eq("user_id", user.id);
+
+          if (userFavorites && userFavorites.length > 0) {
+            const favKitIds = userFavorites.map((f: any) => f.kit_id);
+            const { data: favKits } = await db
+              .from("kits")
+              .select("*, categories(name)")
+              .in("id", favKitIds)
+              .eq("is_published", true);
+            setFavoriteDesigns(favKits || []);
+          }
         }
 
         // Stats
@@ -218,6 +237,38 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Favorites section */}
+        {favoriteDesigns.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-destructive/10">
+                  <Heart className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
+                  <p className="text-sm text-muted-foreground">Designs que você salvou</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs gap-1">
+                <Heart className="h-3 w-3" /> {favoriteDesigns.length}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {favoriteDesigns.map((kit: any) => (
+                <DesignCard
+                  key={kit.id}
+                  name={kit.name}
+                  coverImage={kit.cover_image}
+                  category={kit.categories?.name}
+                  tags={[]}
+                  onClick={() => navigate(`/library/${kit.id}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Suggested for today */}
         <section>

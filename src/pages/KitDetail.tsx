@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Sparkles, Layers, Loader2, Heart } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
@@ -27,6 +27,8 @@ const DesignDetail = () => {
   const [loading, setLoading] = useState(true);
   const [generatingIdeas, setGeneratingIdeas] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   useEffect(() => {
     const fetchDesign = async () => {
@@ -92,6 +94,15 @@ const DesignDetail = () => {
       // Track view
       if (user && id) {
         db.from("views").insert({ user_id: user.id, kit_id: id }).then(() => {});
+        
+        // Check if design is favorited
+        const { data: favData } = await db
+          .from("favorites")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("kit_id", id)
+          .maybeSingle();
+        setIsFavorite(!!favData);
       }
 
       setLoading(false);
@@ -125,6 +136,28 @@ const DesignDetail = () => {
     for (const file of files) {
       await handleDownload(file);
     }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user || !id) {
+      toast.error("Faça login para salvar favoritos");
+      return;
+    }
+    setTogglingFavorite(true);
+    try {
+      if (isFavorite) {
+        await db.from("favorites").delete().eq("user_id", user.id).eq("kit_id", id);
+        setIsFavorite(false);
+        toast.success("Removido dos favoritos");
+      } else {
+        await db.from("favorites").insert({ user_id: user.id, kit_id: id });
+        setIsFavorite(true);
+        toast.success("Adicionado aos favoritos!");
+      }
+    } catch (e) {
+      toast.error("Erro ao atualizar favoritos");
+    }
+    setTogglingFavorite(false);
   };
 
   if (loading) return (
@@ -190,12 +223,24 @@ const DesignDetail = () => {
               <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
                 {design.name}
               </h1>
-              {downloadCount > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 text-muted-foreground text-sm">
-                  <Download className="h-3.5 w-3.5" />
-                  {downloadCount} download{downloadCount !== 1 ? "s" : ""}
-                </div>
-              )}
+              <div className="flex items-center gap-4 mt-2">
+                {downloadCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                    <Download className="h-3.5 w-3.5" />
+                    {downloadCount} download{downloadCount !== 1 ? "s" : ""}
+                  </div>
+                )}
+                <Button
+                  variant={isFavorite ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleFavorite}
+                  disabled={togglingFavorite}
+                  className={`gap-1.5 ${isFavorite ? "bg-destructive hover:bg-destructive/90" : ""}`}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                  {isFavorite ? "Favoritado" : "Favoritar"}
+                </Button>
+              </div>
             </div>
 
             {/* Description */}
