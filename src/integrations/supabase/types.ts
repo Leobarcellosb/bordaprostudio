@@ -243,6 +243,57 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          access_expires_at: string | null
+          created_at: string | null
+          email: string
+          id: string
+          last_event: string | null
+          plan_code: string
+          provider: string
+          provider_buyer_id: string | null
+          provider_invoice_id: string | null
+          provider_offer_id: string | null
+          raw_payload: Json | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          last_event?: string | null
+          plan_code?: string
+          provider?: string
+          provider_buyer_id?: string | null
+          provider_invoice_id?: string | null
+          provider_offer_id?: string | null
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_event?: string | null
+          plan_code?: string
+          provider?: string
+          provider_buyer_id?: string | null
+          provider_invoice_id?: string | null
+          provider_offer_id?: string | null
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
