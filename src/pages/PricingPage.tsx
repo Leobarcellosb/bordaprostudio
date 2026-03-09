@@ -2,8 +2,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, Star } from "lucide-react";
+import { Check, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import logoIcon from "@/assets/logo-icon.png";
 
 const CHECKOUT_MENSAL = "https://chk.eduzz.com/E0D6ON5691";
 const CHECKOUT_ANUAL = "https://chk.eduzz.com/G961DZBEW1";
@@ -55,7 +56,7 @@ const PricingPage = () => {
         {/* Header */}
         <div className="text-center space-y-4 pt-4">
           <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 text-primary text-sm font-semibold">
-            <Crown className="h-4 w-4" />
+            <img src={logoIcon} alt="Borda Pro" className="h-5 w-5 rounded" />
             Planos Borda Pro
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight">

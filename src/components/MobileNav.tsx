@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import logoIcon from "@/assets/logo-icon.png";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -28,7 +29,7 @@ export const MobileNav = () => {
     <>
       <header className="md:hidden flex items-center justify-between px-5 py-4 bg-card border-b border-border">
         <div className="flex items-center gap-2.5">
-          <span className="text-lg">✂️</span>
+          <img src={logoIcon} alt="Borda Pro" className="h-8 w-8 rounded-lg" />
           <h1 className="text-sm font-display font-bold text-gradient-brand">Borda Pro</h1>
         </div>
         <button onClick={() => setOpen(!open)} className="p-2 rounded-xl hover:bg-muted transition-colors">

@@ -2,6 +2,7 @@ import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb,
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import logoHorizontal from "@/assets/logo-horizontal.png";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -30,17 +31,7 @@ export const AppSidebar = () => {
     <aside className="hidden md:flex flex-col w-[17rem] bg-sidebar text-sidebar-foreground h-screen sticky top-0 border-r border-sidebar-border overflow-y-auto">
       {/* Brand */}
       <div className="px-6 py-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sidebar-primary to-secondary flex items-center justify-center text-lg shadow-lg shadow-sidebar-primary/20">
-            ✂️
-          </div>
-          <div>
-            <h1 className="text-[15px] font-display font-bold text-sidebar-primary-foreground tracking-tight">
-              Borda Pro
-            </h1>
-            <p className="text-[11px] text-sidebar-foreground/40 font-medium">Plataforma de matrizes de bordado</p>
-          </div>
-        </div>
+        <img src={logoHorizontal} alt="Borda Pro — Biblioteca de Matrizes" className="h-10 w-auto object-contain" />
       </div>
 
       {/* Navigation */}
