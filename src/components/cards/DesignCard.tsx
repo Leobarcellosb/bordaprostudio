@@ -8,11 +8,12 @@ interface DesignCardProps {
   coverImage?: string | null;
   category?: string;
   tags?: string[];
+  downloadCount?: number;
   onClick?: () => void;
   onQuickDownload?: () => void;
 }
 
-export const DesignCard = ({ name, coverImage, category, tags = [], onClick, onQuickDownload }: DesignCardProps) => (
+export const DesignCard = ({ name, coverImage, category, tags = [], downloadCount, onClick, onQuickDownload }: DesignCardProps) => (
   <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer" onClick={onClick}>
     <div className="aspect-square bg-muted overflow-hidden relative">
       {coverImage ? (

@@ -275,7 +275,7 @@ const Dashboard = () => {
               {mostDownloaded.map((kit: any, index: number) => (
                 <Card
                   key={kit.id}
-                  className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-lg hover:border-green-500/30 transition-all"
+                  className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-lg hover:border-secondary/30 transition-all"
                   onClick={() => navigate(`/library/${kit.id}`)}
                 >
                   <div className="relative">
@@ -293,13 +293,13 @@ const Dashboard = () => {
                     <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-foreground/80 backdrop-blur-sm flex items-center justify-center text-background font-bold text-sm">
                       {index + 1}
                     </div>
-                    <Badge className="absolute top-2 right-2 bg-green-500/90 text-white gap-1">
+                    <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground gap-1">
                       <Download className="h-3 w-3" />
                       {kit.downloadCount}
                     </Badge>
                   </div>
                   <CardContent className="p-4">
-                    <p className="font-medium text-sm truncate group-hover:text-green-600 transition-colors">
+                    <p className="font-medium text-sm truncate group-hover:text-secondary transition-colors">
                       {kit.name}
                     </p>
                     {kit.categories?.name && (
