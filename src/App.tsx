@@ -15,6 +15,7 @@ import KitDetail from "./pages/KitDetail";
 import ProductIdeasPage from "./pages/ProductIdeasPage";
 import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
+import MockupSimulator from "./pages/MockupSimulator";
 import Settings from "./pages/Settings";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
