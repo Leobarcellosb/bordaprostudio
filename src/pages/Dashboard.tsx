@@ -183,7 +183,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-10 animate-fade-in">
+      <div className="space-y-12 animate-fade-in">
         {/* Welcome header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-6 md:p-8">
           <div className="relative z-10">
