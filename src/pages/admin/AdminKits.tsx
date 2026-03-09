@@ -41,8 +41,8 @@ export const AdminKits = () => {
   useEffect(() => { fetchData(); }, []);
 
   const fetchKitFormats = async (kitId: string): Promise<string[]> => {
-    const { data } = await db.from("kit_files").select("file_format").eq("kit_id", kitId);
-    return (data || []).map((f: any) => f.file_format);
+    const { data } = await db.from("kit_arquivos").select("format").eq("design_id", kitId);
+    return (data || []).map((f: any) => f.format);
   };
 
   const openNew = () => {
@@ -127,16 +127,16 @@ export const AdminKits = () => {
       kitId = data.id;
     }
 
-    // Sync kit_files for selected formats
-    await db.from("kit_files").delete().eq("kit_id", kitId);
+    // Sync kit_arquivos for selected formats
+    await db.from("kit_arquivos").delete().eq("design_id", kitId);
     if (form.formats.length > 0) {
       const fileRows = form.formats.map(f => ({
-        kit_id: kitId,
-        file_format: f,
+        design_id: kitId,
+        format: f,
         file_name: `${form.name}.${f.toLowerCase()}`,
         file_url: form.zip_url || "",
       }));
-      await db.from("kit_files").insert(fileRows);
+      await db.from("kit_arquivos").insert(fileRows);
     }
 
     toast.success(editing ? "Design atualizado!" : "Design criado!");
@@ -145,7 +145,7 @@ export const AdminKits = () => {
   };
 
   const deleteKit = async (id: string) => {
-    await db.from("kit_files").delete().eq("kit_id", id);
+    await db.from("kit_arquivos").delete().eq("design_id", id);
     const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Design excluído!"); fetchData(); }
