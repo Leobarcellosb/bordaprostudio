@@ -137,27 +137,6 @@ export const AdminDesigns = () => {
       designId = data.id;
     }
     
-    // Auto-generate preview if none provided
-    if (!form.cover_image && designId) {
-      const categoryName = categories.find((c: any) => c.id === form.category_id)?.name || "";
-      toast.info("Gerando preview automático com IA...");
-      supabase.functions.invoke("generate-design-preview", {
-        body: {
-          designId,
-          designName: form.name,
-          category: categoryName,
-          tags: form.tags_text,
-        },
-      }).then(({ data: previewData }) => {
-        if (previewData?.cover_image) {
-          toast.success("Preview gerado com IA!");
-          fetchData();
-        }
-      }).catch((err) => {
-        console.warn("Auto-preview generation failed:", err);
-      });
-    }
-    
     toast.success(editing ? "Design atualizado!" : "Design criado! Agora adicione arquivos e ideias.");
     if (!editing) { fetchData(); return; }
     setDialogOpen(false);

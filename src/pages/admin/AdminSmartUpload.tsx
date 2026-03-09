@@ -193,6 +193,18 @@ export const AdminSmartUpload = () => {
         }
       }
 
+      // Second pass: match orphan images to groups by base name
+      const orphanImages: { baseName: string; file: File }[] = [];
+      for (const file of filesArr) {
+        const ext = getExtension(file.name);
+        if (IMAGE_EXTENSIONS.includes(ext)) {
+          const key = getBaseName(file.name).toLowerCase();
+          if (newGroups.has(key) && !newGroups.get(key)!.previewFile) {
+            newGroups.get(key)!.previewFile = { name: file.name, blob: file };
+          }
+        }
+      }
+
       const entries = Array.from(newGroups.values());
       if (entries.length === 0) {
         toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX");
