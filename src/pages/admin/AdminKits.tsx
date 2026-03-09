@@ -41,8 +41,8 @@ export const AdminKits = () => {
   useEffect(() => { fetchData(); }, []);
 
   const fetchKitFormats = async (kitId: string): Promise<string[]> => {
-    const { data } = await db.from("kit_files").select("file_format").eq("kit_id", kitId);
-    return (data || []).map((f: any) => f.file_format);
+    const { data } = await db.from("kit_arquivos").select("format").eq("design_id", kitId);
+    return (data || []).map((f: any) => f.format);
   };
 
   const openNew = () => {
