@@ -21,7 +21,7 @@ export const AdminDesigns = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ title: "", description: "", preview_image_url: "", category_id: "", is_published: false, tags: "" });
+  const [form, setForm] = useState({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "" });
   const [uploading, setUploading] = useState(false);
   const [designFiles, setDesignFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
@@ -42,7 +42,7 @@ export const AdminDesigns = () => {
 
   const fetchDesignDetails = async (designId: string) => {
     const [{ data: files }, { data: ideas }] = await Promise.all([
-      db.from("files").select("*").eq("design_id", designId),
+      db.from("kit_arquivos").select("*").eq("design_id", designId),
       db.from("product_ideas").select("*").eq("design_id", designId),
     ]);
     setDesignFiles(files || []);
@@ -51,7 +51,7 @@ export const AdminDesigns = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ title: "", description: "", preview_image_url: "", category_id: "", is_published: false, tags: "" });
+    setForm({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "" });
     setDesignFiles([]);
     setProductIdeas([]);
     setNewIdea({ title: "", description: "", image_url: "" });
@@ -61,12 +61,12 @@ export const AdminDesigns = () => {
   const openEdit = async (design: any) => {
     setEditing(design);
     setForm({
-      title: design.title,
+      name: design.name || "",
       description: design.description || "",
-      preview_image_url: design.preview_image_url || "",
+      cover_image: design.cover_image || "",
       category_id: design.category_id || "",
-      is_published: design.is_published,
-      tags: design.tags_text || (design.tags || []).join(", "),
+      is_published: design.is_published ?? false,
+      tags_text: design.tags_text || "",
     });
     setNewIdea({ title: "", description: "", image_url: "" });
     await fetchDesignDetails(design.id);
@@ -82,7 +82,7 @@ export const AdminDesigns = () => {
     const { error } = await supabase.storage.from("design-covers").upload(path, file);
     if (error) { toast.error("Erro no upload: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("design-covers").getPublicUrl(path);
-    setForm(prev => ({ ...prev, preview_image_url: urlData.publicUrl }));
+    setForm(prev => ({ ...prev, cover_image: urlData.publicUrl }));
     toast.success("Imagem enviada!");
     setUploading(false);
   };
@@ -92,16 +92,17 @@ export const AdminDesigns = () => {
     if (!file || !editing?.id) return;
     setUploading(true);
     const ext = file.name.split(".").pop()?.toUpperCase() || "";
+    const fileName = file.name;
     const path = `${editing.id}/${crypto.randomUUID()}.${ext.toLowerCase()}`;
     const { error } = await supabase.storage.from("design-files").upload(path, file);
     if (error) { toast.error("Erro no upload: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("design-files").getPublicUrl(path);
     const format = FILE_FORMATS.includes(ext) ? ext : ext;
-    const { error: dbError } = await db.from("files").insert({
+    const { error: dbError } = await db.from("kit_arquivos").insert({
       design_id: editing.id,
       format,
       file_url: urlData.publicUrl,
-      size: file.size,
+      file_name: fileName,
     });
     if (dbError) { toast.error(dbError.message); } else { toast.success(`Arquivo ${ext} enviado!`); }
     await fetchDesignDetails(editing.id);
@@ -110,21 +111,20 @@ export const AdminDesigns = () => {
   };
 
   const deleteFile = async (fileId: string) => {
-    const { error } = await db.from("files").delete().eq("id", fileId);
+    const { error } = await db.from("kit_arquivos").delete().eq("id", fileId);
     if (error) toast.error(error.message);
     else { toast.success("Arquivo removido!"); if (editing?.id) fetchDesignDetails(editing.id); }
   };
 
   const saveDesign = async () => {
-    if (!form.title.trim()) { toast.error("Título é obrigatório"); return; }
-    const tags = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+    if (!form.name.trim()) { toast.error("Título é obrigatório"); return; }
     const payload = {
-      title: form.title,
+      name: form.name,
       description: form.description || null,
-      preview_image_url: form.preview_image_url || null,
+      cover_image: form.cover_image || null,
       category_id: form.category_id || null,
       is_published: form.is_published,
-      tags_text: form.tags,
+      tags_text: form.tags_text,
     };
     if (editing) {
       const { error } = await db.from("designs").update(payload).eq("id", editing.id);
@@ -152,7 +152,6 @@ export const AdminDesigns = () => {
       design_id: editing.id,
       title: newIdea.title.trim(),
       description: newIdea.description.trim() || null,
-      image_url: newIdea.image_url.trim() || null,
     });
     if (error) toast.error(error.message);
     else { toast.success("Ideia adicionada!"); setNewIdea({ title: "", description: "", image_url: "" }); fetchDesignDetails(editing.id); }
@@ -163,6 +162,8 @@ export const AdminDesigns = () => {
     if (error) toast.error(error.message);
     else { toast.success("Ideia removida!"); if (editing?.id) fetchDesignDetails(editing.id); }
   };
+
+  const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
   return (
     <div className="space-y-4 mt-4">
@@ -187,17 +188,17 @@ export const AdminDesigns = () => {
             {designs.map((design: any) => (
               <TableRow key={design.id}>
                 <TableCell>
-                  {design.preview_image_url ? (
-                    <img src={design.preview_image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                  {design.cover_image ? (
+                    <img src={design.cover_image} alt="" className="w-10 h-10 rounded object-cover" />
                   ) : (
                     <div className="w-10 h-10 rounded bg-accent flex items-center justify-center text-sm">🧵</div>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{design.title}</TableCell>
+                <TableCell className="font-medium">{design.name}</TableCell>
                 <TableCell>{design.categories?.name || "—"}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {(design.tags || []).slice(0, 3).map((t: string) => (
+                    {tagsArray(design.tags_text).slice(0, 3).map((t: string) => (
                       <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>
                     ))}
                   </div>
@@ -233,7 +234,7 @@ export const AdminDesigns = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Título</label>
-                <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Descrição</label>
@@ -249,21 +250,21 @@ export const AdminDesigns = () => {
               <div>
                 <label className="text-sm font-medium mb-1 block">Tags (separadas por vírgula)</label>
                 <div className="flex gap-2">
-                  <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="floral, delicado, infantil" className="flex-1" />
+                  <Input value={form.tags_text} onChange={e => setForm({ ...form, tags_text: e.target.value })} placeholder="floral, delicado, infantil" className="flex-1" />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="shrink-0 gap-1.5 text-xs"
                     onClick={() => {
-                      const suggested = generateTagsFromName(form.title);
+                      const suggested = generateTagsFromName(form.name);
                       if (suggested.length === 0) { toast("Adicione um título para gerar tags"); return; }
-                      const existing = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+                      const existing = form.tags_text.split(",").map(t => t.trim()).filter(Boolean);
                       const merged = Array.from(new Set([...existing, ...suggested]));
-                      setForm({ ...form, tags: merged.join(", ") });
+                      setForm({ ...form, tags_text: merged.join(", ") });
                       toast.success(`${suggested.length} tags sugeridas adicionadas!`);
                     }}
-                    disabled={!form.title.trim()}
+                    disabled={!form.name.trim()}
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Gerar tags
                   </Button>
@@ -279,11 +280,11 @@ export const AdminDesigns = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {form.preview_image_url && (
+                {form.cover_image && (
                   <div className="relative inline-block">
-                    <img src={form.preview_image_url} alt="Preview" className="w-32 h-32 rounded-lg object-cover border border-border/60" />
+                    <img src={form.cover_image} alt="Preview" className="w-32 h-32 rounded-lg object-cover border border-border/60" />
                     <button
-                      onClick={() => setForm({ ...form, preview_image_url: "" })}
+                      onClick={() => setForm({ ...form, cover_image: "" })}
                       className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
                     >
                       <X className="h-3 w-3" />
@@ -297,8 +298,8 @@ export const AdminDesigns = () => {
                   </Button>
                   <span className="text-xs text-muted-foreground">ou</span>
                   <Input
-                    value={form.preview_image_url}
-                    onChange={e => setForm({ ...form, preview_image_url: e.target.value })}
+                    value={form.cover_image}
+                    onChange={e => setForm({ ...form, cover_image: e.target.value })}
                     placeholder="Cole uma URL..."
                     className="text-xs h-8"
                   />
@@ -321,7 +322,7 @@ export const AdminDesigns = () => {
                         <div key={file.id} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg border border-border/40">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-[10px]">{file.format}</Badge>
-                            <span className="text-xs text-muted-foreground">{file.size ? `${(file.size / 1024).toFixed(0)} KB` : ""}</span>
+                            <span className="text-xs text-muted-foreground">{file.file_name || ""}</span>
                           </div>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteFile(file.id)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -375,12 +376,6 @@ export const AdminDesigns = () => {
                       value={newIdea.description}
                       onChange={e => setNewIdea({ ...newIdea, description: e.target.value })}
                       placeholder="Descrição curta (opcional)"
-                      className="text-sm"
-                    />
-                    <Input
-                      value={newIdea.image_url}
-                      onChange={e => setNewIdea({ ...newIdea, image_url: e.target.value })}
-                      placeholder="URL da imagem (opcional)"
                       className="text-sm"
                     />
                     <Button variant="outline" size="sm" onClick={addProductIdea} className="gap-1.5">
