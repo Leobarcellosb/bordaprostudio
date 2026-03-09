@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.generate-product-ideas]
 verify_jwt = false
+
+[functions.eduzz-webhook]
+verify_jwt = false
