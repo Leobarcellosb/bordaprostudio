@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Copy, MessageCircle, Instagram } from "lucide-react";
+import { Copy, MessageCircle, Instagram, Sparkles } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 const SalesGenerator = () => {
@@ -44,44 +44,74 @@ const SalesGenerator = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-3xl animate-fade-in">
         <div>
-          <h1 className="text-3xl font-serif font-bold">Gerador de Vendas</h1>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Gerador de Vendas</h1>
           <p className="text-muted-foreground mt-1">Crie textos prontos para WhatsApp e Instagram</p>
         </div>
-        <Card><CardContent className="pt-6 space-y-4">
-          <div><label className="text-sm font-medium mb-1 block">Design</label>
-            <Select value={selectedKit} onValueChange={v => { setSelectedKit(v); setSelectedProduct(""); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione um design" /></SelectTrigger>
-              <SelectContent>{kits.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
-            </Select></div>
-          <div><label className="text-sm font-medium mb-1 block">Produto</label>
-            <Select value={selectedProduct} onValueChange={setSelectedProduct} disabled={!selectedKit}>
-              <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-              <SelectContent>{productIdeas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.product_name}</SelectItem>)}</SelectContent>
-            </Select></div>
-          <div><label className="text-sm font-medium mb-1 block">Preço personalizado (opcional)</label>
-            <Input type="number" step="0.01" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder="Ex: 49.90" /></div>
-          <Button onClick={generate} className="w-full">Gerar Textos de Venda</Button>
-        </CardContent></Card>
+
+        <Card className="border-border/60">
+          <CardContent className="pt-6 space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Design</label>
+              <Select value={selectedKit} onValueChange={v => { setSelectedKit(v); setSelectedProduct(""); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione um design" /></SelectTrigger>
+                <SelectContent>{kits.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Produto</label>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct} disabled={!selectedKit}>
+                <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+                <SelectContent>{productIdeas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.product_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Preço personalizado (opcional)</label>
+              <Input type="number" step="0.01" value={customPrice} onChange={e => setCustomPrice(e.target.value)} placeholder="Ex: 49.90" />
+            </div>
+            <Button onClick={generate} className="w-full gap-2">
+              <Sparkles className="h-4 w-4" /> Gerar Textos de Venda
+            </Button>
+          </CardContent>
+        </Card>
+
         {generated && (
           <div className="space-y-4">
-            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><MessageCircle className="h-5 w-5 text-primary" /> WhatsApp</CardTitle></CardHeader>
-              <CardContent><Textarea value={generated.whatsapp} readOnly className="min-h-[150px] resize-none" />
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => copyText(generated.whatsapp, "Texto WhatsApp")}><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
-              </CardContent></Card>
-            <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Instagram className="h-5 w-5 text-accent" /> Instagram</CardTitle></CardHeader>
-              <CardContent><Textarea value={generated.instagram} readOnly className="min-h-[150px] resize-none" />
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => copyText(generated.instagram, "Caption Instagram")}><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
-              </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-lg">Título do Produto</CardTitle></CardHeader>
-              <CardContent><p className="font-medium">{generated.title}</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => copyText(generated.title, "Título")}><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
-              </CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-lg">Descrição Curta</CardTitle></CardHeader>
-              <CardContent><p>{generated.description}</p>
-                <Button variant="outline" size="sm" className="mt-2" onClick={() => copyText(generated.description, "Descrição")}><Copy className="h-4 w-4 mr-1" /> Copiar</Button>
-              </CardContent></Card>
+            <Card className="border-border/60 border-l-4 border-l-green-500">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base font-display"><MessageCircle className="h-5 w-5 text-green-500" /> WhatsApp</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea value={generated.whatsapp} readOnly className="min-h-[150px] resize-none bg-muted/30" />
+                <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => copyText(generated.whatsapp, "Texto WhatsApp")}><Copy className="h-3.5 w-3.5" /> Copiar</Button>
+              </CardContent>
+            </Card>
+            <Card className="border-border/60 border-l-4 border-l-secondary">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base font-display"><Instagram className="h-5 w-5 text-secondary" /> Instagram</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea value={generated.instagram} readOnly className="min-h-[150px] resize-none bg-muted/30" />
+                <Button variant="outline" size="sm" className="mt-3 gap-1.5" onClick={() => copyText(generated.instagram, "Caption Instagram")}><Copy className="h-3.5 w-3.5" /> Copiar</Button>
+              </CardContent>
+            </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card className="border-border/60">
+                <CardContent className="pt-5">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Título do Produto</p>
+                  <p className="font-display font-semibold">{generated.title}</p>
+                  <Button variant="ghost" size="sm" className="mt-2 gap-1.5 text-primary" onClick={() => copyText(generated.title, "Título")}><Copy className="h-3.5 w-3.5" /> Copiar</Button>
+                </CardContent>
+              </Card>
+              <Card className="border-border/60">
+                <CardContent className="pt-5">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Descrição Curta</p>
+                  <p className="text-sm">{generated.description}</p>
+                  <Button variant="ghost" size="sm" className="mt-2 gap-1.5 text-primary" onClick={() => copyText(generated.description, "Descrição")}><Copy className="h-3.5 w-3.5" /> Copiar</Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>

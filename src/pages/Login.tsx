@@ -16,44 +16,49 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      navigate("/dashboard");
-    }
+    if (error) toast.error(error.message);
+    else navigate("/dashboard");
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="text-4xl mb-2">✂️</div>
-          <CardTitle className="text-2xl font-serif">Borda Pro Studio</CardTitle>
-          <CardDescription>Acesse sua conta</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Senha</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-            <div className="text-center text-sm space-y-2">
-              <Link to="/forgot-password" className="text-primary hover:underline block">Esqueci minha senha</Link>
-              <p className="text-muted-foreground">
-                Não tem conta? <Link to="/signup" className="text-primary hover:underline">Criar conta</Link>
-              </p>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+            <span className="text-3xl">✂️</span>
+          </div>
+          <h1 className="text-2xl font-display font-bold">Borda Pro Studio</h1>
+          <p className="text-muted-foreground text-sm mt-1">Sua plataforma de bordados profissionais</p>
+        </div>
+        <Card className="border-border/60 shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl font-display">Entrar</CardTitle>
+            <CardDescription>Acesse sua conta para continuar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Email</label>
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Senha</label>
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
+              </Button>
+              <div className="text-center text-sm space-y-2 pt-2">
+                <Link to="/forgot-password" className="text-primary hover:underline block font-medium">Esqueci minha senha</Link>
+                <p className="text-muted-foreground">
+                  Não tem conta? <Link to="/signup" className="text-primary hover:underline font-medium">Criar conta</Link>
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
