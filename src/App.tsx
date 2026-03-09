@@ -21,6 +21,7 @@ import TrendInsights from "./pages/TrendInsights";
 import FavoritesPage from "./pages/FavoritesPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import Settings from "./pages/Settings";
+import PricingPage from "./pages/PricingPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
 
