@@ -159,8 +159,8 @@ const LibraryPage = () => {
               <div className="w-20 h-20 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-5">
                 <Sparkles className="h-8 w-8 text-primary/40" />
               </div>
-              <h3 className="font-display font-semibold text-lg mb-2">Nena matriz encontradaado</h3>
- huma matriz encontradaame="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              <h3 className="font-display font-semibold text-lg mb-2">Nenhuma matriz encontrada</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.
               </p>
               {hasActiveFilters && (
