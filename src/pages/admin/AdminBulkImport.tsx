@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 import { db } from "@/lib/db";
+import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -195,7 +196,7 @@ export const AdminBulkImport = () => {
         const title = design.metadata?.title || design.folderName;
         const tags = design.metadata?.tags
           ? design.metadata.tags.split(",").map((t) => t.trim()).filter(Boolean)
-          : [];
+          : generateTagsFromName(title + " " + design.folderName);
 
         // Create kit entry
         const { data: kitData, error: kitError } = await db

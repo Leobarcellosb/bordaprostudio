@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/db";
+import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Sparkles } from "lucide-react";
 
 const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX"];
 
@@ -248,7 +249,26 @@ export const AdminDesigns = () => {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Tags (separadas por vírgula)</label>
-                <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="floral, delicado, infantil" />
+                <div className="flex gap-2">
+                  <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="floral, delicado, infantil" className="flex-1" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5 text-xs"
+                    onClick={() => {
+                      const suggested = generateTagsFromName(form.title);
+                      if (suggested.length === 0) { toast("Adicione um título para gerar tags"); return; }
+                      const existing = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+                      const merged = Array.from(new Set([...existing, ...suggested]));
+                      setForm({ ...form, tags: merged.join(", ") });
+                      toast.success(`${suggested.length} tags sugeridas adicionadas!`);
+                    }}
+                    disabled={!form.title.trim()}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" /> Gerar tags
+                  </Button>
+                </div>
               </div>
             </div>
 
