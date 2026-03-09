@@ -25,6 +25,7 @@ const DesignDetail = () => {
   const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
   const [downloadCount, setDownloadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [generatingIdeas, setGeneratingIdeas] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
