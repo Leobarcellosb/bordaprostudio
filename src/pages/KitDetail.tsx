@@ -47,11 +47,12 @@ const DesignDetail = () => {
         let related = relatedData || [];
 
         // Sort by tag overlap
-        const designTags = designData.tags || [];
+        const parseTags = (text: string) => (text || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+        const designTags = parseTags(designData.tags_text);
         if (designTags.length > 0) {
           related.sort((a: any, b: any) => {
-            const aOverlap = (a.tags || []).filter((t: string) => designTags.includes(t)).length;
-            const bOverlap = (b.tags || []).filter((t: string) => designTags.includes(t)).length;
+            const aOverlap = parseTags(a.tags_text).filter((t: string) => designTags.includes(t)).length;
+            const bOverlap = parseTags(b.tags_text).filter((t: string) => designTags.includes(t)).length;
             return bOverlap - aOverlap;
           });
         }
@@ -152,15 +153,18 @@ const DesignDetail = () => {
             )}
 
             {/* Tags */}
-            {(design.tags || []).length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {design.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="font-normal text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            {(() => {
+              const tags = (design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean);
+              return tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="font-normal text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null;
+            })()}
 
             {/* Available formats */}
             <Card className="border-border/60 bg-muted/30">
@@ -302,7 +306,7 @@ const DesignDetail = () => {
                   name={related.name}
                   coverImage={related.cover_image}
                   category={related.categories?.name}
-                  tags={related.tags || []}
+                  tags={(related.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
                   onClick={() => navigate(`/library/${related.id}`)}
                 />
               ))}

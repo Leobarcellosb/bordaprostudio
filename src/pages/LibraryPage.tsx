@@ -122,7 +122,7 @@ const LibraryPage = () => {
                 name={design.name}
                 coverImage={design.cover_image}
                 category={design.categories?.name}
-                tags={design.tags || []}
+                tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
                 onClick={() => navigate(`/library/${design.id}`)}
               />
             ))}
