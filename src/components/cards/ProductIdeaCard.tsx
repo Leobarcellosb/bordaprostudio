@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Layers, DollarSign, TrendingUp } from "lucide-react";
+import { Sparkles, Layers, DollarSign, TrendingUp, X } from "lucide-react";
 
 interface ProductIdeaCardProps {
   name: string;
@@ -11,10 +10,19 @@ interface ProductIdeaCardProps {
   profitExample?: string | null;
   onGenerate?: () => void;
   onMockup?: () => void;
+  onDelete?: () => void;
 }
 
-export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onMockup }: ProductIdeaCardProps) => (
-  <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-secondary/20 transition-all duration-300 hover:-translate-y-1">
+export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onMockup, onDelete }: ProductIdeaCardProps) => (
+  <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-secondary/20 transition-all duration-300 hover:-translate-y-1 relative">
+    {onDelete && (
+      <button
+        onClick={onDelete}
+        className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/90 backdrop-blur-sm border border-border/40 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    )}
     {imageUrl && (
       <div className="aspect-video bg-muted overflow-hidden relative">
         <img src={imageUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
