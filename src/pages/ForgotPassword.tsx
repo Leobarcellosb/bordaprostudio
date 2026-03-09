@@ -26,6 +26,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <img src={logoHorizontal} alt="Borda Pro" className="h-12 w-auto mx-auto mb-3" />
           <CardTitle className="text-2xl font-serif">Recuperar Senha</CardTitle>
           <CardDescription>Enviaremos um link para redefinir sua senha</CardDescription>
         </CardHeader>

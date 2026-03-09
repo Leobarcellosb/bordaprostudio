@@ -29,9 +29,7 @@ const Signup = () => {
     <div className="min-h-screen flex items-center justify-center gradient-hero p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20 mb-5">
-            <span className="text-3xl">✂️</span>
-          </div>
+          <img src={logoHorizontal} alt="Borda Pro" className="h-14 w-auto mx-auto mb-4" />
           <h1 className="text-3xl font-display font-bold">Criar Conta</h1>
           <p className="text-muted-foreground text-sm mt-2">Comece a usar o Borda Pro</p>
         </div>
