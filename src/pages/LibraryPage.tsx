@@ -136,6 +136,8 @@ const LibraryPage = () => {
                 category={design.categories?.name}
                 tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
                 downloadCount={downloadCounts[design.id]}
+                isFavorite={favoriteIds.has(design.id)}
+                onToggleFavorite={() => toggleFavorite(design.id)}
                 onClick={() => navigate(`/library/${design.id}`)}
               />
             ))}
