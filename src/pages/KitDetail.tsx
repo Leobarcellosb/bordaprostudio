@@ -191,7 +191,7 @@ const DesignDetail = () => {
                     {files.length === 1 && (
                       <Button onClick={() => handleDownload(files[0])} className="w-full gap-2">
                         <Download className="h-4 w-4" />
-                        Baixar {files[0].format}
+                        Baixar {files[0].file_format}
                       </Button>
                     )}
                   </>
