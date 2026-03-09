@@ -4,17 +4,16 @@ import { Sparkles } from "lucide-react";
 
 interface ProductIdeaCardProps {
   name: string;
-  description?: string;
-  previewImage?: string | null;
-  suggestedPrice?: number | null;
+  description?: string | null;
+  imageUrl?: string | null;
   onGenerate?: () => void;
 }
 
-export const ProductIdeaCard = ({ name, description, previewImage, suggestedPrice, onGenerate }: ProductIdeaCardProps) => (
+export const ProductIdeaCard = ({ name, description, imageUrl, onGenerate }: ProductIdeaCardProps) => (
   <Card className="overflow-hidden border-border/60 hover:shadow-md transition-all duration-300">
-    {previewImage && (
+    {imageUrl && (
       <div className="aspect-video bg-muted overflow-hidden">
-        <img src={previewImage} alt={name} className="w-full h-full object-cover" />
+        <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
       </div>
     )}
     <CardContent className="p-4 space-y-3">
@@ -22,9 +21,6 @@ export const ProductIdeaCard = ({ name, description, previewImage, suggestedPric
         <h3 className="font-display font-semibold">{name}</h3>
         {description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{description}</p>}
       </div>
-      {suggestedPrice != null && (
-        <p className="text-lg font-bold text-primary">R$ {Number(suggestedPrice).toFixed(2)}</p>
-      )}
       <Button onClick={onGenerate} variant="outline" className="w-full gap-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
         <Sparkles className="h-4 w-4" /> Gerar texto de venda
       </Button>
