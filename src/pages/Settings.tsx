@@ -10,11 +10,8 @@ import { toast } from "sonner";
 import { Check, Crown } from "lucide-react";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
 
-const plans = [
-  { id: "basic", name: "Basic", price: "Grátis", features: ["Acesso à biblioteca", "Downloads limitados", "1 catálogo"] },
-  { id: "pro", name: "Pro", price: "R$ 29,90/mês", features: ["Biblioteca completa", "Downloads ilimitados", "5 catálogos", "Gerador de vendas"], popular: true },
-  { id: "elite", name: "Elite", price: "R$ 59,90/mês", features: ["Tudo do Pro", "Catálogos ilimitados", "Suporte prioritário", "Novos designs primeiro"] },
-];
+
+
 
 const Settings = () => {
   const { profile, user } = useAuth();
