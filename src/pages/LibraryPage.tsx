@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, Library, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const formats = ["PES", "EXP", "DST", "JEF", "XXX"];
 
@@ -55,7 +57,6 @@ const LibraryPage = () => {
     fetchData();
   }, []);
 
-  // Simple search by title and description only
   const filtered = designs.filter((d: any) => {
     const query = search.toLowerCase().trim();
     const matchSearch = !query || 
@@ -67,29 +68,47 @@ const LibraryPage = () => {
     return matchSearch && matchCat && matchFormat;
   });
 
+  const hasActiveFilters = search || categoryFilter !== "all" || formatFilter !== "all";
+
   return (
     <AppLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Biblioteca de Designs</h1>
-          <p className="text-muted-foreground mt-1">Explore nossa coleção de bordados profissionais</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Premium header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-accent/30 to-secondary/8 p-8 md:p-10">
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Library className="h-5 w-5 text-primary" />
+              </div>
+              <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
+                {designs.length} designs
+              </Badge>
+            </div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
+              Biblioteca de Designs
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
+              Explore nossa coleção curada de bordados profissionais. Cada design foi selecionado para qualidade e versatilidade.
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
+          <div className="absolute bottom-0 left-1/2 w-48 h-48 opacity-8 blur-3xl bg-secondary rounded-full translate-y-1/2" />
         </div>
 
         {/* Search and filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
             <Input
-              placeholder="Buscar designs por título ou descrição..."
+              placeholder="Buscar por título, descrição ou tags..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-10 h-11 bg-muted/30 border-border/40 focus:bg-background focus:border-primary/30 transition-colors rounded-xl"
             />
           </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-40">
+              <SelectTrigger className="w-full sm:w-44 h-11 bg-muted/30 border-border/40 rounded-xl">
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -102,7 +121,7 @@ const LibraryPage = () => {
               </SelectContent>
             </Select>
             <Select value={formatFilter} onValueChange={setFormatFilter}>
-              <SelectTrigger className="w-full sm:w-36">
+              <SelectTrigger className="w-full sm:w-40 h-11 bg-muted/30 border-border/40 rounded-xl">
                 <SelectValue placeholder="Formato" />
               </SelectTrigger>
               <SelectContent>
@@ -117,17 +136,47 @@ const LibraryPage = () => {
           </div>
         </div>
 
-        {/* Results */}
+        {/* Results count */}
+        {hasActiveFilters && filtered.length > 0 && (
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "design encontrado" : "designs encontrados"}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
+              onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
+            >
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+
+        {/* Results grid */}
         {filtered.length === 0 ? (
-          <Card className="border-border/60">
-            <CardContent className="py-16 text-center text-muted-foreground">
-              <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Nenhum resultado encontrado.</p>
-              <p className="text-sm mt-1">Tente usar outras palavras-chave ou ajustar os filtros.</p>
+          <Card className="border-border/30 bg-gradient-to-br from-muted/30 to-accent/20 rounded-2xl">
+            <CardContent className="py-20 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-5">
+                <Sparkles className="h-8 w-8 text-primary/40" />
+              </div>
+              <h3 className="font-display font-semibold text-lg mb-2">Nenhum design encontrado</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.
+              </p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  className="mt-5 rounded-xl"
+                  onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
+                >
+                  Limpar todos os filtros
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {filtered.map((design: any) => (
               <DesignCard
                 key={design.id}
