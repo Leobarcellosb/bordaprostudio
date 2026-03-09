@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Download, Heart } from "lucide-react";
+import { Eye, Download, Heart, BookOpen } from "lucide-react";
+import { AddToCatalogModal } from "@/components/AddToCatalogModal";
 
 interface DesignCardProps {
+  id?: string;
   name: string;
   coverImage?: string | null;
   category?: string;
@@ -15,82 +18,104 @@ interface DesignCardProps {
   onQuickDownload?: () => void;
 }
 
-export const DesignCard = ({ name, coverImage, category, tags = [], downloadCount, isFavorite, onToggleFavorite, onClick, onQuickDownload }: DesignCardProps) => (
-  <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer" onClick={onClick}>
-    <div className="aspect-square bg-muted overflow-hidden relative">
-      {coverImage ? (
-        <img src={coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-      ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-accent gap-2 px-4">
-          <span className="text-4xl opacity-30">🖼️</span>
-          <span className="text-xs text-muted-foreground text-center font-medium">Preview não disponível</span>
-        </div>
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/0 to-foreground/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+export const DesignCard = ({ id, name, coverImage, category, tags = [], downloadCount, isFavorite, onToggleFavorite, onClick, onQuickDownload }: DesignCardProps) => {
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
-      {/* Favorite heart button */}
-      {onToggleFavorite && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-          className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-sm border shadow-md transition-all duration-300 z-10 ${
-            isFavorite
-              ? "bg-destructive/90 border-destructive/60 text-destructive-foreground opacity-100"
-              : "bg-background/90 border-border/40 text-muted-foreground opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 hover:bg-destructive/90 hover:text-destructive-foreground hover:border-destructive/60"
-          }`}
-        >
-          <Heart className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`} />
-        </button>
-      )}
+  return (
+    <>
+      <Card className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-primary/20 transition-all duration-300 hover:-translate-y-1.5 cursor-pointer" onClick={onClick}>
+        <div className="aspect-square bg-muted overflow-hidden relative">
+          {coverImage ? (
+            <img src={coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-accent gap-2 px-4">
+              <span className="text-4xl opacity-30">🖼️</span>
+              <span className="text-xs text-muted-foreground text-center font-medium">Preview não disponível</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/0 to-foreground/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      {/* Quick download button */}
-      {onQuickDownload && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onQuickDownload(); }}
-          className={`absolute top-2.5 ${onToggleFavorite ? "right-12" : "right-2.5"} p-2 rounded-full bg-background/90 backdrop-blur-sm border border-border/40 shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:border-primary`}
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
-      )}
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-sm border shadow-md transition-all duration-300 z-10 ${
+                isFavorite
+                  ? "bg-destructive/90 border-destructive/60 text-destructive-foreground opacity-100"
+                  : "bg-background/90 border-border/40 text-muted-foreground opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 hover:bg-destructive/90 hover:text-destructive-foreground hover:border-destructive/60"
+              }`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`} />
+            </button>
+          )}
 
-      <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-        <Button
-          size="sm"
-          className="w-full gap-1.5 shadow-lg backdrop-blur-sm"
-          onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-        >
-          <Eye className="h-3.5 w-3.5" /> Abrir design
-        </Button>
-      </div>
+          {onQuickDownload && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickDownload(); }}
+              className={`absolute top-2.5 ${onToggleFavorite ? "right-12" : "right-2.5"} p-2 rounded-full bg-background/90 backdrop-blur-sm border border-border/40 shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:border-primary`}
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-      {category && (
-        <div className="absolute top-2.5 left-2.5">
-          <Badge className="bg-background/90 backdrop-blur-sm text-foreground border-border/40 text-[10px] font-semibold shadow-sm">
-            {category}
-          </Badge>
-        </div>
-      )}
-    </div>
-    <CardContent className="p-3.5 space-y-2">
-      <div className="flex items-start justify-between gap-1">
-        <h3 className="font-display font-semibold text-sm leading-tight line-clamp-2">{name}</h3>
-        {downloadCount != null && downloadCount > 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0 mt-0.5">
-            <Download className="h-3 w-3" /> {downloadCount}
-          </span>
-        )}
-      </div>
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {tags.slice(0, 3).map(tag => (
-            <Badge key={tag} variant="outline" className="text-[10px] font-normal px-1.5 py-0 h-5 text-muted-foreground border-border/50">
-              {tag}
-            </Badge>
-          ))}
-          {tags.length > 3 && (
-            <span className="text-[10px] text-muted-foreground/60 self-center">+{tags.length - 3}</span>
+          {/* Add to catalog button */}
+          {id && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setCatalogModalOpen(true); }}
+              className="absolute bottom-2.5 right-2.5 p-2 rounded-full bg-background/90 backdrop-blur-sm border border-border/40 shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 hover:bg-secondary hover:text-secondary-foreground hover:border-secondary z-10"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+            <Button
+              size="sm"
+              className="w-full gap-1.5 shadow-lg backdrop-blur-sm"
+              onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+            >
+              <Eye className="h-3.5 w-3.5" /> Abrir design
+            </Button>
+          </div>
+
+          {category && (
+            <div className="absolute top-2.5 left-2.5">
+              <Badge className="bg-background/90 backdrop-blur-sm text-foreground border-border/40 text-[10px] font-semibold shadow-sm">
+                {category}
+              </Badge>
+            </div>
           )}
         </div>
+        <CardContent className="p-3.5 space-y-2">
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="font-display font-semibold text-sm leading-tight line-clamp-2">{name}</h3>
+            {downloadCount != null && downloadCount > 0 && (
+              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                <Download className="h-3 w-3" /> {downloadCount}
+              </span>
+            )}
+          </div>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 3).map(tag => (
+                <Badge key={tag} variant="outline" className="text-[10px] font-normal px-1.5 py-0 h-5 text-muted-foreground border-border/50">
+                  {tag}
+                </Badge>
+              ))}
+              {tags.length > 3 && (
+                <span className="text-[10px] text-muted-foreground/60 self-center">+{tags.length - 3}</span>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {id && (
+        <AddToCatalogModal
+          open={catalogModalOpen}
+          onOpenChange={setCatalogModalOpen}
+          designId={id}
+        />
       )}
-    </CardContent>
-  </Card>
-);
+    </>
+  );
+};

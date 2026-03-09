@@ -242,6 +242,15 @@ const DesignDetail = () => {
                   <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
                   {isFavorite ? "Favoritado" : "Favoritar"}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCatalogModalOpen(true)}
+                  className="gap-1.5"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Adicionar ao catálogo
+                </Button>
               </div>
             </div>
 
