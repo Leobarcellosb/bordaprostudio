@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -25,17 +25,17 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center gradient-hero p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20 mb-5">
             <span className="text-3xl">✂️</span>
           </div>
-          <h1 className="text-2xl font-display font-bold">Criar Conta</h1>
-          <p className="text-muted-foreground text-sm mt-1">Comece a usar o Borda Pro Studio</p>
+          <h1 className="text-3xl font-display font-bold">Criar Conta</h1>
+          <p className="text-muted-foreground text-sm mt-2">Comece a usar o Borda Pro</p>
         </div>
-        <Card className="border-border/60 shadow-lg">
-          <CardContent className="pt-6">
+        <Card className="border-border/40 shadow-xl shadow-primary/5">
+          <CardContent className="pt-8">
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Nome completo</label>
@@ -49,7 +49,7 @@ const Signup = () => {
                 <label className="text-sm font-medium mb-1.5 block">Senha</label>
                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full shadow-md shadow-primary/20" disabled={loading}>
                 {loading ? "Criando conta..." : "Criar conta"}
               </Button>
               <p className="text-center text-sm text-muted-foreground pt-2">

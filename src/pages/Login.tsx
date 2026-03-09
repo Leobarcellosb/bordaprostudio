@@ -22,16 +22,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center gradient-hero p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20 mb-5">
             <span className="text-3xl">✂️</span>
           </div>
-          <h1 className="text-2xl font-display font-bold">Borda Pro Studio</h1>
-          <p className="text-muted-foreground text-sm mt-1">Sua plataforma de bordados profissionais</p>
+          <h1 className="text-3xl font-display font-bold text-gradient-brand">Borda Pro</h1>
+          <p className="text-muted-foreground text-sm mt-2">Sua plataforma de bordados profissionais</p>
         </div>
-        <Card className="border-border/60 shadow-lg">
+        <Card className="border-border/40 shadow-xl shadow-primary/5">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl font-display">Entrar</CardTitle>
             <CardDescription>Acesse sua conta para continuar</CardDescription>
@@ -46,7 +46,7 @@ const Login = () => {
                 <label className="text-sm font-medium mb-1.5 block">Senha</label>
                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full shadow-md shadow-primary/20" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
               <div className="text-center text-sm space-y-2 pt-2">
