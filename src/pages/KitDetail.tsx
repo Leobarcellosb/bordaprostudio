@@ -300,11 +300,25 @@ const DesignDetail = () => {
               <div>
                 <h2 className="text-xl font-display font-bold">Ideias de Produtos</h2>
                 <p className="text-sm text-muted-foreground">
-                  Veja o que você pode vender com esse design
+                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com esse design"}
                 </p>
               </div>
+              {generatingIdeas && <Loader2 className="h-5 w-5 animate-spin text-secondary ml-auto" />}
             </div>
 
+            {generatingIdeas ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="border-border/60 animate-pulse">
+                    <CardContent className="p-5 space-y-3">
+                      <div className="h-4 bg-muted rounded w-2/3" />
+                      <div className="h-3 bg-muted rounded w-full" />
+                      <div className="h-3 bg-muted rounded w-4/5" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {productIdeas.map((idea: any) => (
                 <Card
