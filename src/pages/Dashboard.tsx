@@ -88,7 +88,7 @@ const Dashboard = () => {
 
           if (trendingIds.length > 0) {
             const { data: trendingKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", trendingIds.map(([id]) => id))
               .eq("is_published", true);
