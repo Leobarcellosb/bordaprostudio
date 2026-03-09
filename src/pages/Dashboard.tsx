@@ -219,7 +219,7 @@ const Dashboard = () => {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-sm font-medium truncate drop-shadow-lg">{kit.name}</p>
+                    <p className="text-primary-foreground text-sm font-medium truncate drop-shadow-lg">{kit.name}</p>
                   </div>
                 </div>
               </Card>
