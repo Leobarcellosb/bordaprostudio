@@ -124,7 +124,7 @@ const Dashboard = () => {
           if (userFavorites && userFavorites.length > 0) {
             const favKitIds = userFavorites.map((f: any) => f.kit_id);
             const { data: favKits } = await db
-              .from("kits")
+              .from("designs")
               .select("*, categories(name)")
               .in("id", favKitIds)
               .eq("is_published", true);
