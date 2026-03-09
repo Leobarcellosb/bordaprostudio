@@ -137,7 +137,7 @@ export const AdminDesigns = () => {
       designId = data.id;
     }
     
-    toast.success(editing ? "Design atualizado!" : "Design criado! Agora adicione arquivos e ideias.");
+    toast.success(editing ? "Matriz atualizada!" : "Matriz criada! Agora adicione arquivos e ideias.");
     if (!editing) { fetchData(); return; }
     setDialogOpen(false);
     fetchData();
