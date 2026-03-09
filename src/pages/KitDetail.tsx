@@ -67,13 +67,25 @@ const DesignDetail = () => {
     fetchDesign();
   }, [id]);
 
+  const trackAndDownload = async (url: string, label: string) => {
+    if (user && id) {
+      await db.from("downloads").insert({ user_id: user.id, kit_id: id });
+      setDownloadCount(prev => prev + 1);
+    }
+    window.open(url, "_blank");
+    toast.success(`Download de ${label} iniciado!`);
+  };
+
   const handleDownload = async (file: any) => {
     setDownloading(file.id);
-    if (user && id) {
-      await db.from("downloads").insert({ user_id: user.id, design_id: id });
-    }
-    window.open(file.file_url, "_blank");
-    toast.success(`Download de ${file.file_format || file.format} iniciado!`);
+    await trackAndDownload(file.file_url, file.file_format || file.format);
+    setTimeout(() => setDownloading(null), 1500);
+  };
+
+  const handleDownloadZip = async () => {
+    if (!design?.zip_url) return;
+    setDownloading("zip");
+    await trackAndDownload(design.zip_url, "ZIP");
     setTimeout(() => setDownloading(null), 1500);
   };
 
