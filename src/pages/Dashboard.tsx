@@ -401,7 +401,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <h2 className="text-lg font-display font-bold">Mais Baixados</h2>
-                <p className="text-sm text-muted-foreground">Os designs mais populares da comunidade</p>
+                <p className="text-sm text-muted-foreground">As matrizes mais populares da comunidade</p>
               </div>
             </div>
           </div>
