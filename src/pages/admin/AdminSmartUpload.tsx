@@ -307,7 +307,6 @@ export const AdminSmartUpload = () => {
               name: group.title,
               cover_image: previewUrl,
               category_id: group.categoryId || null,
-              tags,
               tags_text: group.tags,
               is_published: true,
             })
