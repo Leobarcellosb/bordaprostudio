@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminKits } from "./AdminKits";
+import { AdminDashboard } from "./AdminDashboard";
+import { AdminDesigns } from "./AdminDesigns";
 import { AdminCategories } from "./AdminCategories";
 import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
@@ -18,14 +19,16 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="kits">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="kits" className="font-medium">Designs</TabsTrigger>
+        <Tabs defaultValue="dashboard">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dashboard" className="font-medium">Visão Geral</TabsTrigger>
+            <TabsTrigger value="designs" className="font-medium">Designs</TabsTrigger>
             <TabsTrigger value="categories" className="font-medium">Categorias</TabsTrigger>
             <TabsTrigger value="users" className="font-medium">Usuários</TabsTrigger>
             <TabsTrigger value="downloads" className="font-medium">Downloads</TabsTrigger>
           </TabsList>
-          <TabsContent value="kits"><AdminKits /></TabsContent>
+          <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
+          <TabsContent value="designs"><AdminDesigns /></TabsContent>
           <TabsContent value="categories"><AdminCategories /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
