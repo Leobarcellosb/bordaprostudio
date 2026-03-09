@@ -21,7 +21,7 @@ export const AdminDesigns = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ title: "", description: "", preview_image_url: "", category_id: "", is_published: false, tags: "" });
+  const [form, setForm] = useState({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "" });
   const [uploading, setUploading] = useState(false);
   const [designFiles, setDesignFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
