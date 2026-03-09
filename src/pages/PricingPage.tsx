@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const CHECKOUT_MENSAL = import.meta.env.VITE_EDUZZ_CHECKOUT_MENSAL_URL || "#";
-const CHECKOUT_ANUAL = import.meta.env.VITE_EDUZZ_CHECKOUT_ANUAL_URL || "#";
+const CHECKOUT_MENSAL = "https://chk.eduzz.com/E0D6ON5691";
+const CHECKOUT_ANUAL = "https://chk.eduzz.com/G961DZBEW1";
 
 const plans = [
   {
