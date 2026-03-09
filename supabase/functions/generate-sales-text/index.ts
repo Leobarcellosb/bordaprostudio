@@ -32,9 +32,9 @@ Tipo de produto: ${productType}
 ${priceInfo}
 
 Gere:
-1. Uma caption para Instagram com emojis estratégicos e hashtags relevantes sobre bordado (máx 200 palavras)
-2. Um texto de venda para WhatsApp com saudação, descrição, preço, call to action. Use *negrito* (máx 300 palavras)
-3. Uma faixa de preço sugerida (mínimo e máximo em reais)
+1. Uma caption para Instagram com emojis estratégicos, inclua o preço sugerido no texto, e hashtags relevantes sobre bordado (máx 200 palavras)
+2. Um texto de venda para WhatsApp com saudação, descrição, INCLUA O PREÇO SUGERIDO de forma destacada com *negrito*, e call to action (máx 300 palavras)
+3. Uma faixa de preço sugerida realista baseada no tipo de produto e mercado brasileiro (ex: pano de prato R$25-40, toalha bebê R$40-80, kit maternidade R$120-300)
 4. Uma ideia de produto diferenciada para vender com esse design`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
