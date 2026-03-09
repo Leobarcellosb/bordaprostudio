@@ -171,8 +171,8 @@ export const AdminDesigns = () => {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold">Designs ({designs.length})</h3>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo Design</Button>
+         <h3 className="font-semibold">Matrizes ({designs.length})</h3>
+         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
       </div>
 
       <div className="rounded-lg border overflow-hidden">
