@@ -16,7 +16,7 @@ const seededRandom = (seed: number) => {
 };
 
 const Dashboard = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, subscription } = useAuth();
   const navigate = useNavigate();
   const [newestDesigns, setNewestDesigns] = useState<any[]>([]);
   const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
@@ -231,8 +231,8 @@ const Dashboard = () => {
                 <Crown className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-display font-bold capitalize">{profile?.plan || "Basic"}</p>
-                <p className="text-sm text-muted-foreground">Seu plano</p>
+                <p className="text-2xl font-display font-bold">{subscription?.plan_code === "anual" ? "Plano Anual" : "Plano Mensal"}</p>
+                <p className="text-sm text-muted-foreground">Sua assinatura ativa</p>
               </div>
             </CardContent>
           </Card>
