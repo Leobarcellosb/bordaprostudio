@@ -31,9 +31,10 @@ const plans = [
     name: "Anual",
     price: "R$ 597",
     period: "/ano",
+    subtitle: "equivalente a R$ 49,75/mês",
     checkoutUrl: CHECKOUT_ANUAL,
     popular: true,
-    savings: "Economia de R$ 361,80",
+    savings: "Economia de R$ 361,80 por ano",
     features: [
       "Tudo do plano Mensal",
       "Prioridade em novos designs",
@@ -88,6 +89,9 @@ const PricingPage = () => {
                       <span className="text-4xl font-bold text-primary">{plan.price}</span>
                       <span className="text-muted-foreground text-sm">{plan.period}</span>
                     </div>
+                    {plan.subtitle && (
+                      <p className="text-xs text-muted-foreground/80 mt-1">{plan.subtitle}</p>
+                    )}
                   </div>
 
                   <ul className="space-y-3">
@@ -120,9 +124,13 @@ const PricingPage = () => {
           })}
         </div>
 
-        <div className="text-center text-xs text-muted-foreground space-y-1">
-          <p>Pagamento processado com segurança pela Eduzz.</p>
-          <p>Cancele quando quiser. Sem taxas de cancelamento.</p>
+        <div className="text-center text-xs text-muted-foreground space-y-2">
+          <p>Pagamento processado com segurança pela Eduzz</p>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <span>✔ Checkout seguro</span>
+            <span>✔ Garantia de 7 dias</span>
+            <span>✔ Cancelamento a qualquer momento</span>
+          </div>
         </div>
       </div>
     </AppLayout>
