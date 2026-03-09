@@ -56,7 +56,7 @@ const DownloadsPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold">Meus Downloads</h1>
-            <p className="text-sm text-muted-foreground">Histórico de designs baixados</p>
+            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadas</p>
           </div>
           <Badge variant="outline" className="ml-auto text-xs gap-1">
             <Download className="h-3 w-3" /> {downloads.length}
