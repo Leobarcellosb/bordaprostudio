@@ -284,15 +284,17 @@ const DesignDetail = () => {
                   <>
                     {/* Format chips */}
                     <div className="flex flex-wrap gap-2 pb-2">
-                      {files.map((file: any) => (
+                      {files.map((file: any) => {
+                        const format = file.format || file.file_format;
+                        return (
                         <button
                           key={file.id}
                           onClick={() => handleDownload(file)}
                           className="group/file flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border/60 hover:border-primary/40 hover:shadow-sm transition-all duration-200"
                         >
-                          <span className="text-base">{formatIcons[file.file_format] || "📄"}</span>
+                          <span className="text-base">{formatIcons[format] || "📄"}</span>
                           <div className="text-left">
-                            <p className="text-xs font-bold">{file.file_format}</p>
+                            <p className="text-xs font-bold">{format}</p>
                             {file.size && (
                               <p className="text-[10px] text-muted-foreground">
                                 {file.size > 1048576
