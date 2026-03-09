@@ -30,6 +30,7 @@ const DesignDetail = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchDesign = async () => {
