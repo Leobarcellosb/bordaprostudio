@@ -81,7 +81,7 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} matrizeeeeees
+                {designs.length} matrizes
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
