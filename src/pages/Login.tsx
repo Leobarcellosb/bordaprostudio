@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import logoHorizontal from "@/assets/logo-horizontal.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
