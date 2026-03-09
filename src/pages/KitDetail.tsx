@@ -138,6 +138,28 @@ const DesignDetail = () => {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!user || !id) {
+      toast.error("Faça login para salvar favoritos");
+      return;
+    }
+    setTogglingFavorite(true);
+    try {
+      if (isFavorite) {
+        await db.from("favorites").delete().eq("user_id", user.id).eq("kit_id", id);
+        setIsFavorite(false);
+        toast.success("Removido dos favoritos");
+      } else {
+        await db.from("favorites").insert({ user_id: user.id, kit_id: id });
+        setIsFavorite(true);
+        toast.success("Adicionado aos favoritos!");
+      }
+    } catch (e) {
+      toast.error("Erro ao atualizar favoritos");
+    }
+    setTogglingFavorite(false);
+  };
+
   if (loading) return (
     <AppLayout>
       <div className="flex items-center justify-center py-20">
