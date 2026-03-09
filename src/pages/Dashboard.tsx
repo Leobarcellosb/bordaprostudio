@@ -326,8 +326,8 @@ const Dashboard = () => {
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-display font-bold">Novos Designs</h2>
-                <p className="text-sm text-muted-foreground">Recém adicionados à biblioteca</p>
+                 <h2 className="text-lg font-display font-bold">Novas Matrizes</h2>
+                 <p className="text-sm text-muted-foreground">Recém adicionadas à biblioteca</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
