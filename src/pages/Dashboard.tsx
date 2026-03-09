@@ -352,7 +352,7 @@ const Dashboard = () => {
               </div>
               <Badge variant="outline" className="text-xs">🔥 Trending</Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {trendingDesigns.map((kit: any, index: number) => (
                 <Card
                   key={kit.id}
