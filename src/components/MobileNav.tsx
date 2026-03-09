@@ -15,6 +15,7 @@ const navItems = [
   { icon: Layers, label: "Mockups", path: "/mockup-simulator" },
   { icon: Calculator, label: "Calculadora", path: "/profit-calculator" },
   { icon: BookOpen, label: "Catálogos", path: "/catalogs" },
+  { icon: Crown, label: "Planos", path: "/pricing" },
 ];
 
 export const MobileNav = () => {

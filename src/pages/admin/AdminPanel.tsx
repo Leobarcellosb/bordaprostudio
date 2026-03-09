@@ -22,13 +22,14 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="dashboard" className="font-medium">Visão Geral</TabsTrigger>
             <TabsTrigger value="designs" className="font-medium">Designs</TabsTrigger>
             <TabsTrigger value="import" className="font-medium">Importar</TabsTrigger>
             <TabsTrigger value="categories" className="font-medium">Categorias</TabsTrigger>
             <TabsTrigger value="users" className="font-medium">Usuários</TabsTrigger>
             <TabsTrigger value="downloads" className="font-medium">Downloads</TabsTrigger>
+            <TabsTrigger value="subscriptions" className="font-medium">Assinaturas</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
@@ -36,6 +37,7 @@ const AdminPanel = () => {
           <TabsContent value="categories"><AdminCategories /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
+          <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>
