@@ -31,9 +31,10 @@ const plans = [
     name: "Anual",
     price: "R$ 597",
     period: "/ano",
+    subtitle: "equivalente a R$ 49,75/mês",
     checkoutUrl: CHECKOUT_ANUAL,
     popular: true,
-    savings: "Economia de R$ 361,80",
+    savings: "Economia de R$ 361,80 por ano",
     features: [
       "Tudo do plano Mensal",
       "Prioridade em novos designs",
