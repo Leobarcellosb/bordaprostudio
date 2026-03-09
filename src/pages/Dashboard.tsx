@@ -191,7 +191,7 @@ const Dashboard = () => {
               Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              Explore novos designs, descubra tendências e transforme suas ideias em produtos incríveis.
+              Explore novas matrizeees, descubra tendências e transforme suas ideias em produtos incríveis.
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
@@ -210,7 +210,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">Designs disponíveis</p>
+                <p className="text-sm text-muted-foreground">Matrize disponíveis</p>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +248,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
-                  <p className="text-sm text-muted-foreground">Designs que você salvou</p>
+                  <p className="text-sm text-muted-foregroundM">Matrize que você salvou</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-xs gap-1">
@@ -312,7 +312,7 @@ const Dashboard = () => {
             ))}
             {suggestedDesigns.length === 0 && !loading && (
               <div className="col-span-4 text-center py-8 text-muted-foreground">
-                Nenhum design disponível
+                 Nenhuma matriz disponível
               </div>
             )}
           </div>
@@ -326,15 +326,15 @@ const Dashboard = () => {
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-display font-bold">Novos Designs</h2>
-                <p className="text-sm text-muted-foreground">Recém adicionados à biblioteca</p>
+                 <h2 className="text-lg font-display font-bold">Novas Matrizes</h2>
+                 <p className="text-sm text-muted-foreground">Recém adicionadas à biblioteca</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
               Ver todos <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <DesignGrid designs={newestDesigns} emptyMsg="Nenhum design disponível ainda." />
+          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível ainda." />
         </section>
 
         {/* Trending (last 7 days) */}
@@ -401,14 +401,14 @@ const Dashboard = () => {
               </div>
               <div>
                 <h2 className="text-lg font-display font-bold">Mais Baixados</h2>
-                <p className="text-sm text-muted-foreground">Os designs mais populares da comunidade</p>
+                <p className="text-sm text-muted-foreground">As matrizes mais populares da comunidade</p>
               </div>
             </div>
           </div>
           {mostDownloaded.length === 0 ? (
             <Card className="border-border/60 bg-muted/30">
               <CardContent className="py-12 text-center text-muted-foreground">
-                Os rankings aparecerão conforme os designs forem baixados.
+                Os rankings aparecerão conforme as matrizes forem baixadas.
               </CardContent>
             </Card>
           ) : (

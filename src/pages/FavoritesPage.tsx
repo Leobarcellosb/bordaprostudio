@@ -41,8 +41,8 @@ const FavoritesPage = () => {
             <h1 className="text-2xl md:text-3xl font-display font-bold">Meus Favoritos</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
               {designs.length > 0
-                ? `${designs.length} design${designs.length !== 1 ? "s" : ""} salvo${designs.length !== 1 ? "s" : ""}`
-                : "Seus designs favoritos aparecerão aqui"}
+                 ? `${designs.length} ${designs.length !== 1 ? "matrizes salvas" : "matriz salva"}`
+                 : "Suas matrizes favoritas aparecerão aqui"}
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@ const FavoritesPage = () => {
               <Heart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
               <p className="text-muted-foreground font-medium">Nenhum favorito ainda</p>
               <p className="text-sm text-muted-foreground/60">
-                Clique no ❤️ nos designs da biblioteca para salvá-los aqui.
+                Clique no ❤️ nas matrizes da biblioteca para salvá-las aqui.
               </p>
             </CardContent>
           </Card>

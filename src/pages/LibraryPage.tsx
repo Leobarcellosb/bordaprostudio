@@ -81,14 +81,14 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} designs
+                {designs.length} matrizeeeeees
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              Biblioteca de Designs
+              BibliotecMatrizezezezezens
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
-              Explore nossa coleção curada de bordados profissionais. Cada design foi selecionado para qualidade e versatilidade.
+              Explore nossa coleção curada de bordados profissionaimatriz foi selecionadadadadado para qualidade e versatilidade.
             </p>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
@@ -140,7 +140,7 @@ const LibraryPage = () => {
         {hasActiveFilters && filtered.length > 0 && (
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "design encontrado" : "designs encontrados"}
+              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "matriz encontrada" : "matrizes encontradas"}
             </p>
             <Button
               variant="ghost"
@@ -160,7 +160,7 @@ const LibraryPage = () => {
               <div className="w-20 h-20 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-5">
                 <Sparkles className="h-8 w-8 text-primary/40" />
               </div>
-              <h3 className="font-display font-semibold text-lg mb-2">Nenhum design encontrado</h3>
+              <h3 className="font-display font-semibold text-lg mb-2">Nena matriz encontradaado</h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.
               </p>

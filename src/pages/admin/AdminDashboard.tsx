@@ -60,7 +60,7 @@ export const AdminDashboard = () => {
   const statCards = [
     { icon: Users, label: "Total Usuários", value: stats.users, color: "text-primary" },
     { icon: Download, label: "Total Downloads", value: stats.downloads, color: "text-green-600" },
-    { icon: FileText, label: "Designs Criados", value: stats.designs, color: "text-blue-600" },
+    { icon: FileText, label: "Matrizes Criadas", value: stats.designs, color: "text-blue-600" },
     { icon: TrendingUp, label: "Publicados", value: stats.published, color: "text-secondary" },
   ];
 
@@ -83,7 +83,7 @@ export const AdminDashboard = () => {
       </div>
 
       <div>
-        <h3 className="font-semibold mb-3">Designs Mais Baixados</h3>
+        <h3 className="font-semibold mb-3">Matrizes Mais Baixadaas</h3>
         {topDesigns.length === 0 ? (
           <Card className="border-border/60">
             <CardContent className="py-10 text-center text-muted-foreground text-sm">
@@ -95,7 +95,7 @@ export const AdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Design</TableHead>
+                  <TableHead>Matriz</TableHead>
                   <TableHead className="text-right">Downloads</TableHead>
                 </TableRow>
               </TableHeader>

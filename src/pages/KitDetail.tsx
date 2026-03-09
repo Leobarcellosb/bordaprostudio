@@ -197,7 +197,7 @@ const DesignDetail = () => {
     <AppLayout>
       <div className="text-center py-20 space-y-4">
         <p className="text-6xl">🧵</p>
-        <p className="text-muted-foreground font-medium">Design não encontrado.</p>
+        <p className="text-muted-foreground font-medium">Matriz não encontrada.</p>
         <Button variant="outline" onClick={() => navigate("/library")} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar à biblioteca
         </Button>
@@ -313,7 +313,7 @@ const DesignDetail = () => {
               </CardHeader>
               <CardContent className="px-4 pb-4 space-y-2">
                 {files.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No files available.</p>
+                  <p className="text-sm text-muted-foreground py-2">Nenhum arquivo disponível.</p>
                 ) : (
                   <>
                     {/* Format chips */}
@@ -366,7 +366,7 @@ const DesignDetail = () => {
             {design.zip_url && (
               <Button onClick={handleDownloadZip} className="w-full gap-2" size="lg" disabled={downloading === "zip"}>
                 <Download className={`h-4 w-4 ${downloading === "zip" ? "animate-bounce" : ""}`} />
-                {downloading === "zip" ? "Baixando..." : "Baixar Design (ZIP)"}
+                {downloading === "zip" ? "Baixando..." : "Baixar Matriz (ZIP)"}
               </Button>
             )}
           </div>
@@ -382,7 +382,7 @@ const DesignDetail = () => {
               <div>
                 <h2 className="text-xl font-display font-bold">Ideias de Produtos</h2>
                 <p className="text-sm text-muted-foreground">
-                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com esse design"}
+                  {generatingIdeas ? "Gerando sugestões com IA..." : "Veja o que você pode vender com essa matriz"}
                 </p>
               </div>
               {generatingIdeas && <Loader2 className="h-5 w-5 animate-spin text-secondary ml-auto" />}
@@ -427,10 +427,10 @@ const DesignDetail = () => {
                 <Layers className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-display font-bold">Designs Relacionados</h2>
-                <p className="text-sm text-muted-foreground">
-                  Outros designs que podem te interessar
-                </p>
+                 <h2 className="text-xl font-display font-bold">Matrizes Relacionadas</h2>
+                 <p className="text-sm text-muted-foreground">
+                   Outras matrizes que podem te interessar
+                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">

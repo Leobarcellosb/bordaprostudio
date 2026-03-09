@@ -137,7 +137,7 @@ export const AdminDesigns = () => {
       designId = data.id;
     }
     
-    toast.success(editing ? "Design atualizado!" : "Design criado! Agora adicione arquivos e ideias.");
+    toast.success(editing ? "Matriz atualizada!" : "Matriz criada! Agora adicione arquivos e ideias.");
     if (!editing) { fetchData(); return; }
     setDialogOpen(false);
     fetchData();
@@ -146,7 +146,7 @@ export const AdminDesigns = () => {
   const deleteDesign = async (id: string) => {
     const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Design excluído!"); fetchData(); }
+    else { toast.success("Matriz excluída!"); fetchData(); }
   };
 
   const addProductIdea = async () => {
@@ -171,8 +171,8 @@ export const AdminDesigns = () => {
   return (
     <div className="space-y-4 mt-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold">Designs ({designs.length})</h3>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo Design</Button>
+         <h3 className="font-semibold">Matrizes ({designs.length})</h3>
+         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
       </div>
 
       <div className="rounded-lg border overflow-hidden">
@@ -230,7 +230,7 @@ export const AdminDesigns = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">{editing ? "Editar Design" : "Novo Design"}</DialogTitle>
+            <DialogTitle className="font-display">{editing ? "Editar Matriz" : "Nova Matriz"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             {/* Basic info */}
@@ -395,7 +395,7 @@ export const AdminDesigns = () => {
                 <Switch checked={form.is_published} onCheckedChange={v => setForm({ ...form, is_published: v })} />
                 <label className="text-sm font-medium">Publicado</label>
               </div>
-              <Button onClick={saveDesign} className="px-8">Salvar Design</Button>
+              <Button onClick={saveDesign} className="px-8">Salvar Matriz</Button>
             </div>
           </div>
         </DialogContent>

@@ -95,7 +95,7 @@ export const DesignCard = ({ id, name, coverImage, category, tags = [], download
               className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary/90 backdrop-blur-md text-primary-foreground text-xs font-semibold shadow-lg hover:bg-primary transition-colors"
               onClick={(e) => { e.stopPropagation(); onClick?.(); }}
             >
-              <Eye className="h-3.5 w-3.5" /> Abrir design
+              <Eye className="h-3.5 w-3.5" /> Abrir matriz
             </button>
           </div>
         </div>
