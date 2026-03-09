@@ -26,10 +26,12 @@ const LibraryPage = () => {
         { data: kitsData },
         { data: catsData },
         { data: filesData },
+        { data: downloadsData },
       ] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("is_published", true).order("created_at", { ascending: false }),
         db.from("categories").select("*").order("name"),
         db.from("kit_files").select("kit_id, file_format"),
+        db.from("downloads").select("kit_id"),
       ]);
 
       setDesigns(kitsData || []);
