@@ -165,7 +165,6 @@ const DesignDetail = () => {
                 </div>
               ) : null;
             })()}
-            )}
 
             {/* Available formats */}
             <Card className="border-border/60 bg-muted/30">
