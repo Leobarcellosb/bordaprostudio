@@ -22,20 +22,23 @@ const DesignDetail = () => {
   const [files, setFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
   const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
+  const [downloadCount, setDownloadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDesign = async () => {
       if (!id) return;
-      const [{ data: designData }, { data: filesData }, { data: ideasData }] = await Promise.all([
+      const [{ data: designData }, { data: filesData }, { data: ideasData }, { count: dlCount }] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("id", id).single(),
         db.from("kit_files").select("*").eq("kit_id", id),
         db.from("product_ideas").select("*").eq("design_id", id),
+        db.from("downloads").select("*", { count: "exact", head: true }).eq("kit_id", id),
       ]);
       setDesign(designData);
       setFiles(filesData || []);
       setProductIdeas(ideasData || []);
+      setDownloadCount(dlCount || 0);
 
       // Fetch related designs by same category or overlapping tags
       if (designData) {
@@ -64,13 +67,25 @@ const DesignDetail = () => {
     fetchDesign();
   }, [id]);
 
+  const trackAndDownload = async (url: string, label: string) => {
+    if (user && id) {
+      await db.from("downloads").insert({ user_id: user.id, kit_id: id });
+      setDownloadCount(prev => prev + 1);
+    }
+    window.open(url, "_blank");
+    toast.success(`Download de ${label} iniciado!`);
+  };
+
   const handleDownload = async (file: any) => {
     setDownloading(file.id);
-    if (user && id) {
-      await db.from("downloads").insert({ user_id: user.id, design_id: id });
-    }
-    window.open(file.file_url, "_blank");
-    toast.success(`Download de ${file.file_format || file.format} iniciado!`);
+    await trackAndDownload(file.file_url, file.file_format || file.format);
+    setTimeout(() => setDownloading(null), 1500);
+  };
+
+  const handleDownloadZip = async () => {
+    if (!design?.zip_url) return;
+    setDownloading("zip");
+    await trackAndDownload(design.zip_url, "ZIP");
     setTimeout(() => setDownloading(null), 1500);
   };
 
@@ -143,6 +158,12 @@ const DesignDetail = () => {
               <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
                 {design.name}
               </h1>
+              {downloadCount > 0 && (
+                <div className="flex items-center gap-1.5 mt-2 text-muted-foreground text-sm">
+                  <Download className="h-3.5 w-3.5" />
+                  {downloadCount} download{downloadCount !== 1 ? "s" : ""}
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -226,6 +247,14 @@ const DesignDetail = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* ZIP download */}
+            {design.zip_url && (
+              <Button onClick={handleDownloadZip} className="w-full gap-2" size="lg" disabled={downloading === "zip"}>
+                <Download className={`h-4 w-4 ${downloading === "zip" ? "animate-bounce" : ""}`} />
+                {downloading === "zip" ? "Baixando..." : "Baixar Design (ZIP)"}
+              </Button>
+            )}
           </div>
         </div>
 

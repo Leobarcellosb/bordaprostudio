@@ -17,6 +17,7 @@ const LibraryPage = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
+  const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,10 +26,12 @@ const LibraryPage = () => {
         { data: kitsData },
         { data: catsData },
         { data: filesData },
+        { data: downloadsData },
       ] = await Promise.all([
         db.from("kits").select("*, categories(name)").eq("is_published", true).order("created_at", { ascending: false }),
         db.from("categories").select("*").order("name"),
         db.from("kit_files").select("kit_id, file_format"),
+        db.from("downloads").select("kit_id"),
       ]);
 
       setDesigns(kitsData || []);
@@ -40,6 +43,12 @@ const LibraryPage = () => {
         if (!fileMap[f.kit_id].includes(f.file_format)) fileMap[f.kit_id].push(f.file_format);
       });
       setDesignFiles(fileMap);
+
+      const countMap: Record<string, number> = {};
+      (downloadsData || []).forEach((d: any) => {
+        countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1;
+      });
+      setDownloadCounts(countMap);
     };
     fetchData();
   }, []);
@@ -124,6 +133,7 @@ const LibraryPage = () => {
                 coverImage={design.cover_image}
                 category={design.categories?.name}
                 tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
+                downloadCount={downloadCounts[design.id]}
                 onClick={() => navigate(`/library/${design.id}`)}
               />
             ))}
