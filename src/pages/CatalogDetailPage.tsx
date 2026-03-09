@@ -67,7 +67,7 @@ const CatalogDetailPage = () => {
             Voltar aos catálogos
           </button>
           <h1 className="text-2xl md:text-3xl font-display font-bold">{catalog.name}</h1>
-          <p className="text-muted-foreground mt-1">{items.length} design{items.length !== 1 ? "s" : ""}</p>
+          <p className="text-muted-foreground mt-1">{items.length} {items.length !== 1 ? "matrizes" : "matriz"}</p>
         </div>
 
         {items.length === 0 ? (
