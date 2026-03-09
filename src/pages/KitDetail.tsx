@@ -42,6 +42,31 @@ const DesignDetail = () => {
       setProductIdeas(ideasData || []);
       setDownloadCount(dlCount || 0);
 
+      // Auto-generate product ideas if none exist
+      if (designData && (!ideasData || ideasData.length === 0)) {
+        setGeneratingIdeas(true);
+        try {
+          const { data: aiData, error: aiError } = await supabase.functions.invoke("generate-product-ideas", {
+            body: {
+              designName: designData.name,
+              category: designData.categories?.name || "",
+              tags: designData.tags_text || "",
+              description: designData.description || "",
+            },
+          });
+          if (!aiError && aiData?.ideas) {
+            setProductIdeas(aiData.ideas.map((idea: any, i: number) => ({
+              id: `ai-${i}`,
+              title: idea.title,
+              description: idea.description,
+            })));
+          }
+        } catch (e) {
+          console.error("Failed to generate product ideas:", e);
+        }
+        setGeneratingIdeas(false);
+      }
+
       // Fetch related designs by same category or overlapping tags
       if (designData) {
         let query = db.from("kits").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
