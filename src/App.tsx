@@ -47,6 +47,7 @@ const App = () => (
             <Route path="/product-ideas" element={<ProtectedRoute><ProductIdeasPage /></ProtectedRoute>} />
             <Route path="/sales-generator" element={<ProtectedRoute><SalesGenerator /></ProtectedRoute>} />
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
+            <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
             <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
             <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />

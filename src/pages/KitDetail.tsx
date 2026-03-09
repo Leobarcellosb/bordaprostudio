@@ -450,6 +450,14 @@ const DesignDetail = () => {
             </div>
           </div>
         )}
+
+        {id && (
+          <AddToCatalogModal
+            open={catalogModalOpen}
+            onOpenChange={setCatalogModalOpen}
+            designId={id}
+          />
+        )}
       </div>
     </AppLayout>
   );
