@@ -1,4 +1,4 @@
-import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Layers, Calculator, TrendingUp } from "lucide-react";
+import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Layers, Calculator, TrendingUp, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: Library, label: "Biblioteca", path: "/library" },
+  { icon: Heart, label: "Favoritos", path: "/favorites" },
   { icon: TrendingUp, label: "Tendências", path: "/trends" },
   { icon: Lightbulb, label: "Ideias de Produto", path: "/product-ideas" },
   { icon: Sparkles, label: "Gerador de Vendas", path: "/sales-generator" },
