@@ -41,8 +41,8 @@ const LibraryPage = () => {
 
       const fileMap: Record<string, string[]> = {};
       (filesData || []).forEach((f: any) => {
-        if (!fileMap[f.kit_id]) fileMap[f.kit_id] = [];
-        if (!fileMap[f.kit_id].includes(f.file_format)) fileMap[f.kit_id].push(f.file_format);
+        if (!fileMap[f.design_id]) fileMap[f.design_id] = [];
+        if (!fileMap[f.design_id].includes(f.format)) fileMap[f.design_id].push(f.format);
       });
       setDesignFiles(fileMap);
 
