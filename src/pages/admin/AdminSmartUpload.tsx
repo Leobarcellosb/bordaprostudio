@@ -296,7 +296,7 @@ export const AdminSmartUpload = () => {
         if (existingDesign) {
           designId = existingDesign.id;
           if (previewUrl) {
-            await db.from("kits").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
+            await db.from("designs").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
             await delay(500);
           }
         } else {
