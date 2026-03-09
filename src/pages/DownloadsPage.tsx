@@ -31,7 +31,7 @@ const DownloadsPage = () => {
       setLoading(true);
       const { data } = await db
         .from("downloads")
-        .select("id, kit_id, downloaded_at, kits(id, name, cover_image, categories(name))")
+        .select("id, kit_id, created_at, designs:kit_id(id, name, cover_image, categories(name))")
         .eq("user_id", user.id)
         .order("downloaded_at", { ascending: false });
 
