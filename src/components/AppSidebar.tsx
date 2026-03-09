@@ -38,7 +38,7 @@ export const AppSidebar = () => {
             <h1 className="text-[15px] font-display font-bold text-sidebar-primary-foreground tracking-tight">
               Borda Pro
             </h1>
-            <p className="text-[11px] text-sidebar-foreground/40 font-medium">Plataforma de bordados</p>
+            <p className="text-[11px] text-sidebar-foreground/40 font-medium">Plataforma de matrizes de bordado</p>
           </div>
         </div>
       </div>

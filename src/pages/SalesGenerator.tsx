@@ -87,7 +87,7 @@ const SalesGenerator = () => {
 
   const generate = async () => {
     if (!selectedDesign || !selectedProductType) {
-      toast.error("Selecione uma matriz e um tipo de produto.");
+      toast.error("Selecione uma matriz e e um tipo de produto.");
       return;
     }
     setLoading(true);
@@ -199,7 +199,7 @@ const SalesGenerator = () => {
                 </button>
               ))}
               {designs.length === 0 && (
-                <p className="text-sm text-muted-foreground col-span-2 py-4 text-center">Nenhum design publicado ainda.</p>
+                <p className="text-sm text-muted-foreground col-span-2 py-4 text-center">Nenha matriz publicadado ainda.</p>
               )}
             </div>
           )}
