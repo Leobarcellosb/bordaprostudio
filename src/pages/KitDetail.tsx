@@ -402,42 +402,16 @@ const DesignDetail = () => {
             ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {productIdeas.map((idea: any) => (
-                <Card
+                <ProductIdeaCard
                   key={idea.id}
-                  className="group overflow-hidden border-border/60 hover:shadow-lg hover:border-secondary/20 transition-all duration-300 hover:-translate-y-1"
-                >
-                  {idea.image_url && (
-                    <div className="aspect-video bg-muted overflow-hidden relative">
-                      <img
-                        src={idea.image_url}
-                        alt={idea.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                  )}
-                  <CardContent className={`p-4 space-y-3 ${!idea.image_url ? "pt-5" : ""}`}>
-                    <div>
-                      <h3 className="font-display font-semibold text-sm">{idea.title}</h3>
-                      {idea.description && (
-                        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
-                          {idea.description}
-                        </p>
-                      )}
-                    </div>
-                    {!String(idea.id).startsWith("ai-") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
-                        onClick={() => navigate(`/sales-generator?design=${id}&product=${idea.id}`)}
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Gerar texto de venda
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+                  name={idea.title}
+                  description={idea.description}
+                  imageUrl={idea.image_url}
+                  priceRange={idea.price_range}
+                  profitExample={idea.profit_example}
+                  onMockup={() => navigate(`/mockup-simulator?design=${id}`)}
+                  onGenerate={!String(idea.id).startsWith("ai-") ? () => navigate(`/sales-generator?design=${id}&product=${idea.id}`) : undefined}
+                />
               ))}
             </div>
             )}
