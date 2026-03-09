@@ -350,7 +350,7 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground">Mais baixados nos últimos 7 dias</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs">🔥 TreEm altaadge>
+              <Badge variant="outline" className="text-xs">🔥 Em alta</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {trendingDesigns.map((kit: any, index: number) => (
