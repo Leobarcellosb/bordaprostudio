@@ -196,7 +196,7 @@ export const AdminBulkImport = () => {
         const title = design.metadata?.title || design.folderName;
         const tags = design.metadata?.tags
           ? design.metadata.tags.split(",").map((t) => t.trim()).filter(Boolean)
-          : [];
+          : generateTagsFromName(title + " " + design.folderName);
 
         // Create kit entry
         const { data: kitData, error: kitError } = await db
