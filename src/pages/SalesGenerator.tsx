@@ -87,7 +87,7 @@ const SalesGenerator = () => {
 
   const generate = async () => {
     if (!selectedDesign || !selectedProductType) {
-      toast.error("Selecione um design e um tipo de produto.");
+      toast.error("Selecione uma matriz e um tipo de produto.");
       return;
     }
     setLoading(true);
