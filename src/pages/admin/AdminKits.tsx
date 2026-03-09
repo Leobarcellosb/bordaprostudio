@@ -31,7 +31,7 @@ export const AdminKits = () => {
 
   const fetchData = async () => {
     const [{ data: kitsData }, { data: catsData }] = await Promise.all([
-      db.from("kits").select("*, categories(name)").order("created_at", { ascending: false }),
+      db.from("designs").select("*, categories(name)").order("created_at", { ascending: false }),
       db.from("categories").select("*").order("name"),
     ]);
     setKits(kitsData || []);
