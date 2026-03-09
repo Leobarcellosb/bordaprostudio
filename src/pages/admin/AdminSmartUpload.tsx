@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 import { db } from "@/lib/db";
-import { generateTagsFromName } from "@/lib/generateTags";
+import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,25 +44,17 @@ function cleanTitle(name: string) {
 
 function suggestCategory(name: string, categories: any[]): string | null {
   const lower = name.toLowerCase();
+  // Direct match on category name
   for (const cat of categories) {
     if (lower.includes(cat.name.toLowerCase())) return cat.id;
   }
-  // keyword heuristics
-  const hints: Record<string, string[]> = {
-    bebe: ["bebê", "baby", "infantil", "maternidade"],
-    infantil: ["infantil", "criança", "kids", "menina", "menino"],
-    floral: ["flor", "flores", "floral", "rosa", "jardim"],
-    cozinha: ["cozinha", "prato", "galinha", "frutas"],
-    natal: ["natal", "natalino"],
-    animal: ["urso", "gato", "cachorro", "coelho", "borboleta"],
-  };
-  for (const cat of categories) {
-    const catLower = cat.name.toLowerCase();
-    for (const [key, keywords] of Object.entries(hints)) {
-      if (catLower.includes(key) && keywords.some((k) => lower.includes(k))) {
-        return cat.id;
-      }
-    }
+  // Use the smart suggestion from generateTags
+  const suggested = suggestCategoryFromName(name);
+  if (suggested) {
+    const match = categories.find(
+      (c: any) => c.name.toLowerCase() === suggested.toLowerCase()
+    );
+    if (match) return match.id;
   }
   return null;
 }
