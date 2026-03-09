@@ -33,7 +33,7 @@ const CatalogDetailPage = () => {
   const removeItem = async (itemId: string) => {
     const { error } = await db.from("catalog_items").delete().eq("id", itemId);
     if (error) toast.error(error.message);
-    else { toast.success("Design removido do catálogo!"); fetchData(); }
+    else { toast.success("Matriz removida do catálogo!"); fetchData(); }
   };
 
   if (loading) return (

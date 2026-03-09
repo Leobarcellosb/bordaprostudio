@@ -313,7 +313,7 @@ const DesignDetail = () => {
               </CardHeader>
               <CardContent className="px-4 pb-4 space-y-2">
                 {files.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No files available.</p>
+                  <p className="text-sm text-muted-foreground py-2">Nenhum arquivo disponível.</p>
                 ) : (
                   <>
                     {/* Format chips */}

@@ -64,7 +64,7 @@ const FavoritesPage = () => {
               <Heart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
               <p className="text-muted-foreground font-medium">Nenhum favorito ainda</p>
               <p className="text-sm text-muted-foreground/60">
-                Clique no ❤️ nos designs da biblioteca para salvá-los aqui.
+                Clique no ❤️ nas matrizes da biblioteca para salvá-las aqui.
               </p>
             </CardContent>
           </Card>

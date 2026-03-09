@@ -395,7 +395,7 @@ export const AdminDesigns = () => {
                 <Switch checked={form.is_published} onCheckedChange={v => setForm({ ...form, is_published: v })} />
                 <label className="text-sm font-medium">Publicado</label>
               </div>
-              <Button onClick={saveDesign} className="px-8">Salvar Design</Button>
+              <Button onClick={saveDesign} className="px-8">Salvar Matriz</Button>
             </div>
           </div>
         </DialogContent>

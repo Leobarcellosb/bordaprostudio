@@ -150,7 +150,7 @@ const MockupSimulator = () => {
                     </button>
                   ))}
                   {kits.length === 0 && (
-                    <p className="col-span-3 text-sm text-muted-foreground text-center py-4">Nenhum design disponível</p>
+                    <p className="col-span-3 text-sm text-muted-foreground text-center py-4">Nenhuma matriz disponível</p>
                   )}
                 </div>
                 {selectedKit && (

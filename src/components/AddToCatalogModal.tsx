@@ -69,7 +69,7 @@ export const AddToCatalogModal = ({ open, onOpenChange, designId }: AddToCatalog
         toast.error(error.message);
       }
     } else {
-      toast.success("Design adicionado ao catálogo!");
+      toast.success("Matriz adicionada ao catálogo!");
       await fetchCatalogs();
     }
     setAdding(null);

@@ -408,7 +408,7 @@ const Dashboard = () => {
           {mostDownloaded.length === 0 ? (
             <Card className="border-border/60 bg-muted/30">
               <CardContent className="py-12 text-center text-muted-foreground">
-                Os rankings aparecerão conforme os designs forem baixados.
+                Os rankings aparecerão conforme as matrizes forem baixadas.
               </CardContent>
             </Card>
           ) : (

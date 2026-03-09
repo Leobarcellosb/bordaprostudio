@@ -56,7 +56,7 @@ const DownloadsPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-display font-bold">Meus Downloads</h1>
-            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadaas</p>
+            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadaaas</p>
           </div>
           <Badge variant="outline" className="ml-auto text-xs gap-1">
             <Download className="h-3 w-3" /> {downloads.length}
@@ -79,7 +79,7 @@ const DownloadsPage = () => {
           <Card className="border-border/60 bg-muted/30">
             <CardContent className="py-16 text-center">
               <Download className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground">Você ainda não baixou nenhua matrizn.</p>
+              <p className="text-muted-foreground">Você ainda não baixou nenha matrizizn.</p>
               <p className="text-sm text-muted-foreground/60 mt-1">Explore a biblioteca para começar!</p>
             </CardContent>
           </Card>
@@ -104,7 +104,7 @@ const DownloadsPage = () => {
                 </div>
                 <CardContent className="p-4 space-y-1.5">
                   <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                    {dl.kit?.name || "Design removido"}
+                    {dl.kit?.name ||Matriz removidado"}
                   </p>
                   {dl.kit?.categories?.name && (
                     <Badge variant="secondary" className="text-[10px]">
