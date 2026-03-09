@@ -101,7 +101,8 @@ export const AdminSmartUpload = () => {
             const innerFiles: { name: string; blob: Blob; format: string }[] = [];
             let previewFile: { name: string; blob: Blob } | null = null;
 
-            for (const [path, entry] of Object.entries(zip.files)) {
+            for (const [path, entryRaw] of Object.entries(zip.files)) {
+              const entry = entryRaw as JSZip.JSZipObject;
               if (entry.dir) continue;
               const innerName = path.split("/").pop() || path;
               const innerExt = getExtension(innerName);

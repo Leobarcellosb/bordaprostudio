@@ -62,7 +62,8 @@ export const AdminBulkImport = () => {
       const folders = new Map<string, DesignEntry>();
 
       // Group files by top-level folder
-      for (const [path, zipEntry] of Object.entries(zip.files)) {
+      for (const [path, zipEntryRaw] of Object.entries(zip.files)) {
+        const zipEntry = zipEntryRaw as JSZip.JSZipObject;
         if (zipEntry.dir) continue;
 
         const parts = path.split("/").filter(Boolean);
