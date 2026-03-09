@@ -331,7 +331,7 @@ const Dashboard = () => {
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
-              Ver todos <ArrowRight className="h-3.5 w-3.5" />
+              Ver todas <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
           <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível no momento." />
