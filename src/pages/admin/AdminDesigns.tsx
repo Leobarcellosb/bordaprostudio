@@ -65,7 +65,7 @@ export const AdminDesigns = () => {
       preview_image_url: design.preview_image_url || "",
       category_id: design.category_id || "",
       is_published: design.is_published,
-      tags: (design.tags || []).join(", "),
+      tags: design.tags_text || (design.tags || []).join(", "),
     });
     setNewIdea({ title: "", description: "", image_url: "" });
     await fetchDesignDetails(design.id);
@@ -124,6 +124,7 @@ export const AdminDesigns = () => {
       category_id: form.category_id || null,
       is_published: form.is_published,
       tags,
+      tags_text: form.tags,
     };
     if (editing) {
       const { error } = await db.from("designs").update(payload).eq("id", editing.id);
