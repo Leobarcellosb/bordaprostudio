@@ -247,6 +247,14 @@ const DesignDetail = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* ZIP download */}
+            {design.zip_url && (
+              <Button onClick={handleDownloadZip} className="w-full gap-2" size="lg" disabled={downloading === "zip"}>
+                <Download className={`h-4 w-4 ${downloading === "zip" ? "animate-bounce" : ""}`} />
+                {downloading === "zip" ? "Baixando..." : "Baixar Design (ZIP)"}
+              </Button>
+            )}
           </div>
         </div>
 
