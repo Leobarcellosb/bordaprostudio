@@ -59,11 +59,33 @@ const DesignDetail = () => {
             },
           });
           if (!aiError && aiData?.ideas) {
-            setProductIdeas(aiData.ideas.map((idea: any, i: number) => ({
-              id: `ai-${i}`,
+            const ideasToSave = aiData.ideas.map((idea: any) => ({
               title: idea.title,
               description: idea.description,
-            })));
+              price_range: idea.price_range || null,
+              profit_example: idea.profit_example || null,
+              design_id: id,
+              user_id: user?.id || null,
+            }));
+
+            // Save to database
+            const { data: savedIdeas } = await db
+              .from("product_ideas")
+              .insert(ideasToSave)
+              .select();
+
+            if (savedIdeas) {
+              setProductIdeas(savedIdeas);
+            } else {
+              // Fallback to in-memory display
+              setProductIdeas(aiData.ideas.map((idea: any, i: number) => ({
+                id: `ai-${i}`,
+                title: idea.title,
+                description: idea.description,
+                price_range: idea.price_range,
+                profit_example: idea.profit_example,
+              })));
+            }
           }
         } catch (e) {
           console.error("Failed to generate product ideas:", e);
