@@ -69,7 +69,7 @@ const LibraryPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder='Buscar designs... (ex: "baby bear", "floral", "christmas")'
+              placeholder="Buscar designs por título ou descrição..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -105,129 +105,28 @@ const LibraryPage = () => {
           </div>
         </div>
 
-        {/* Search results summary */}
-        {hasSearchQuery && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge variant="secondary" className="gap-1.5">
-              <Search className="h-3 w-3" />
-              {totalResults} resultado{totalResults !== 1 ? "s" : ""}
-            </Badge>
-            {searchResults.matchedTerms.length > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span>Buscando em:</span>
-                {searchResults.matchedTerms.map((term) => (
-                  <Badge key={term} variant="outline" className="text-[10px]">
-                    {term === "name" && "Nome"}
-                    {term === "description" && "Descrição"}
-                    {term === "category" && "Categoria"}
-                    {term === "tag" && "Tags"}
-                    {term === "product" && "Produto"}
-                    {term === "design" && "Design"}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Results */}
-        {totalResults === 0 ? (
+        {filtered.length === 0 ? (
           <Card className="border-border/60">
             <CardContent className="py-16 text-center text-muted-foreground">
               <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">Nenhum resultado encontrado.</p>
-              <p className="text-sm mt-1">
-                {hasSearchQuery
-                  ? "Tente usar outras palavras-chave ou ajustar os filtros."
-                  : "Tente ajustar os filtros."}
-              </p>
+              <p className="text-sm mt-1">Tente usar outras palavras-chave ou ajustar os filtros.</p>
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue="designs" className="w-full">
-            <TabsList>
-              <TabsTrigger value="designs" className="gap-1.5">
-                Designs {filtered.length > 0 && <Badge variant="secondary" className="text-[10px]">{filtered.length}</Badge>}
-              </TabsTrigger>
-              {searchResults.productIdeas.length > 0 && (
-                <TabsTrigger value="ideas" className="gap-1.5">
-                  <Lightbulb className="h-3.5 w-3.5" />
-                  Ideias de Produto
-                  <Badge variant="secondary" className="text-[10px]">{searchResults.productIdeas.length}</Badge>
-                </TabsTrigger>
-              )}
-            </TabsList>
-
-            <TabsContent value="designs" className="mt-6">
-              <div className="space-y-8">
-                {/* Main results */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filtered.map((design: any) => (
-                    <DesignCard
-                      key={design.id}
-                      name={design.name}
-                      coverImage={design.cover_image}
-                      category={design.categories?.name}
-                      tags={design.tags || []}
-                      onClick={() => navigate(`/library/${design.id}`)}
-                    />
-                  ))}
-                </div>
-
-                {/* Related designs section */}
-                {hasSearchQuery && searchResults.relatedDesigns.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="font-display font-semibold text-sm text-muted-foreground">
-                        Designs Relacionados
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {searchResults.relatedDesigns.map((design: any) => (
-                        <Card
-                          key={design.id}
-                          className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-md transition-all"
-                          onClick={() => navigate(`/library/${design.id}`)}
-                        >
-                          <div className="aspect-square bg-muted overflow-hidden">
-                            {design.cover_image ? (
-                              <img
-                                src={design.cover_image}
-                                alt={design.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-3xl">🧵</div>
-                            )}
-                          </div>
-                          <CardContent className="p-2">
-                            <p className="font-medium text-xs truncate">{design.name}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {searchResults.productIdeas.length > 0 && (
-              <TabsContent value="ideas" className="mt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {searchResults.productIdeas.map((idea: any) => (
-                    <ProductIdeaCard
-                      key={idea.id}
-                      name={idea.product_name}
-                      description={idea.description}
-                      imageUrl={idea.image_url}
-                      onGenerate={() => navigate(`/sales-generator?design=${idea.kit_id}&product=${idea.id}`)}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-            )}
-          </Tabs>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filtered.map((design: any) => (
+              <DesignCard
+                key={design.id}
+                name={design.name}
+                coverImage={design.cover_image}
+                category={design.categories?.name}
+                tags={design.tags || []}
+                onClick={() => navigate(`/library/${design.id}`)}
+              />
+            ))}
+          </div>
         )}
       </div>
     </AppLayout>
