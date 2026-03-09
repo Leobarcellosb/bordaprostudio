@@ -129,7 +129,7 @@ const MockupSimulator = () => {
             <Card className="border-border/60">
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-primary" /> Selecione o Design
+                  <ImageIcon className="h-4 w-4 text-primary" /> Selecione a Matriz
                 </p>
                 <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
                   {kits.map((kit: any) => (
