@@ -11,7 +11,10 @@ const ProductIdeasPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    db.from("product_ideas").select("*, designs(id, title)").order("created_at", { ascending: false }).then(({ data }: any) => setIdeas(data || []));
+    db.from("product_ideas")
+      .select("*, designs(id, name, cover_image)")
+      .order("created_at", { ascending: false })
+      .then(({ data }: any) => setIdeas(data || []));
   }, []);
 
   return (
@@ -27,7 +30,7 @@ const ProductIdeasPage = () => {
             <CardContent className="py-16 text-center text-muted-foreground">
               <Lightbulb className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">Nenhuma ideia de produto disponível.</p>
-              <p className="text-sm mt-1">As ideias aparecem junto com os designs na biblioteca.</p>
+              <p className="text-sm mt-1">Abra um design na biblioteca para gerar ideias automaticamente.</p>
             </CardContent>
           </Card>
         ) : (
@@ -38,6 +41,9 @@ const ProductIdeasPage = () => {
                 name={idea.title}
                 description={idea.description}
                 imageUrl={idea.image_url}
+                priceRange={idea.price_range}
+                profitExample={idea.profit_example}
+                onMockup={() => navigate(`/mockup-simulator?design=${idea.design_id}`)}
                 onGenerate={() => navigate(`/sales-generator?design=${idea.design_id}&product=${idea.id}`)}
               />
             ))}
