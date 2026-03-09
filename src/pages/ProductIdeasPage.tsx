@@ -11,7 +11,7 @@ const ProductIdeasPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    db.from("product_ideas").select("*, kits(id, name)").order("created_at", { ascending: false }).then(({ data }: any) => setIdeas(data || []));
+    db.from("product_ideas").select("*, designs(id, title)").order("created_at", { ascending: false }).then(({ data }: any) => setIdeas(data || []));
   }, []);
 
   return (
@@ -35,10 +35,10 @@ const ProductIdeasPage = () => {
             {ideas.map((idea: any) => (
               <ProductIdeaCard
                 key={idea.id}
-                name={idea.product_name}
+                name={idea.title}
                 description={idea.description}
-                suggestedPrice={idea.suggested_price}
-                onGenerate={() => navigate(`/sales-generator?kit=${idea.kit_id}&product=${idea.id}`)}
+                imageUrl={idea.image_url}
+                onGenerate={() => navigate(`/sales-generator?design=${idea.design_id}&product=${idea.id}`)}
               />
             ))}
           </div>

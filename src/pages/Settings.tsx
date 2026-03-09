@@ -17,13 +17,13 @@ const plans = [
 
 const Settings = () => {
   const { profile, user } = useAuth();
-  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [name, setName] = useState(profile?.name || "");
   const [saving, setSaving] = useState(false);
 
   const updateProfile = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await db.from("profiles").update({ full_name: fullName, updated_at: new Date().toISOString() }).eq("id", user.id);
+    const { error } = await db.from("profiles").update({ name, updated_at: new Date().toISOString() }).eq("id", user.id);
     if (error) toast.error(error.message);
     else toast.success("Perfil atualizado!");
     setSaving(false);
@@ -40,7 +40,7 @@ const Settings = () => {
             <CardDescription>Atualize suas informações pessoais</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div><label className="text-sm font-medium mb-1.5 block">Nome</label><Input value={fullName} onChange={e => setFullName(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1.5 block">Nome</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
             <div><label className="text-sm font-medium mb-1.5 block">Email</label><Input value={profile?.email || ""} disabled className="bg-muted/50" /></div>
             <Button onClick={updateProfile} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</Button>
           </CardContent>

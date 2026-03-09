@@ -12,75 +12,66 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export const AdminKits = () => {
-  const [kits, setKits] = useState<any[]>([]);
+  const [designs, setDesigns] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "", cover_image: "", category_id: "", is_published: false });
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [form, setForm] = useState({ title: "", description: "", preview_image_url: "", category_id: "", is_published: false, tags: "" });
 
   const fetchData = async () => {
-    const [{ data: kitsData }, { data: catsData }, { data: tagsData }] = await Promise.all([
-      db.from("kits").select("*, categories(name), kit_tags(tag_id, tags(name))").order("created_at", { ascending: false }),
+    const [{ data: designsData }, { data: catsData }] = await Promise.all([
+      db.from("designs").select("*, categories(name)").order("created_at", { ascending: false }),
       db.from("categories").select("*").order("name"),
-      db.from("tags").select("*").order("name"),
     ]);
-    setKits(kitsData || []);
+    setDesigns(designsData || []);
     setCategories(catsData || []);
-    setTags(tagsData || []);
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const openNew = () => { setEditing(null); setForm({ name: "", description: "", cover_image: "", category_id: "", is_published: false }); setSelectedTags([]); setDialogOpen(true); };
-  const openEdit = (kit: any) => { setEditing(kit); setForm({ name: kit.name, description: kit.description || "", cover_image: kit.cover_image || "", category_id: kit.category_id || "", is_published: kit.is_published }); setSelectedTags((kit.kit_tags || []).map((kt: any) => kt.tag_id)); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ title: "", description: "", preview_image_url: "", category_id: "", is_published: false, tags: "" }); setDialogOpen(true); };
+  const openEdit = (design: any) => { setEditing(design); setForm({ title: design.title, description: design.description || "", preview_image_url: design.preview_image_url || "", category_id: design.category_id || "", is_published: design.is_published, tags: (design.tags || []).join(", ") }); setDialogOpen(true); };
 
-  const saveKit = async () => {
-    if (!form.name.trim()) { toast.error("Nome é obrigatório"); return; }
-    const payload = { ...form, category_id: form.category_id || null };
-    let kitId: string;
+  const saveDesign = async () => {
+    if (!form.title.trim()) { toast.error("Título é obrigatório"); return; }
+    const tags = form.tags.split(",").map(t => t.trim()).filter(Boolean);
+    const payload = { title: form.title, description: form.description || null, preview_image_url: form.preview_image_url || null, category_id: form.category_id || null, is_published: form.is_published, tags };
     if (editing) {
-      const { error } = await db.from("kits").update(payload).eq("id", editing.id);
+      const { error } = await db.from("designs").update(payload).eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
-      kitId = editing.id;
     } else {
-      const { data, error } = await db.from("kits").insert(payload).select("id").single();
+      const { error } = await db.from("designs").insert(payload);
       if (error) { toast.error(error.message); return; }
-      kitId = data!.id;
     }
-    await db.from("kit_tags").delete().eq("kit_id", kitId);
-    if (selectedTags.length > 0) await db.from("kit_tags").insert(selectedTags.map(tagId => ({ kit_id: kitId, tag_id: tagId })));
     toast.success(editing ? "Design atualizado!" : "Design criado!");
     setDialogOpen(false);
     fetchData();
   };
 
-  const deleteKit = async (id: string) => {
-    const { error } = await db.from("kits").delete().eq("id", id);
+  const deleteDesign = async (id: string) => {
+    const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Design excluído!"); fetchData(); }
   };
 
-  const toggleTag = (tagId: string) => setSelectedTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
-
   return (
     <div className="space-y-4 mt-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold">Designs ({kits.length})</h3>
+        <h3 className="font-semibold">Designs ({designs.length})</h3>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo Design</Button>
       </div>
       <div className="rounded-lg border overflow-hidden">
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Categoria</TableHead><TableHead>Status</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
-          <TableBody>{kits.map((kit: any) => (
-            <TableRow key={kit.id}>
-              <TableCell className="font-medium">{kit.name}</TableCell>
-              <TableCell>{kit.categories?.name || "—"}</TableCell>
-              <TableCell><Badge variant={kit.is_published ? "default" : "secondary"}>{kit.is_published ? "Publicado" : "Rascunho"}</Badge></TableCell>
+          <TableHeader><TableRow><TableHead>Título</TableHead><TableHead>Categoria</TableHead><TableHead>Tags</TableHead><TableHead>Status</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+          <TableBody>{designs.map((design: any) => (
+            <TableRow key={design.id}>
+              <TableCell className="font-medium">{design.title}</TableCell>
+              <TableCell>{design.categories?.name || "—"}</TableCell>
+              <TableCell><div className="flex flex-wrap gap-1">{(design.tags || []).slice(0, 3).map((t: string) => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}</div></TableCell>
+              <TableCell><Badge variant={design.is_published ? "default" : "secondary"}>{design.is_published ? "Publicado" : "Rascunho"}</Badge></TableCell>
               <TableCell className="flex gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(kit)}><Pencil className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteKit(kit.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => openEdit(design)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteDesign(design.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </TableCell>
             </TableRow>
           ))}</TableBody>
@@ -90,20 +81,17 @@ export const AdminKits = () => {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Editar Design" : "Novo Design"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Nome</label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Título</label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
             <div><label className="text-sm font-medium mb-1 block">Descrição</label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-            <div><label className="text-sm font-medium mb-1 block">URL da imagem de capa</label><Input value={form.cover_image} onChange={e => setForm({ ...form, cover_image: e.target.value })} placeholder="https://..." /></div>
+            <div><label className="text-sm font-medium mb-1 block">URL da imagem preview</label><Input value={form.preview_image_url} onChange={e => setForm({ ...form, preview_image_url: e.target.value })} placeholder="https://..." /></div>
             <div><label className="text-sm font-medium mb-1 block">Categoria</label>
               <Select value={form.category_id} onValueChange={v => setForm({ ...form, category_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>{categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select></div>
-            <div><label className="text-sm font-medium mb-1 block">Tags</label>
-              <div className="flex flex-wrap gap-2">{tags.map((t: any) => (
-                <Badge key={t.id} variant={selectedTags.includes(t.id) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTag(t.id)}>{t.name}</Badge>
-              ))}</div></div>
+            <div><label className="text-sm font-medium mb-1 block">Tags (separadas por vírgula)</label><Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="floral, delicado, infantil" /></div>
             <div className="flex items-center gap-2"><Switch checked={form.is_published} onCheckedChange={v => setForm({ ...form, is_published: v })} /><label className="text-sm">Publicado</label></div>
-            <Button onClick={saveKit} className="w-full">Salvar</Button>
+            <Button onClick={saveDesign} className="w-full">Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>

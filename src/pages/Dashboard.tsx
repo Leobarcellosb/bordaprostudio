@@ -10,22 +10,22 @@ import { Library, Download, Crown } from "lucide-react";
 const Dashboard = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
-  const [latestKits, setLatestKits] = useState<any[]>([]);
+  const [latestDesigns, setLatestDesigns] = useState<any[]>([]);
   const [recentDownloads, setRecentDownloads] = useState<any[]>([]);
-  const [stats, setStats] = useState({ kits: 0, downloads: 0 });
+  const [stats, setStats] = useState({ designs: 0, downloads: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: kits } = await db.from("kits").select("*, categories(name), kit_tags(tags(name))").eq("is_published", true).order("created_at", { ascending: false }).limit(6);
-      setLatestKits(kits || []);
+      const { data: designs } = await db.from("designs").select("*, categories(name)").eq("is_published", true).order("created_at", { ascending: false }).limit(6);
+      setLatestDesigns(designs || []);
       if (user) {
-        const { data: downloads } = await db.from("downloads").select("*, kits(*)").eq("user_id", user.id).order("downloaded_at", { ascending: false }).limit(4);
+        const { data: downloads } = await db.from("downloads").select("*, designs(*)").eq("user_id", user.id).order("downloaded_at", { ascending: false }).limit(4);
         setRecentDownloads(downloads || []);
         const { count: dlCount } = await db.from("downloads").select("*", { count: "exact", head: true }).eq("user_id", user.id);
         setStats((prev: any) => ({ ...prev, downloads: dlCount || 0 }));
       }
-      const { count: kitCount } = await db.from("kits").select("*", { count: "exact", head: true }).eq("is_published", true);
-      setStats((prev: any) => ({ ...prev, kits: kitCount || 0 }));
+      const { count: designCount } = await db.from("designs").select("*", { count: "exact", head: true }).eq("is_published", true);
+      setStats((prev: any) => ({ ...prev, designs: designCount || 0 }));
     };
     fetchData();
   }, [user]);
@@ -35,7 +35,7 @@ const Dashboard = () => {
       <div className="space-y-8 animate-fade-in">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">
-            Olá, {profile?.full_name || "Bordadeira"} 👋
+            Olá, {profile?.name || "Bordadeira"} 👋
           </h1>
           <p className="text-muted-foreground mt-1">Bem-vinda ao seu estúdio de bordados</p>
         </div>
@@ -44,7 +44,7 @@ const Dashboard = () => {
           <Card className="border-border/60">
             <CardContent className="pt-6 flex items-center gap-4">
               <div className="p-3 rounded-xl bg-accent"><Library className="h-5 w-5 text-accent-foreground" /></div>
-              <div><p className="text-2xl font-display font-bold">{stats.kits}</p><p className="text-sm text-muted-foreground">Designs disponíveis</p></div>
+              <div><p className="text-2xl font-display font-bold">{stats.designs}</p><p className="text-sm text-muted-foreground">Designs disponíveis</p></div>
             </CardContent>
           </Card>
           <Card className="border-border/60">
@@ -66,18 +66,18 @@ const Dashboard = () => {
             <h2 className="text-lg font-display font-bold">Novos Designs</h2>
             <button onClick={() => navigate("/library")} className="text-sm text-primary hover:underline font-medium">Ver todos →</button>
           </div>
-          {latestKits.length === 0 ? (
+          {latestDesigns.length === 0 ? (
             <Card className="border-border/60"><CardContent className="py-16 text-center text-muted-foreground">Nenhum design disponível ainda.</CardContent></Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {latestKits.map((kit: any) => (
+              {latestDesigns.map((design: any) => (
                 <DesignCard
-                  key={kit.id}
-                  name={kit.name}
-                  coverImage={kit.cover_image}
-                  category={kit.categories?.name}
-                  tags={(kit.kit_tags || []).map((kt: any) => kt.tags?.name).filter(Boolean)}
-                  onClick={() => navigate(`/library/${kit.id}`)}
+                  key={design.id}
+                  name={design.title}
+                  coverImage={design.preview_image_url}
+                  category={design.categories?.name}
+                  tags={design.tags || []}
+                  onClick={() => navigate(`/library/${design.id}`)}
                 />
               ))}
             </div>
@@ -89,11 +89,11 @@ const Dashboard = () => {
             <h2 className="text-lg font-display font-bold mb-4">Downloads Recentes</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {recentDownloads.map((dl: any) => (
-                <Card key={dl.id} className="cursor-pointer hover:shadow-md transition-shadow border-border/60" onClick={() => navigate(`/library/${dl.kit_id}`)}>
+                <Card key={dl.id} className="cursor-pointer hover:shadow-md transition-shadow border-border/60" onClick={() => navigate(`/library/${dl.design_id}`)}>
                   <CardContent className="p-4 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Download className="h-4 w-4 text-accent-foreground" /></div>
                     <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{dl.kits?.name || "Design"}</p>
+                      <p className="font-medium text-sm truncate">{dl.designs?.title || "Design"}</p>
                       <p className="text-xs text-muted-foreground">{new Date(dl.downloaded_at).toLocaleDateString("pt-BR")}</p>
                     </div>
                   </CardContent>

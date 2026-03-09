@@ -12,30 +12,29 @@ import { useSearchParams } from "react-router-dom";
 
 const SalesGenerator = () => {
   const [searchParams] = useSearchParams();
-  const [kits, setKits] = useState<any[]>([]);
+  const [designs, setDesigns] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
-  const [selectedKit, setSelectedKit] = useState(searchParams.get("kit") || "");
+  const [selectedDesign, setSelectedDesign] = useState(searchParams.get("design") || "");
   const [selectedProduct, setSelectedProduct] = useState(searchParams.get("product") || "");
   const [customPrice, setCustomPrice] = useState("");
   const [generated, setGenerated] = useState<{ title: string; description: string; whatsapp: string; instagram: string } | null>(null);
 
-  useEffect(() => { db.from("kits").select("*").eq("is_published", true).order("name").then(({ data }: any) => setKits(data || [])); }, []);
+  useEffect(() => { db.from("designs").select("*").eq("is_published", true).order("title").then(({ data }: any) => setDesigns(data || [])); }, []);
 
   useEffect(() => {
-    if (selectedKit) db.from("product_ideas").select("*").eq("kit_id", selectedKit).then(({ data }: any) => setProductIdeas(data || []));
+    if (selectedDesign) db.from("product_ideas").select("*").eq("design_id", selectedDesign).then(({ data }: any) => setProductIdeas(data || []));
     else setProductIdeas([]);
-  }, [selectedKit]);
+  }, [selectedDesign]);
 
   const generate = () => {
-    const kit = kits.find((k: any) => k.id === selectedKit);
+    const design = designs.find((d: any) => d.id === selectedDesign);
     const product = productIdeas.find((p: any) => p.id === selectedProduct);
-    if (!kit || !product) { toast.error("Selecione um design e um produto."); return; }
-    const price = customPrice || product.suggested_price;
-    const priceText = price ? `R$ ${Number(price).toFixed(2)}` : "";
-    const title = `${product.product_name} - ${kit.name}`;
-    const description = `${product.description || product.product_name}. Bordado profissional com acabamento de alta qualidade. ${priceText ? `Valor: ${priceText}` : ""}`.trim();
+    if (!design || !product) { toast.error("Selecione um design e um produto."); return; }
+    const priceText = customPrice ? `R$ ${Number(customPrice).toFixed(2)}` : "";
+    const title = `${product.title} - ${design.title}`;
+    const description = `${product.description || product.title}. Bordado profissional com acabamento de alta qualidade. ${priceText ? `Valor: ${priceText}` : ""}`.trim();
     const whatsapp = `Olá! 😊\n\nTenho novidade para você! ✨\n\n*${title}*\n\n${product.description || "Um produto lindo com bordado exclusivo!"}\n\n${priceText ? `💰 *${priceText}*\n\n` : ""}📦 Pronta entrega!\n\nInteressou? Me chama aqui no WhatsApp! 💬`;
-    const instagram = `✨ ${title} ✨\n\n${product.description || "Bordado exclusivo com acabamento profissional!"}\n\n${priceText ? `💰 ${priceText}\n\n` : ""}📩 Encomende pelo link na bio ou pelo WhatsApp!\n\n#bordado #bordadoprofissional #artesanato #feitoamao #bordadolivre #${kit.name.replace(/\s+/g, "").toLowerCase()}`;
+    const instagram = `✨ ${title} ✨\n\n${product.description || "Bordado exclusivo com acabamento profissional!"}\n\n${priceText ? `💰 ${priceText}\n\n` : ""}📩 Encomende pelo link na bio ou pelo WhatsApp!\n\n#bordado #bordadoprofissional #artesanato #feitoamao #bordadolivre #${design.title.replace(/\s+/g, "").toLowerCase()}`;
     setGenerated({ title, description, whatsapp, instagram });
     toast.success("Texto gerado com sucesso!");
   };
@@ -54,16 +53,16 @@ const SalesGenerator = () => {
           <CardContent className="pt-6 space-y-4">
             <div>
               <label className="text-sm font-medium mb-1.5 block">Design</label>
-              <Select value={selectedKit} onValueChange={v => { setSelectedKit(v); setSelectedProduct(""); }}>
+              <Select value={selectedDesign} onValueChange={v => { setSelectedDesign(v); setSelectedProduct(""); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione um design" /></SelectTrigger>
-                <SelectContent>{kits.map((k: any) => <SelectItem key={k.id} value={k.id}>{k.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{designs.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block">Produto</label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct} disabled={!selectedKit}>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct} disabled={!selectedDesign}>
                 <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent>{productIdeas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.product_name}</SelectItem>)}</SelectContent>
+                <SelectContent>{productIdeas.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
