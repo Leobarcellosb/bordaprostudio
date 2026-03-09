@@ -36,6 +36,28 @@ const DesignDetail = () => {
       setDesign(designData);
       setFiles(filesData || []);
       setProductIdeas(ideasData || []);
+
+      // Fetch related designs by same category or overlapping tags
+      if (designData) {
+        let query = db.from("kits").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
+        if (designData.category_id) {
+          query = query.eq("category_id", designData.category_id);
+        }
+        const { data: relatedData } = await query;
+        let related = relatedData || [];
+
+        // Sort by tag overlap
+        const designTags = designData.tags || [];
+        if (designTags.length > 0) {
+          related.sort((a: any, b: any) => {
+            const aOverlap = (a.tags || []).filter((t: string) => designTags.includes(t)).length;
+            const bOverlap = (b.tags || []).filter((t: string) => designTags.includes(t)).length;
+            return bOverlap - aOverlap;
+          });
+        }
+        setRelatedDesigns(related.slice(0, 6));
+      }
+
       setLoading(false);
     };
     fetchDesign();
