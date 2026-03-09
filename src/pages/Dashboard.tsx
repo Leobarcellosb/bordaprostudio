@@ -58,7 +58,7 @@ const Dashboard = () => {
 
           const sortedIds = Object.entries(countMap)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 6);
+            .slice(0, 10);
 
           if (sortedIds.length > 0) {
             const { data: topKits } = await db
@@ -84,7 +84,7 @@ const Dashboard = () => {
 
           const trendingIds = Object.entries(trendingMap)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 6);
+            .slice(0, 10);
 
           if (trendingIds.length > 0) {
             const { data: trendingKits } = await db
