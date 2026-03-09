@@ -344,15 +344,17 @@ const DesignDetail = () => {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
-                      onClick={() => navigate(`/sales-generator?design=${id}&product=${idea.id}`)}
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Gerar texto de venda
-                    </Button>
+                    {!String(idea.id).startsWith("ai-") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-1.5 border-secondary/30 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-colors"
+                        onClick={() => navigate(`/sales-generator?design=${id}&product=${idea.id}`)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Gerar texto de venda
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
