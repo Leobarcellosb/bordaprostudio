@@ -6,7 +6,7 @@ export const AdminDownloads = () => {
   const [downloads, setDownloads] = useState<any[]>([]);
 
   useEffect(() => {
-    db.from("downloads").select("*, designs(title), profiles:user_id(name, email)").order("downloaded_at", { ascending: false }).limit(100).then(({ data }: any) => setDownloads(data || []));
+    db.from("downloads").select("*, designs:kit_id(name), profiles:user_id(name, email)").order("created_at", { ascending: false }).limit(100).then(({ data }: any) => setDownloads(data || []));
   }, []);
 
   return (
