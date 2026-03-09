@@ -302,7 +302,7 @@ export const AdminSmartUpload = () => {
         } else {
           const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
           const { data: designData, error: designError } = await db
-            .from("kits")
+            .from("designs")
             .insert({
               name: group.title,
               cover_image: previewUrl,

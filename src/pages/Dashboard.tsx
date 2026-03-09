@@ -141,7 +141,7 @@ const Dashboard = () => {
           setStats((prev) => ({ ...prev, downloads: dlCount || 0 }));
         }
         const { count: designCount } = await db
-          .from("kits")
+          .from("designs")
           .select("*", { count: "exact", head: true })
           .eq("is_published", true);
         setStats((prev) => ({ ...prev, designs: designCount || 0 }));

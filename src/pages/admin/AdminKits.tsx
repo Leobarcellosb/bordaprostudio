@@ -148,7 +148,7 @@ export const AdminKits = () => {
 
   const deleteKit = async (id: string) => {
     await db.from("kit_files").delete().eq("kit_id", id);
-    const { error } = await db.from("kits").delete().eq("id", id);
+    const { error } = await db.from("designs").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Design excluído!"); fetchData(); }
   };

@@ -18,8 +18,8 @@ export const AdminDownloads = () => {
           <TableBody>{downloads.map((dl: any) => (
             <TableRow key={dl.id}>
               <TableCell><p className="font-medium text-sm">{dl.profiles?.name || "—"}</p><p className="text-xs text-muted-foreground">{dl.profiles?.email}</p></TableCell>
-              <TableCell>{dl.designs?.title || "—"}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{new Date(dl.downloaded_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
+              <TableCell>{dl.designs?.name || "—"}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{new Date(dl.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
             </TableRow>
           ))}</TableBody>
         </Table>

@@ -38,8 +38,8 @@ const DownloadsPage = () => {
       const mapped = (data || []).map((d: any) => ({
         id: d.id,
         kit_id: d.kit_id,
-        downloaded_at: d.downloaded_at,
-        kit: d.kits,
+        downloaded_at: d.created_at,
+        kit: d.designs,
       }));
       setDownloads(mapped);
       setLoading(false);

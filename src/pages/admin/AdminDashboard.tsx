@@ -48,7 +48,7 @@ export const AdminDashboard = () => {
       
       const result = sortedIds.map(([id, count]) => {
         const design = (designs || []).find((d: any) => d.id === id);
-        return { id, title: design?.title || "—", preview: design?.preview_image_url, downloads: count };
+        return { id, title: design?.name || "—", preview: design?.cover_image, downloads: count };
       });
       setTopDesigns(result);
     };

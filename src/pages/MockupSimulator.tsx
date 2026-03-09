@@ -27,7 +27,7 @@ const MockupSimulator = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    db.from("kits")
+    db.from("designs")
       .select("id, name, cover_image, categories(name)")
       .eq("is_published", true)
       .order("name")

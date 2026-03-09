@@ -63,7 +63,7 @@ const SalesGenerator = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
-    db.from("kits").select("*, categories(name)").eq("is_published", true).order("name")
+    db.from("designs").select("*, categories(name)").eq("is_published", true).order("name")
       .then(({ data }: any) => {
         setDesigns(data || []);
         const designId = searchParams.get("design");
