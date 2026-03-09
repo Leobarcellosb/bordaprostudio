@@ -2,3 +2,6 @@ project_id = "szncoppcatmwyurukpfg"
 
 [functions.generate-sales-text]
 verify_jwt = true
+
+[functions.generate-product-ideas]
+verify_jwt = false
