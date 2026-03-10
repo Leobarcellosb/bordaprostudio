@@ -24,6 +24,13 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem("app_language") || "pt");
+
+  const handleLanguageChange = (val: string) => {
+    setLanguage(val);
+    localStorage.setItem("app_language", val);
+    toast.success("Idioma salvo!");
+  };
 
   const initials = [name?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "U";
 
