@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
-const navItems = [
+const navItems: { icon: any; labelKey?: string; label?: string; path: string }[] = [
   { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
   { icon: Library, labelKey: "nav.library", path: "/library" },
   { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
