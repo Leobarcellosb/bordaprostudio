@@ -11,11 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Seeded random for consistent "today's picks"
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
 
 const Dashboard = () => {
   const { profile, user, subscription } = useAuth();
