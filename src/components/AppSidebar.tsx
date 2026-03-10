@@ -16,6 +16,7 @@ const navItems = [
   { icon: Layers, labelKey: "nav.mockupSimulator", path: "/mockup-simulator" },
   { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+  { icon: Package, label: "Kits Premium", path: "/kits" },
   { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
 ];
 
