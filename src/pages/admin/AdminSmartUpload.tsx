@@ -126,7 +126,6 @@ export const AdminSmartUpload = () => {
             const categoryId = suggestCategory(baseName, categories) || "";
 
             if (innerFiles.length > 0) {
-              // ZIP contains embroidery files — create design with individual files
               const groupId = crypto.randomUUID();
               newGroups.set(groupId, {
                 id: groupId,
@@ -136,11 +135,11 @@ export const AdminSmartUpload = () => {
                 categoryId,
                 files: innerFiles,
                 previewFile,
+                autoPreview: false,
                 isZip: false,
                 status: "pending",
               });
             } else {
-              // ZIP doesn't contain embroidery files — upload as-is
               const groupId = crypto.randomUUID();
               newGroups.set(groupId, {
                 id: groupId,
@@ -150,6 +149,7 @@ export const AdminSmartUpload = () => {
                 categoryId,
                 files: [{ name: file.name, blob: file, format: "ZIP" }],
                 previewFile,
+                autoPreview: false,
                 isZip: true,
                 status: "pending",
               });
