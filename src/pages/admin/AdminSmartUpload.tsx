@@ -68,9 +68,11 @@ interface DesignGroup {
   categoryId: string;
   files: { name: string; blob: Blob; format: string }[];
   previewFile: { name: string; blob: Blob } | null;
+  autoPreview: boolean; // true if preview was auto-generated from embroidery file
   isZip: boolean;
   status: "pending" | "editing" | "uploading" | "done" | "error";
   error?: string;
+  metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
 }
 
 export const AdminSmartUpload = () => {
