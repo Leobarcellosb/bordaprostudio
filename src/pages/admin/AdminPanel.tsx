@@ -9,6 +9,7 @@ import { AdminSmartUpload } from "./AdminSmartUpload";
 import { AdminSubscriptions } from "./AdminSubscriptions";
 import { AdminAnalytics } from "./AdminAnalytics";
 import { AdminIntegrations } from "./AdminIntegrations";
+import { AdminPremiumKits } from "./AdminPremiumKits";
 import { Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -28,7 +29,7 @@ const AdminPanel = () => {
 
         <Tabs defaultValue="dashboard">
           <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-9">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-10">
               <TabsTrigger value="dashboard" className="font-medium text-xs">{t("admin.overview")}</TabsTrigger>
               <TabsTrigger value="analytics" className="font-medium text-xs">Analytics</TabsTrigger>
               <TabsTrigger value="designs" className="font-medium text-xs">{t("admin.designs")}</TabsTrigger>
@@ -38,6 +39,7 @@ const AdminPanel = () => {
               <TabsTrigger value="downloads" className="font-medium text-xs">{t("admin.downloads")}</TabsTrigger>
               <TabsTrigger value="subscriptions" className="font-medium text-xs">{t("admin.subscriptions")}</TabsTrigger>
               <TabsTrigger value="integrations" className="font-medium text-xs">Integrações</TabsTrigger>
+              <TabsTrigger value="kits" className="font-medium text-xs">Kits Premium</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
@@ -49,6 +51,7 @@ const AdminPanel = () => {
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
           <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>
           <TabsContent value="integrations"><AdminIntegrations /></TabsContent>
+          <TabsContent value="kits"><AdminPremiumKits /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>

@@ -1,4 +1,4 @@
-import { Home, Library, Sparkles, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Layers, Calculator, TrendingUp, Heart, Download, Crown } from "lucide-react";
+import { Home, Library, Sparkles, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Layers, Calculator, TrendingUp, Heart, Download, Crown, Package } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
-const navItems = [
+const navItems: { icon: any; labelKey?: string; label?: string; path: string }[] = [
   { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
   { icon: Library, labelKey: "nav.library", path: "/library" },
   { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
@@ -17,6 +17,7 @@ const navItems = [
   { icon: Layers, labelKey: "nav.mobile.mockups", path: "/mockup-simulator" },
   { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+  { icon: Package, label: "Kits Premium", path: "/kits" },
   { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
 ];
 
@@ -40,12 +41,12 @@ export const MobileNav = () => {
       </header>
       {open && (
         <div className="md:hidden fixed inset-0 top-[61px] bg-background z-50 p-4 space-y-1 animate-fade-in overflow-y-auto">
-          {navItems.map(({ icon: Icon, labelKey, path }) => (
+          {navItems.map(({ icon: Icon, labelKey, label, path }) => (
             <button key={path} onClick={() => { navigate(path); setOpen(false); }}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
               )}>
-              <Icon className="h-4 w-4" />{t(labelKey)}
+              <Icon className="h-4 w-4" />{labelKey ? t(labelKey) : label}
             </button>
           ))}
           {isAdmin && (

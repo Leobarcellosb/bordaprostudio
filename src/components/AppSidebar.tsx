@@ -1,11 +1,11 @@
-import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Layers, Calculator, TrendingUp, Heart, Download, Crown } from "lucide-react";
+import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Layers, Calculator, TrendingUp, Heart, Download, Crown, Package } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
-const navItems = [
+const navItems: { icon: any; labelKey?: string; label?: string; path: string }[] = [
   { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
   { icon: Library, labelKey: "nav.library", path: "/library" },
   { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
@@ -16,6 +16,7 @@ const navItems = [
   { icon: Layers, labelKey: "nav.mockupSimulator", path: "/mockup-simulator" },
   { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+  { icon: Package, label: "Kits Premium", path: "/kits" },
   { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
 ];
 
@@ -43,7 +44,7 @@ export const AppSidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">{t("nav.menu")}</p>
-        {navItems.map(({ icon: Icon, labelKey, path }) => {
+        {navItems.map(({ icon: Icon, labelKey, label, path }) => {
           const active = location.pathname === path;
           return (
             <button
@@ -57,7 +58,7 @@ export const AppSidebar = () => {
               )}
             >
               <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
-              {t(labelKey)}
+              {labelKey ? t(labelKey) : label}
             </button>
           );
         })}
