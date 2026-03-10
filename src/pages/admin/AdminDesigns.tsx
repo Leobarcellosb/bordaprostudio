@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/db";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
+import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2 } from "lucide-react";
 
-const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX"];
+const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3"];
 
 export const AdminDesigns = () => {
   const [designs, setDesigns] = useState<any[]>([]);
