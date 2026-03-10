@@ -450,7 +450,8 @@ export const AdminSmartUpload = () => {
           <div>
             <h3 className="font-display font-bold text-lg">Upload Inteligente</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-              Envie arquivos de bordado (PES, EXP, JEF, DST, XXX), ZIPs ou imagens.
+              Envie arquivos de bordado (PES, EXP, JEF, DST, XXX, VP3), ZIPs ou imagens.
+              Previews são gerados automaticamente a partir dos arquivos de bordado.
               Arquivos com o mesmo nome base são agrupados automaticamente como um único design.
             </p>
           </div>
