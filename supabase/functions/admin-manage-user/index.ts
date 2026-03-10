@@ -2,25 +2,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
   // Verify caller is admin
-  const authHeader = req.headers.get("Authorization")!;
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
   const { data: { user: caller } } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-  if (!caller) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: corsHeaders });
+  if (!caller) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", caller.id);
   if (!roles?.some((r: any) => r.role === "admin")) {
-    return new Response(JSON.stringify({ error: "Acesso negado" }), { status: 403, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Acesso negado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const body = await req.json();
@@ -29,7 +31,6 @@ Deno.serve(async (req) => {
   try {
     if (action === "create") {
       const { email, password, name, last_name, plan, role } = body;
-      // Create auth user
       const { data: newUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -38,12 +39,13 @@ Deno.serve(async (req) => {
       });
       if (authErr) throw authErr;
 
-      // Update profile with extra fields
+      // Wait for trigger to create profile, then update
+      await new Promise((r) => setTimeout(r, 500));
       await supabaseAdmin.from("profiles").update({
-        name, last_name, plan: plan || "basic",
+        name, last_name: last_name || null, plan: plan || "basic",
       }).eq("id", newUser.user!.id);
 
-      // Set role if admin
+      // Set role if admin (trigger creates default role, update it)
       if (role === "admin") {
         await supabaseAdmin.from("user_roles").update({ role: "admin" }).eq("user_id", newUser.user!.id);
       }
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
