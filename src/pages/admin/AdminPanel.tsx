@@ -8,6 +8,7 @@ import { AdminDownloads } from "./AdminDownloads";
 import { AdminSmartUpload } from "./AdminSmartUpload";
 import { AdminSubscriptions } from "./AdminSubscriptions";
 import { AdminAnalytics } from "./AdminAnalytics";
+import { AdminIntegrations } from "./AdminIntegrations";
 import { Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -26,16 +27,19 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="dashboard" className="font-medium">{t("admin.overview")}</TabsTrigger>
-            <TabsTrigger value="analytics" className="font-medium">Analytics</TabsTrigger>
-            <TabsTrigger value="designs" className="font-medium">{t("admin.designs")}</TabsTrigger>
-            <TabsTrigger value="import" className="font-medium">{t("admin.import")}</TabsTrigger>
-            <TabsTrigger value="categories" className="font-medium">{t("admin.categories")}</TabsTrigger>
-            <TabsTrigger value="users" className="font-medium">{t("admin.users")}</TabsTrigger>
-            <TabsTrigger value="downloads" className="font-medium">{t("admin.downloads")}</TabsTrigger>
-            <TabsTrigger value="subscriptions" className="font-medium">{t("admin.subscriptions")}</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-9">
+              <TabsTrigger value="dashboard" className="font-medium text-xs">{t("admin.overview")}</TabsTrigger>
+              <TabsTrigger value="analytics" className="font-medium text-xs">Analytics</TabsTrigger>
+              <TabsTrigger value="designs" className="font-medium text-xs">{t("admin.designs")}</TabsTrigger>
+              <TabsTrigger value="import" className="font-medium text-xs">{t("admin.import")}</TabsTrigger>
+              <TabsTrigger value="categories" className="font-medium text-xs">{t("admin.categories")}</TabsTrigger>
+              <TabsTrigger value="users" className="font-medium text-xs">{t("admin.users")}</TabsTrigger>
+              <TabsTrigger value="downloads" className="font-medium text-xs">{t("admin.downloads")}</TabsTrigger>
+              <TabsTrigger value="subscriptions" className="font-medium text-xs">{t("admin.subscriptions")}</TabsTrigger>
+              <TabsTrigger value="integrations" className="font-medium text-xs">Integrações</TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
           <TabsContent value="analytics"><AdminAnalytics /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
@@ -44,6 +48,7 @@ const AdminPanel = () => {
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
           <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>
+          <TabsContent value="integrations"><AdminIntegrations /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>
