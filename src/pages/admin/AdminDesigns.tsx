@@ -106,6 +106,35 @@ export const AdminDesigns = () => {
       file_name: fileName,
     });
     if (dbError) { toast.error(dbError.message); } else { toast.success(`Arquivo ${ext} enviado!`); }
+
+    // Auto-generate preview if no cover image exists
+    if (!form.cover_image && isPreviewSupported(ext)) {
+      try {
+        const result = await generateEmbroideryPreview(file, ext);
+        if (result) {
+          const previewPath = `auto/${editing.id}-${Date.now()}.png`;
+          const { error: upErr } = await supabase.storage.from("design-covers").upload(previewPath, result.blob, { contentType: "image/png" });
+          if (!upErr) {
+            const { data: previewUrl } = supabase.storage.from("design-covers").getPublicUrl(previewPath);
+            await db.from("designs").update({
+              cover_image: previewUrl.publicUrl,
+              ...(result.metadata ? {
+                width_mm: result.metadata.widthMm,
+                height_mm: result.metadata.heightMm,
+                stitch_count: result.metadata.stitchCount,
+                colors_count: result.metadata.colorChanges,
+              } : {}),
+            }).eq("id", editing.id);
+            setForm(prev => ({ ...prev, cover_image: previewUrl.publicUrl }));
+            toast.success("Preview gerado automaticamente a partir do arquivo de bordado!");
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-preview generation failed:", err);
+        toast.info("Não foi possível gerar a visualização automática. Você pode enviar uma imagem manualmente.");
+      }
+    }
+
     await fetchDesignDetails(editing.id);
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
