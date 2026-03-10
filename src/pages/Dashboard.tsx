@@ -93,17 +93,6 @@ const Dashboard = () => {
           }
         }
 
-        const { data: allKits } = await db
-          .from("designs")
-          .select("*, categories(name)")
-          .eq("is_published", true);
-
-        if (allKits && allKits.length > 0) {
-          const today = new Date();
-          const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-          const shuffled = [...allKits].sort(() => seededRandom(seed) - 0.5);
-          setSuggestedDesigns(shuffled.slice(0, 4));
-        }
 
         if (user) {
           const { data: userFavorites } = await db
