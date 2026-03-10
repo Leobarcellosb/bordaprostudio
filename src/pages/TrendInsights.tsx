@@ -182,20 +182,65 @@ const TrendInsights = () => {
           </div>
         ) : (
           <>
-            {/* Seasonal trends - highlighted */}
+            {/* Em Alta Agora — real recent trending */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Flame className="h-5 w-5 text-destructive" />
+                <h2 className="font-display font-bold text-lg">Em Alta Agora</h2>
+                <Badge variant="destructive" className="text-xs">Últimos 7 dias</Badge>
+              </div>
+              {hotNow.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {hotNow.map((kit: any, index: number) => (
+                    <Card
+                      key={kit.id}
+                      className="group cursor-pointer border-destructive/20 overflow-hidden hover:shadow-lg hover:border-destructive/40 transition-all"
+                      onClick={() => navigate(`/library/${kit.id}`)}
+                    >
+                      <div className="aspect-square bg-muted overflow-hidden relative">
+                        {kit.cover_image ? (
+                          <img src={kit.cover_image} alt={kit.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl">🧵</div>
+                        )}
+                        <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs font-bold">
+                          {index + 1}
+                        </div>
+                        <Badge className="absolute top-1.5 right-1.5 text-[10px] bg-destructive/80 text-destructive-foreground">
+                          {kit.recentDownloads} ↓ 7d
+                        </Badge>
+                      </div>
+                      <CardContent className="p-2.5">
+                        <p className="text-xs font-medium truncate group-hover:text-destructive transition-colors">{kit.name}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card className="border-border/60 bg-muted/30">
+                  <CardContent className="py-12 text-center">
+                    <Flame className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                    <p className="text-muted-foreground text-sm">Nenhum download nos últimos 7 dias.</p>
+                    <p className="text-muted-foreground/60 text-xs mt-1">Baixe designs na biblioteca para gerar tendências reais.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+
+            {/* Temas da Temporada — seasonal keyword curation */}
             {seasonalTrends.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-destructive" />
-                  <h2 className="font-display font-bold text-lg">Tendências da Temporada</h2>
-                  <Badge variant="destructive" className="text-xs">Em alta agora</Badge>
+                  <Calendar className="h-5 w-5 text-secondary" />
+                  <h2 className="font-display font-bold text-lg">Temas da Temporada</h2>
+                  <Badge variant="secondary" className="text-xs">Sazonal</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {seasonalTrends.map((trend) => {
                     const designs = trendData[trend.id] || [];
                     if (designs.length === 0) return null;
                     return (
-                      <Card key={trend.id} className="border-destructive/30 bg-destructive/5 p-4">
+                      <Card key={trend.id} className="border-secondary/30 bg-secondary/5 p-4">
                         <TrendSection trend={trend} designs={designs} />
                       </Card>
                     );
@@ -204,13 +249,14 @@ const TrendInsights = () => {
               </section>
             )}
 
-            {/* Top downloaded */}
+            {/* Mais Baixados — all-time */}
             {topDownloaded.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-secondary" />
+                    <Sparkles className="h-5 w-5 text-primary" />
                     <h2 className="font-display font-bold text-lg">Mais Baixados</h2>
+                    <Badge variant="outline" className="text-xs">Todos os tempos</Badge>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
                     Ver todos <ArrowRight className="h-3.5 w-3.5" />
@@ -225,15 +271,11 @@ const TrendInsights = () => {
                     >
                       <div className="aspect-square bg-muted overflow-hidden relative">
                         {kit.cover_image ? (
-                          <img
-                            src={kit.cover_image}
-                            alt={kit.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
+                          <img src={kit.cover_image} alt={kit.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl">🧵</div>
                         )}
-                        <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-xs font-bold">
+                        <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                           {index + 1}
                         </div>
                       </div>
@@ -247,7 +289,7 @@ const TrendInsights = () => {
               </section>
             )}
 
-            {/* Regular trends */}
+            {/* Categorias Populares */}
             <section className="space-y-6">
               <h2 className="font-display font-bold text-lg flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" /> Categorias Populares
