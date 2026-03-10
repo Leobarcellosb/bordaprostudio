@@ -88,9 +88,13 @@ export const AppSidebar = () => {
         {/* User card */}
         <div className="px-3 py-3 rounded-xl bg-sidebar-accent/40 border border-sidebar-border/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/80 to-secondary/60 flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground">
-              {(profile?.name || "U").charAt(0).toUpperCase()}
-            </div>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sidebar-primary/80 to-secondary/60 flex items-center justify-center text-[11px] font-bold text-sidebar-primary-foreground shrink-0">
+                {(profile?.name || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium truncate text-sidebar-foreground/90">{profile?.name || "Usuário"}</p>
               <p className="text-[11px] text-sidebar-foreground/35 truncate">{profile?.email}</p>
