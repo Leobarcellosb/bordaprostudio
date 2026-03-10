@@ -41,12 +41,12 @@ export const MobileNav = () => {
       </header>
       {open && (
         <div className="md:hidden fixed inset-0 top-[61px] bg-background z-50 p-4 space-y-1 animate-fade-in overflow-y-auto">
-          {navItems.map(({ icon: Icon, labelKey, path }) => (
+          {navItems.map(({ icon: Icon, labelKey, label, path }) => (
             <button key={path} onClick={() => { navigate(path); setOpen(false); }}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
               )}>
-              <Icon className="h-4 w-4" />{t(labelKey)}
+              <Icon className="h-4 w-4" />{labelKey ? t(labelKey) : label}
             </button>
           ))}
           {isAdmin && (

@@ -44,7 +44,7 @@ export const AppSidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">{t("nav.menu")}</p>
-        {navItems.map(({ icon: Icon, labelKey, path }) => {
+        {navItems.map(({ icon: Icon, labelKey, label, path }) => {
           const active = location.pathname === path;
           return (
             <button
@@ -58,7 +58,7 @@ export const AppSidebar = () => {
               )}
             >
               <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
-              {t(labelKey)}
+              {labelKey ? t(labelKey) : label}
             </button>
           );
         })}
