@@ -29,7 +29,7 @@ const AdminPanel = () => {
 
         <Tabs defaultValue="dashboard">
           <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-9">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-10">
               <TabsTrigger value="dashboard" className="font-medium text-xs">{t("admin.overview")}</TabsTrigger>
               <TabsTrigger value="analytics" className="font-medium text-xs">Analytics</TabsTrigger>
               <TabsTrigger value="designs" className="font-medium text-xs">{t("admin.designs")}</TabsTrigger>
