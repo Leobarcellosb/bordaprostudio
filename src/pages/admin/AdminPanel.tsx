@@ -26,8 +26,9 @@ const AdminPanel = () => {
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="dashboard" className="font-medium">{t("admin.overview")}</TabsTrigger>
+            <TabsTrigger value="analytics" className="font-medium">Analytics</TabsTrigger>
             <TabsTrigger value="designs" className="font-medium">{t("admin.designs")}</TabsTrigger>
             <TabsTrigger value="import" className="font-medium">{t("admin.import")}</TabsTrigger>
             <TabsTrigger value="categories" className="font-medium">{t("admin.categories")}</TabsTrigger>
@@ -36,6 +37,7 @@ const AdminPanel = () => {
             <TabsTrigger value="subscriptions" className="font-medium">{t("admin.subscriptions")}</TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
+          <TabsContent value="analytics"><AdminAnalytics /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
           <TabsContent value="import"><AdminSmartUpload /></TabsContent>
           <TabsContent value="categories"><AdminCategories /></TabsContent>
