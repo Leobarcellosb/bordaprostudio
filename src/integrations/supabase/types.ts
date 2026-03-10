@@ -203,6 +203,42 @@ export type Database = {
           },
         ]
       }
+      integration_logs: {
+        Row: {
+          created_at: string
+          email: string | null
+          event_type: string
+          id: string
+          integration: string
+          message: string | null
+          payload: Json | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event_type: string
+          id?: string
+          integration?: string
+          message?: string | null
+          payload?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event_type?: string
+          id?: string
+          integration?: string
+          message?: string | null
+          payload?: Json | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       kit_arquivos: {
         Row: {
           created_at: string | null

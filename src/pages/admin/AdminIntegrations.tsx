@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Plug, Settings, Power, Zap, Globe, CreditCard, ShoppingCart,
-  Video, HardDrive, Cloud, Webhook, ArrowRight, Clock, CheckCircle2,
-  XCircle, AlertCircle, RefreshCw
+  Video, HardDrive, Cloud, Webhook, Clock, CheckCircle2,
+  XCircle, AlertCircle, RefreshCw, Copy, ExternalLink, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
+import { db } from "@/lib/db";
 
 interface Integration {
   id: string;
@@ -37,20 +39,13 @@ const INTEGRATIONS: Integration[] = [
 
 interface LogEntry {
   id: string;
-  event: string;
+  event_type: string;
   integration: string;
-  user: string;
-  status: "success" | "error" | "pending";
-  timestamp: string;
+  email: string | null;
+  status: string;
+  message: string | null;
+  created_at: string;
 }
-
-const MOCK_LOGS: LogEntry[] = [
-  { id: "1", event: "Webhook recebido", integration: "Eduzz", user: "Sistema", status: "success", timestamp: "2026-03-10 14:32" },
-  { id: "2", event: "Assinatura ativada", integration: "Eduzz", user: "maria@email.com", status: "success", timestamp: "2026-03-10 14:30" },
-  { id: "3", event: "Webhook recebido", integration: "Webhook", user: "Sistema", status: "success", timestamp: "2026-03-10 12:15" },
-  { id: "4", event: "Falha na conexão", integration: "Stripe", user: "Sistema", status: "error", timestamp: "2026-03-09 18:45" },
-  { id: "5", event: "Teste de conexão", integration: "Webhook", user: "admin@bordapro.com", status: "pending", timestamp: "2026-03-09 10:20" },
-];
 
 const categoryLabels: Record<string, string> = {
   payment: "Pagamentos",
@@ -60,8 +55,27 @@ const categoryLabels: Record<string, string> = {
 };
 
 export const AdminIntegrations = () => {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [eduzzConfigOpen, setEduzzConfigOpen] = useState(false);
+
   const installed = INTEGRATIONS.filter((i) => i.connected);
   const available = INTEGRATIONS.filter((i) => !i.connected);
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      const { data } = await db
+        .from("integration_logs")
+        .select("id, event_type, integration, email, status, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setLogs(data || []);
+      setLoadingLogs(false);
+    };
+    loadLogs();
+  }, []);
+
+  const lastEduzzEvent = logs.find((l) => l.integration === "eduzz");
 
   return (
     <div className="space-y-10 mt-2 pb-8">
@@ -81,18 +95,23 @@ export const AdminIntegrations = () => {
             Disponíveis ({available.length})
           </TabsTrigger>
           <TabsTrigger value="history" className="text-xs font-medium data-[state=active]:shadow-sm px-4">
-            Histórico
+            Histórico {logs.length > 0 && `(${logs.length})`}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="installed" className="mt-6">
-          <InstalledView integrations={installed} />
+          <InstalledView
+            integrations={installed}
+            eduzzConfigOpen={eduzzConfigOpen}
+            setEduzzConfigOpen={setEduzzConfigOpen}
+            lastEduzzEvent={lastEduzzEvent}
+          />
         </TabsContent>
         <TabsContent value="available" className="mt-6">
           <AvailableView integrations={available} />
         </TabsContent>
         <TabsContent value="history" className="mt-6">
-          <HistoryView logs={MOCK_LOGS} />
+          <HistoryView logs={logs} loading={loadingLogs} />
         </TabsContent>
       </Tabs>
     </div>
@@ -101,7 +120,17 @@ export const AdminIntegrations = () => {
 
 /* ── Installed ── */
 
-function InstalledView({ integrations }: { integrations: Integration[] }) {
+function InstalledView({
+  integrations,
+  eduzzConfigOpen,
+  setEduzzConfigOpen,
+  lastEduzzEvent,
+}: {
+  integrations: Integration[];
+  eduzzConfigOpen: boolean;
+  setEduzzConfigOpen: (v: boolean) => void;
+  lastEduzzEvent?: LogEntry;
+}) {
   if (!integrations.length) {
     return (
       <EmptyState
@@ -112,37 +141,129 @@ function InstalledView({ integrations }: { integrations: Integration[] }) {
     );
   }
 
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eduzz-webhook`;
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    toast.success("URL copiada!");
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {integrations.map((item) => (
-        <Card key={item.id} className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/8 text-primary border border-primary/10">
-                  {item.icon}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {integrations.map((item) => (
+          <Card key={item.id} className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/10">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                    <p className="text-[11px] text-muted-foreground/70 leading-tight mt-0.5">{item.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                  <p className="text-[11px] text-muted-foreground/70 leading-tight mt-0.5">{item.description}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <StatusBadge status={item.status || "inactive"} />
+                {item.id === "eduzz" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
+                    onClick={() => setEduzzConfigOpen(!eduzzConfigOpen)}
+                  >
+                    <Settings className="h-3 w-3 mr-1.5" />
+                    {eduzzConfigOpen ? "Fechar" : "Configurar"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
+                    onClick={() => toast.info(`Configurações de ${item.name} em breve.`)}
+                  >
+                    <Settings className="h-3 w-3 mr-1.5" />
+                    Configurar
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Eduzz Config Panel */}
+      {eduzzConfigOpen && (
+        <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)]">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+                <CreditCard className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <CardTitle className="text-[13px] font-sans font-semibold text-foreground/80">Configuração Eduzz</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5 space-y-4">
+            {/* Webhook URL */}
+            <div>
+              <label className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider mb-1.5 block">
+                Webhook URL
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={webhookUrl}
+                  className="text-xs font-mono bg-muted/40 border-border/40 h-8"
+                />
+                <Button variant="outline" size="sm" className="h-8 px-3 shrink-0" onClick={copyUrl}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">
+                Cole esta URL no painel da Eduzz em Configurações → Webhooks.
+              </p>
+            </div>
+
+            {/* Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Status</label>
+                <StatusBadge status="active" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Último evento</label>
+                {lastEduzzEvent ? (
+                  <p className="text-xs text-foreground/75">
+                    {lastEduzzEvent.event_type} — {new Date(lastEduzzEvent.created_at).toLocaleString("pt-BR")}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground/50">Nenhum evento recebido</p>
+                )}
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Eventos suportados</label>
+                <div className="flex flex-wrap gap-1">
+                  {["purchase_approved", "purchase_refunded", "subscription_canceled"].map((e) => (
+                    <Badge key={e} variant="secondary" className="text-[9px] bg-muted/60 border-0 px-1.5 py-0 h-4">
+                      {e}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <StatusBadge status={item.status || "inactive"} />
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
-                onClick={() => toast.info(`Configurações de ${item.name} em breve.`)}
-              >
-                <Settings className="h-3 w-3 mr-1.5" />
-                Configurar
-              </Button>
+
+            {/* Info */}
+            <div className="rounded-lg bg-accent/40 border border-border/30 p-3">
+              <p className="text-[11px] text-foreground/70 leading-relaxed">
+                <strong>Como funciona:</strong> Quando um cliente compra ou cancela na Eduzz, o webhook é acionado automaticamente.
+                A plataforma cria a conta do usuário (se necessário), ativa ou desativa o plano e registra o evento no histórico.
+              </p>
             </div>
           </CardContent>
         </Card>
-      ))}
+      )}
     </div>
   );
 }
@@ -167,7 +288,7 @@ function AvailableView({ integrations }: { integrations: Integration[] }) {
               <Card key={item.id} className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300 group">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground border border-border/30 group-hover:bg-primary/8 group-hover:text-primary group-hover:border-primary/10 transition-colors duration-300">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted/60 text-muted-foreground border border-border/30 group-hover:bg-primary/10 group-hover:text-primary group-hover:border-primary/10 transition-colors duration-300">
                       {item.icon}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -196,13 +317,21 @@ function AvailableView({ integrations }: { integrations: Integration[] }) {
 
 /* ── History ── */
 
-function HistoryView({ logs }: { logs: LogEntry[] }) {
+function HistoryView({ logs, loading }: { logs: LogEntry[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   if (!logs.length) {
     return (
       <EmptyState
         icon={<Clock className="h-5 w-5 text-muted-foreground/40" />}
         title="Nenhum evento registrado"
-        subtitle="Eventos de integração aparecerão aqui."
+        subtitle="Eventos de integração aparecerão aqui quando webhooks forem recebidos."
       />
     );
   }
@@ -216,6 +345,7 @@ function HistoryView({ logs }: { logs: LogEntry[] }) {
               <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Evento</th>
               <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Integração</th>
               <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Usuário</th>
+              <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Mensagem</th>
               <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Status</th>
               <th className="text-left py-3 px-5 font-semibold text-muted-foreground/70 uppercase tracking-wider text-[10px]">Data</th>
             </tr>
@@ -223,17 +353,20 @@ function HistoryView({ logs }: { logs: LogEntry[] }) {
           <tbody>
             {logs.map((log, i) => (
               <tr key={log.id} className={`${i < logs.length - 1 ? "border-b border-border/20" : ""} hover:bg-accent/30 transition-colors`}>
-                <td className="py-3 px-5 font-medium text-foreground/85">{log.event}</td>
+                <td className="py-3 px-5 font-medium text-foreground/85 font-mono text-[11px]">{log.event_type}</td>
                 <td className="py-3 px-5">
                   <Badge variant="secondary" className="text-[10px] font-semibold bg-muted/60 border-0 px-2 py-0 h-5">
                     {log.integration}
                   </Badge>
                 </td>
-                <td className="py-3 px-5 text-muted-foreground">{log.user}</td>
+                <td className="py-3 px-5 text-muted-foreground">{log.email || "—"}</td>
+                <td className="py-3 px-5 text-foreground/70 max-w-[200px] truncate">{log.message || "—"}</td>
                 <td className="py-3 px-5">
-                  <LogStatusBadge status={log.status} />
+                  <LogStatusBadge status={log.status as "success" | "error" | "pending"} />
                 </td>
-                <td className="py-3 px-5 text-muted-foreground/60 tabular-nums">{log.timestamp}</td>
+                <td className="py-3 px-5 text-muted-foreground/60 tabular-nums whitespace-nowrap">
+                  {new Date(log.created_at).toLocaleString("pt-BR")}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -250,7 +383,7 @@ function StatusBadge({ status }: { status: "active" | "inactive" | "error" }) {
     return (
       <Badge className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border-0 px-2 py-0 h-5 gap-1">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        Ativo
+        Conectado
       </Badge>
     );
   }
