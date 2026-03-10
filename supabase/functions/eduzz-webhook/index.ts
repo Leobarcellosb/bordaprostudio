@@ -204,6 +204,35 @@ Deno.serve(async (req) => {
 
     await logEvent(supabase, "eduzz", eventType, buyerEmail, userId, status === "active" ? "success" : status === "inactive" ? "error" : "pending", eventMessage, payload);
 
+    // Dispatch outgoing webhooks for subscription events
+    if (status === "active") {
+      try {
+        const { data: configs } = await supabase.from("webhook_configs").select("*").eq("is_active", true);
+        if (configs && configs.length > 0) {
+          const webhookPayload = {
+            event_name: "subscription_started",
+            timestamp: new Date().toISOString(),
+            user_email: buyerEmail,
+            user_id: userId,
+            design_id: null,
+          };
+          for (const config of configs) {
+            if (config.events && !config.events.includes("subscription_started")) continue;
+            try {
+              const resp = await fetch(config.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(webhookPayload),
+              });
+              await logEvent(supabase, "webhook", "subscription_started", buyerEmail, userId, resp.ok ? "success" : "error", `Webhook enviado para ${config.url} (${resp.status})`);
+            } catch (err) {
+              await logEvent(supabase, "webhook", "subscription_started", buyerEmail, userId, "error", `Erro de conexão: ${(err as Error).message}`);
+            }
+          }
+        }
+      } catch {}
+    }
+
     console.log(`Subscription updated: user=${userId}, status=${status}, plan=${planCode}`);
 
     return new Response(JSON.stringify({ success: true, status, plan_code: planCode }), {

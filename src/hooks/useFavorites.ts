@@ -35,6 +35,10 @@ export function useFavorites() {
       } else {
         await db.from("favorites").insert({ user_id: user.id, kit_id: kitId });
         toast.success("Adicionado aos favoritos!");
+        // Dispatch webhook (non-blocking)
+        import("@/lib/webhooks").then(({ dispatchWebhook }) => {
+          dispatchWebhook({ event_name: "design_favorited", user_email: user.email || undefined, user_id: user.id, design_id: kitId });
+        });
       }
     } catch {
       // Rollback
