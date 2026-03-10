@@ -6,6 +6,31 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+async function logEvent(
+  supabase: any,
+  integration: string,
+  eventType: string,
+  email: string | null,
+  userId: string | null,
+  status: "success" | "error" | "pending",
+  message: string,
+  payload?: any
+) {
+  try {
+    await supabase.from("integration_logs").insert({
+      integration,
+      event_type: eventType,
+      email,
+      user_id: userId,
+      status,
+      message,
+      payload: payload || null,
+    });
+  } catch (e) {
+    console.error("Failed to log event:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -18,48 +43,56 @@ Deno.serve(async (req) => {
     });
   }
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Optional: validate webhook secret token
+    const webhookSecret = Deno.env.get("EDUZZ_WEBHOOK_SECRET");
+    if (webhookSecret) {
+      const authToken = req.headers.get("x-webhook-secret") || req.headers.get("authorization");
+      if (authToken !== webhookSecret && authToken !== `Bearer ${webhookSecret}`) {
+        await logEvent(supabase, "eduzz", "auth_failed", null, null, "error", "Token de webhook inválido");
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const payload = await req.json();
     console.log("Eduzz webhook received:", JSON.stringify(payload));
 
-    // Eduzz webhook fields (adapt based on actual Eduzz payload structure)
-    const buyerEmail = payload.cus_email || payload.buyer_email || payload.email || "";
+    // Eduzz webhook fields
+    const buyerEmail = (payload.cus_email || payload.buyer_email || payload.email || "").toLowerCase();
     const buyerId = String(payload.cus_id || payload.buyer_id || payload.customer_id || "");
     const invoiceId = String(payload.inv_id || payload.invoice_id || payload.transaction_id || "");
     const offerId = String(payload.pro_id || payload.offer_id || payload.product_id || "");
     const eventType = (payload.trans_status || payload.event_type || payload.status || "").toString().toLowerCase();
 
     if (!buyerEmail) {
-      console.error("No buyer email found in payload");
+      await logEvent(supabase, "eduzz", eventType || "unknown", null, null, "error", "Email do comprador ausente no payload", payload);
       return new Response(JSON.stringify({ error: "Missing buyer email" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Determine plan based on offer ID
+    // Determine plan
     const offerMensalId = Deno.env.get("EDUZZ_OFFER_MENSAL_ID") || "";
     const offerAnualId = Deno.env.get("EDUZZ_OFFER_ANUAL_ID") || "";
+    let planCode = "mensal";
+    if (offerId === offerAnualId && offerAnualId) planCode = "anual";
+    else if (offerId === offerMensalId && offerMensalId) planCode = "mensal";
 
-    let planCode = "mensal"; // default
-    if (offerId === offerAnualId && offerAnualId) {
-      planCode = "anual";
-    } else if (offerId === offerMensalId && offerMensalId) {
-      planCode = "mensal";
-    }
-
-    // Map Eduzz status to internal status
-    // Eduzz statuses: 1=Open, 3=Paid, 4=Canceled, 6=Waiting, 7=Refunded, 11=Chargeback
-    let status: "active" | "pending" | "inactive";
-    const paidStatuses = ["3", "paid", "approved", "completed"];
+    // Map status
+    const paidStatuses = ["3", "paid", "approved", "completed", "purchase_approved"];
     const pendingStatuses = ["1", "6", "open", "waiting", "pending", "waiting_payment"];
-    const inactiveStatuses = ["4", "7", "11", "canceled", "cancelled", "expired", "refunded", "chargeback"];
+    const inactiveStatuses = ["4", "7", "11", "canceled", "cancelled", "expired", "refunded", "chargeback", "purchase_refunded", "subscription_canceled"];
 
+    let status: "active" | "pending" | "inactive";
     if (paidStatuses.includes(eventType)) {
       status = "active";
     } else if (pendingStatuses.includes(eventType)) {
@@ -67,40 +100,36 @@ Deno.serve(async (req) => {
     } else if (inactiveStatuses.includes(eventType)) {
       status = "inactive";
     } else {
-      console.log("Unknown event type, storing as pending:", eventType);
       status = "pending";
     }
 
-    // Find or create user by email
+    // Find or create user
     let userId: string | null = null;
 
-    // Check profiles table first
     const { data: existingProfile } = await supabase
       .from("profiles")
       .select("id")
-      .eq("email", buyerEmail.toLowerCase())
+      .eq("email", buyerEmail)
       .maybeSingle();
 
     if (existingProfile) {
       userId = existingProfile.id;
     } else {
-      // Create user via auth if not exists
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: buyerEmail.toLowerCase(),
+        email: buyerEmail,
         email_confirm: true,
         user_metadata: { name: buyerEmail.split("@")[0] },
       });
 
       if (createError) {
-        // User might exist in auth but not in profiles
         const { data: authUsers } = await supabase.auth.admin.listUsers();
         const found = authUsers?.users?.find(
-          (u: any) => u.email?.toLowerCase() === buyerEmail.toLowerCase()
+          (u: any) => u.email?.toLowerCase() === buyerEmail
         );
         if (found) {
           userId = found.id;
         } else {
-          console.error("Failed to create/find user:", createError.message);
+          await logEvent(supabase, "eduzz", eventType, buyerEmail, null, "error", `Falha ao criar usuário: ${createError.message}`, payload);
           return new Response(JSON.stringify({ error: "User creation failed" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -108,6 +137,9 @@ Deno.serve(async (req) => {
         }
       } else {
         userId = newUser.user.id;
+        await logEvent(supabase, "eduzz", "user_created", buyerEmail, userId, "success", `Usuário criado automaticamente via Eduzz`);
+        // Wait for profile trigger
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
 
@@ -115,11 +147,7 @@ Deno.serve(async (req) => {
     let accessExpiresAt: string | null = null;
     if (status === "active") {
       const now = new Date();
-      if (planCode === "anual") {
-        now.setDate(now.getDate() + 365);
-      } else {
-        now.setDate(now.getDate() + 30);
-      }
+      now.setDate(now.getDate() + (planCode === "anual" ? 365 : 30));
       accessExpiresAt = now.toISOString();
     }
 
@@ -133,7 +161,7 @@ Deno.serve(async (req) => {
 
     const subscriptionData = {
       user_id: userId,
-      email: buyerEmail.toLowerCase(),
+      email: buyerEmail,
       provider: "eduzz",
       provider_buyer_id: buyerId,
       provider_invoice_id: invoiceId,
@@ -147,10 +175,7 @@ Deno.serve(async (req) => {
     };
 
     if (existingSub) {
-      await supabase
-        .from("subscriptions")
-        .update(subscriptionData)
-        .eq("id", existingSub.id);
+      await supabase.from("subscriptions").update(subscriptionData).eq("id", existingSub.id);
     } else {
       await supabase.from("subscriptions").insert(subscriptionData);
     }
@@ -159,7 +184,7 @@ Deno.serve(async (req) => {
     if (status === "active") {
       await supabase
         .from("profiles")
-        .update({ plan: planCode === "anual" ? "anual" : "mensal", updated_at: new Date().toISOString() })
+        .update({ plan: planCode, updated_at: new Date().toISOString() })
         .eq("id", userId);
     } else if (status === "inactive") {
       await supabase
@@ -167,6 +192,17 @@ Deno.serve(async (req) => {
         .update({ plan: "basic", updated_at: new Date().toISOString() })
         .eq("id", userId);
     }
+
+    // Determine human-readable event description
+    let eventMessage = `Evento ${eventType} processado`;
+    if (status === "active") eventMessage = `Assinatura ${planCode} ativada`;
+    else if (status === "inactive" && inactiveStatuses.includes(eventType)) {
+      if (eventType.includes("refund")) eventMessage = "Reembolso processado — acesso removido";
+      else if (eventType.includes("cancel")) eventMessage = "Assinatura cancelada — acesso removido";
+      else eventMessage = "Assinatura desativada";
+    }
+
+    await logEvent(supabase, "eduzz", eventType, buyerEmail, userId, status === "active" ? "success" : status === "inactive" ? "error" : "pending", eventMessage, payload);
 
     console.log(`Subscription updated: user=${userId}, status=${status}, plan=${planCode}`);
 
@@ -176,6 +212,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Webhook error:", error);
+    await logEvent(supabase, "eduzz", "error", null, null, "error", `Erro interno: ${(error as Error).message}`);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
