@@ -4,13 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Plug, Settings, Power, Zap, Globe, CreditCard, ShoppingCart,
   Video, HardDrive, Cloud, Webhook, Clock, CheckCircle2,
-  XCircle, AlertCircle, RefreshCw, Copy, ExternalLink, BarChart3
+  XCircle, AlertCircle, RefreshCw, Copy, Send
 } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Integration {
   id: string;
@@ -24,10 +26,10 @@ interface Integration {
 
 const INTEGRATIONS: Integration[] = [
   { id: "eduzz", name: "Eduzz", description: "Plataforma de pagamentos e assinaturas digitais", icon: <CreditCard className="h-5 w-5" />, category: "payment", status: "active", connected: true },
+  { id: "webhook", name: "Webhook", description: "Envie eventos para ferramentas externas (Zapier, Make, n8n)", icon: <Webhook className="h-5 w-5" />, category: "automation", status: "active", connected: true },
   { id: "hotmart", name: "Hotmart", description: "Plataforma de produtos digitais e afiliados", icon: <ShoppingCart className="h-5 w-5" />, category: "payment" },
   { id: "stripe", name: "Stripe", description: "Processamento de pagamentos global", icon: <CreditCard className="h-5 w-5" />, category: "payment" },
   { id: "mercadopago", name: "MercadoPago", description: "Pagamentos e checkout para América Latina", icon: <CreditCard className="h-5 w-5" />, category: "payment" },
-  { id: "webhook", name: "Webhook", description: "Receba notificações via HTTP em tempo real", icon: <Webhook className="h-5 w-5" />, category: "automation", status: "active", connected: true },
   { id: "zapier", name: "Zapier", description: "Conecte mais de 5.000 apps sem código", icon: <Zap className="h-5 w-5" />, category: "automation" },
   { id: "make", name: "Make", description: "Automação visual de workflows complexos", icon: <RefreshCw className="h-5 w-5" />, category: "automation" },
   { id: "n8n", name: "n8n", description: "Automação open-source e auto-hospedada", icon: <Globe className="h-5 w-5" />, category: "automation" },
@@ -35,6 +37,13 @@ const INTEGRATIONS: Integration[] = [
   { id: "vimeo", name: "Vimeo", description: "Hospedagem de vídeo profissional", icon: <Video className="h-5 w-5" />, category: "content" },
   { id: "gdrive", name: "Google Drive", description: "Armazenamento e compartilhamento na nuvem", icon: <Cloud className="h-5 w-5" />, category: "storage" },
   { id: "dropbox", name: "Dropbox", description: "Sincronização e backup de arquivos", icon: <HardDrive className="h-5 w-5" />, category: "storage" },
+];
+
+const WEBHOOK_EVENTS = [
+  { key: "user_created", label: "Usuário criado" },
+  { key: "subscription_started", label: "Assinatura iniciada" },
+  { key: "design_downloaded", label: "Matriz baixada" },
+  { key: "design_favorited", label: "Matriz favoritada" },
 ];
 
 interface LogEntry {
@@ -57,7 +66,7 @@ const categoryLabels: Record<string, string> = {
 export const AdminIntegrations = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
-  const [eduzzConfigOpen, setEduzzConfigOpen] = useState(false);
+  const [openConfig, setOpenConfig] = useState<string | null>(null);
 
   const installed = INTEGRATIONS.filter((i) => i.connected);
   const available = INTEGRATIONS.filter((i) => !i.connected);
@@ -76,10 +85,10 @@ export const AdminIntegrations = () => {
   }, []);
 
   const lastEduzzEvent = logs.find((l) => l.integration === "eduzz");
+  const lastWebhookEvent = logs.find((l) => l.integration === "webhook");
 
   return (
     <div className="space-y-10 mt-2 pb-8">
-      {/* Header */}
       <div className="pt-2">
         <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground/70 mb-1.5">Admin</p>
         <h3 className="text-2xl font-display font-bold tracking-tight text-foreground">Integrações</h3>
@@ -102,9 +111,10 @@ export const AdminIntegrations = () => {
         <TabsContent value="installed" className="mt-6">
           <InstalledView
             integrations={installed}
-            eduzzConfigOpen={eduzzConfigOpen}
-            setEduzzConfigOpen={setEduzzConfigOpen}
+            openConfig={openConfig}
+            setOpenConfig={setOpenConfig}
             lastEduzzEvent={lastEduzzEvent}
+            lastWebhookEvent={lastWebhookEvent}
           />
         </TabsContent>
         <TabsContent value="available" className="mt-6">
@@ -122,14 +132,16 @@ export const AdminIntegrations = () => {
 
 function InstalledView({
   integrations,
-  eduzzConfigOpen,
-  setEduzzConfigOpen,
+  openConfig,
+  setOpenConfig,
   lastEduzzEvent,
+  lastWebhookEvent,
 }: {
   integrations: Integration[];
-  eduzzConfigOpen: boolean;
-  setEduzzConfigOpen: (v: boolean) => void;
+  openConfig: string | null;
+  setOpenConfig: (v: string | null) => void;
   lastEduzzEvent?: LogEntry;
+  lastWebhookEvent?: LogEntry;
 }) {
   if (!integrations.length) {
     return (
@@ -141,10 +153,10 @@ function InstalledView({
     );
   }
 
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eduzz-webhook`;
+  const eduzzWebhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eduzz-webhook`;
 
-  const copyUrl = () => {
-    navigator.clipboard.writeText(webhookUrl);
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
     toast.success("URL copiada!");
   };
 
@@ -167,27 +179,15 @@ function InstalledView({
               </div>
               <div className="flex items-center justify-between">
                 <StatusBadge status={item.status || "inactive"} />
-                {item.id === "eduzz" ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
-                    onClick={() => setEduzzConfigOpen(!eduzzConfigOpen)}
-                  >
-                    <Settings className="h-3 w-3 mr-1.5" />
-                    {eduzzConfigOpen ? "Fechar" : "Configurar"}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
-                    onClick={() => toast.info(`Configurações de ${item.name} em breve.`)}
-                  >
-                    <Settings className="h-3 w-3 mr-1.5" />
-                    Configurar
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px] font-medium border-border/50 hover:bg-accent/50"
+                  onClick={() => setOpenConfig(openConfig === item.id ? null : item.id)}
+                >
+                  <Settings className="h-3 w-3 mr-1.5" />
+                  {openConfig === item.id ? "Fechar" : "Configurar"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -195,7 +195,7 @@ function InstalledView({
       </div>
 
       {/* Eduzz Config Panel */}
-      {eduzzConfigOpen && (
+      {openConfig === "eduzz" && (
         <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)]">
           <CardHeader className="pb-3 pt-5 px-5">
             <div className="flex items-center gap-2.5">
@@ -206,27 +206,16 @@ function InstalledView({
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-4">
-            {/* Webhook URL */}
             <div>
-              <label className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider mb-1.5 block">
-                Webhook URL
-              </label>
+              <label className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider mb-1.5 block">Webhook URL</label>
               <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={webhookUrl}
-                  className="text-xs font-mono bg-muted/40 border-border/40 h-8"
-                />
-                <Button variant="outline" size="sm" className="h-8 px-3 shrink-0" onClick={copyUrl}>
+                <Input readOnly value={eduzzWebhookUrl} className="text-xs font-mono bg-muted/40 border-border/40 h-8" />
+                <Button variant="outline" size="sm" className="h-8 px-3 shrink-0" onClick={() => copyUrl(eduzzWebhookUrl)}>
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
-                Cole esta URL no painel da Eduzz em Configurações → Webhooks.
-              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Cole esta URL no painel da Eduzz em Configurações → Webhooks.</p>
             </div>
-
-            {/* Status */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Status</label>
@@ -235,9 +224,7 @@ function InstalledView({
               <div>
                 <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Último evento</label>
                 {lastEduzzEvent ? (
-                  <p className="text-xs text-foreground/75">
-                    {lastEduzzEvent.event_type} — {new Date(lastEduzzEvent.created_at).toLocaleString("pt-BR")}
-                  </p>
+                  <p className="text-xs text-foreground/75">{lastEduzzEvent.event_type} — {new Date(lastEduzzEvent.created_at).toLocaleString("pt-BR")}</p>
                 ) : (
                   <p className="text-xs text-muted-foreground/50">Nenhum evento recebido</p>
                 )}
@@ -246,25 +233,228 @@ function InstalledView({
                 <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Eventos suportados</label>
                 <div className="flex flex-wrap gap-1">
                   {["purchase_approved", "purchase_refunded", "subscription_canceled"].map((e) => (
-                    <Badge key={e} variant="secondary" className="text-[9px] bg-muted/60 border-0 px-1.5 py-0 h-4">
-                      {e}
-                    </Badge>
+                    <Badge key={e} variant="secondary" className="text-[9px] bg-muted/60 border-0 px-1.5 py-0 h-4">{e}</Badge>
                   ))}
                 </div>
               </div>
             </div>
-
-            {/* Info */}
             <div className="rounded-lg bg-accent/40 border border-border/30 p-3">
               <p className="text-[11px] text-foreground/70 leading-relaxed">
-                <strong>Como funciona:</strong> Quando um cliente compra ou cancela na Eduzz, o webhook é acionado automaticamente.
-                A plataforma cria a conta do usuário (se necessário), ativa ou desativa o plano e registra o evento no histórico.
+                <strong>Como funciona:</strong> Quando um cliente compra ou cancela na Eduzz, o webhook é acionado automaticamente. A plataforma cria a conta do usuário (se necessário), ativa ou desativa o plano e registra o evento no histórico.
               </p>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Webhook Config Panel */}
+      {openConfig === "webhook" && <WebhookConfigPanel lastEvent={lastWebhookEvent} />}
     </div>
+  );
+}
+
+/* ── Webhook Config ── */
+
+function WebhookConfigPanel({ lastEvent }: { lastEvent?: LogEntry }) {
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [enabledEvents, setEnabledEvents] = useState<string[]>(WEBHOOK_EVENTS.map((e) => e.key));
+  const [configId, setConfigId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await db
+        .from("webhook_configs")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setWebhookUrl(data.url || "");
+        setIsActive(data.is_active ?? true);
+        setEnabledEvents(data.events || WEBHOOK_EVENTS.map((e) => e.key));
+        setConfigId(data.id);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const handleSave = async () => {
+    if (!webhookUrl.trim()) {
+      toast.error("Informe a URL do webhook.");
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      url: webhookUrl.trim(),
+      is_active: isActive,
+      events: enabledEvents,
+      updated_at: new Date().toISOString(),
+    };
+    if (configId) {
+      await db.from("webhook_configs").update(payload).eq("id", configId);
+    } else {
+      const { data } = await db.from("webhook_configs").insert(payload).select("id").single();
+      if (data) setConfigId(data.id);
+    }
+    setSaving(false);
+    toast.success("Configuração salva!");
+  };
+
+  const handleTest = async () => {
+    if (!webhookUrl.trim()) {
+      toast.error("Informe a URL do webhook primeiro.");
+      return;
+    }
+    // Save first
+    await handleSave();
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dispatch-webhook", {
+        body: { event_name: "webhook_test", is_test: true },
+      });
+      if (error) {
+        toast.error("Falha no teste: " + error.message);
+      } else {
+        toast.success("Teste enviado! Verifique o histórico.");
+      }
+    } catch (err) {
+      toast.error("Erro ao testar webhook.");
+    }
+    setTesting(false);
+  };
+
+  const toggleEvent = (key: string) => {
+    setEnabledEvents((prev) =>
+      prev.includes(key) ? prev.filter((e) => e !== key) : [...prev, key]
+    );
+  };
+
+  if (loading) {
+    return (
+      <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)]">
+        <CardContent className="p-8 flex justify-center">
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)]">
+      <CardHeader className="pb-3 pt-5 px-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
+            <Webhook className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <CardTitle className="text-[13px] font-sans font-semibold text-foreground/80">Configuração Webhook</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="px-5 pb-5 space-y-5">
+        {/* URL */}
+        <div>
+          <label className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider mb-1.5 block">
+            URL de destino
+          </label>
+          <Input
+            value={webhookUrl}
+            onChange={(e) => setWebhookUrl(e.target.value)}
+            placeholder="https://hooks.zapier.com/hooks/catch/..."
+            className="text-xs font-mono bg-muted/40 border-border/40 h-8"
+          />
+          <p className="text-[10px] text-muted-foreground/60 mt-1">
+            URL para onde os eventos POST serão enviados (ex: Zapier, Make, n8n).
+          </p>
+        </div>
+
+        {/* Active toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-foreground/80">Webhook ativo</p>
+            <p className="text-[10px] text-muted-foreground/60">Ative para enviar eventos em tempo real.</p>
+          </div>
+          <Switch checked={isActive} onCheckedChange={setIsActive} />
+        </div>
+
+        {/* Events */}
+        <div>
+          <label className="text-[11px] font-semibold text-foreground/70 uppercase tracking-wider mb-2 block">
+            Eventos habilitados
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {WEBHOOK_EVENTS.map((evt) => (
+              <label
+                key={evt.key}
+                className="flex items-center gap-2 p-2.5 rounded-lg border border-border/30 bg-muted/20 hover:bg-accent/30 cursor-pointer transition-colors"
+              >
+                <Switch
+                  checked={enabledEvents.includes(evt.key)}
+                  onCheckedChange={() => toggleEvent(evt.key)}
+                  className="scale-75"
+                />
+                <div>
+                  <p className="text-[11px] font-medium text-foreground/80">{evt.label}</p>
+                  <p className="text-[9px] text-muted-foreground/50 font-mono">{evt.key}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Last event */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Status</label>
+            <StatusBadge status={isActive && webhookUrl ? "active" : "inactive"} />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1 block">Último evento</label>
+            {lastEvent ? (
+              <p className="text-xs text-foreground/75">{lastEvent.event_type} — {new Date(lastEvent.created_at).toLocaleString("pt-BR")}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground/50">Nenhum evento enviado</p>
+            )}
+          </div>
+        </div>
+
+        {/* Payload preview */}
+        <div className="rounded-lg bg-accent/40 border border-border/30 p-3">
+          <p className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mb-1.5">Exemplo de payload</p>
+          <pre className="text-[10px] font-mono text-foreground/60 leading-relaxed">{JSON.stringify({
+            event_name: "design_downloaded",
+            timestamp: "2026-03-10T14:30:00.000Z",
+            user_email: "cliente@email.com",
+            user_id: "uuid-do-usuario",
+            design_id: "uuid-da-matriz",
+          }, null, 2)}</pre>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            size="sm"
+            className="h-8 text-xs font-medium"
+          >
+            {saving ? "Salvando..." : "Salvar configuração"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleTest}
+            disabled={testing || !webhookUrl.trim()}
+            size="sm"
+            className="h-8 text-xs font-medium border-border/50"
+          >
+            <Send className="h-3 w-3 mr-1.5" />
+            {testing ? "Enviando..." : "Testar conexão"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -355,9 +545,7 @@ function HistoryView({ logs, loading }: { logs: LogEntry[]; loading: boolean }) 
               <tr key={log.id} className={`${i < logs.length - 1 ? "border-b border-border/20" : ""} hover:bg-accent/30 transition-colors`}>
                 <td className="py-3 px-5 font-medium text-foreground/85 font-mono text-[11px]">{log.event_type}</td>
                 <td className="py-3 px-5">
-                  <Badge variant="secondary" className="text-[10px] font-semibold bg-muted/60 border-0 px-2 py-0 h-5">
-                    {log.integration}
-                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] font-semibold bg-muted/60 border-0 px-2 py-0 h-5">{log.integration}</Badge>
                 </td>
                 <td className="py-3 px-5 text-muted-foreground">{log.email || "—"}</td>
                 <td className="py-3 px-5 text-foreground/70 max-w-[200px] truncate">{log.message || "—"}</td>
