@@ -96,6 +96,7 @@ export type Database = {
           cover_image: string | null
           created_at: string | null
           description: string | null
+          featured_for_daily_inspiration: boolean
           height_mm: number | null
           id: string
           is_published: boolean | null
@@ -111,6 +112,7 @@ export type Database = {
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
+          featured_for_daily_inspiration?: boolean
           height_mm?: number | null
           id?: string
           is_published?: boolean | null
@@ -126,6 +128,7 @@ export type Database = {
           cover_image?: string | null
           created_at?: string | null
           description?: string | null
+          featured_for_daily_inspiration?: boolean
           height_mm?: number | null
           id?: string
           is_published?: boolean | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.designs ADD COLUMN IF NOT EXISTS featured_for_daily_inspiration boolean NOT NULL DEFAULT false;
