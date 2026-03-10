@@ -339,7 +339,7 @@ export const AdminSmartUpload = () => {
             await delay(500);
           }
         } else {
-          const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
+          const meta = group.metadata;
           const { data: designData, error: designError } = await db
             .from("designs")
             .insert({
@@ -348,6 +348,12 @@ export const AdminSmartUpload = () => {
               category_id: group.categoryId || null,
               tags_text: group.tags,
               is_published: true,
+              ...(meta ? {
+                width_mm: meta.widthMm,
+                height_mm: meta.heightMm,
+                stitch_count: meta.stitchCount,
+                colors_count: meta.colorChanges,
+              } : {}),
             })
             .select("id")
             .single();
