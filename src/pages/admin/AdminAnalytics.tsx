@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users, Download, TrendingUp, CreditCard, Heart, BarChart3,
-  Calendar, FileText, Star, Layers, Activity, UserX
+  Calendar, FileText, Star, Layers, Activity, UserX, ChevronRight
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -85,12 +85,10 @@ export const AdminAnalytics = () => {
   const activeSubs = allSubs.filter((s) => s.status === "active" && s.access_expires_at && new Date(s.access_expires_at) > new Date());
   const mrr = activeSubs.reduce((sum, s) => sum + (s.plan_code === "anual" ? 29.9 : 39.9), 0);
 
-  // Charts data
   const downloadsChart = useMemo(() => groupByDay(periodDownloads, start), [periodDownloads, start]);
   const usersChart = useMemo(() => groupByDay(periodUsers, start), [periodUsers, start]);
   const subsChart = useMemo(() => groupByDay(periodSubs, start), [periodSubs, start]);
 
-  // Rankings
   const topDesigns = useMemo(() => {
     const countMap: Record<string, number> = {};
     allDownloads.forEach((d) => { countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1; });
@@ -127,7 +125,6 @@ export const AdminAnalytics = () => {
     return Object.entries(countMap).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
   }, [allUsers]);
 
-  // Engagement
   const avgDownloads = allUsers.length > 0 ? (allDownloads.length / allUsers.length).toFixed(1) : "0";
   const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const activeUserIds = new Set(allDownloads.filter((d) => new Date(d.created_at) >= thirtyDaysAgo).map((d) => d.user_id));
@@ -135,80 +132,88 @@ export const AdminAnalytics = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex justify-center py-24">
+        <div className="animate-spin rounded-full h-7 w-7 border-2 border-primary border-t-transparent" />
       </div>
     );
   }
 
   const kpiCards = [
-    { icon: Users, label: "Usuários ativos", value: activeUserIds.size, sub: "últimos 30 dias", color: "text-primary" },
-    { icon: TrendingUp, label: "Novos usuários", value: periodUsers.length, sub: periodLabel[period], color: "text-emerald-500" },
-    { icon: CreditCard, label: "Assinaturas ativas", value: activeSubs.length, sub: "vigentes agora", color: "text-blue-500" },
-    { icon: Download, label: "Downloads totais", value: allDownloads.length, sub: "desde o início", color: "text-orange-500" },
-    { icon: Calendar, label: "Downloads no período", value: periodDownloads.length, sub: periodLabel[period], color: "text-violet-500" },
-    { icon: BarChart3, label: "MRR estimado", value: `R$ ${mrr.toFixed(0)}`, sub: "receita mensal", color: "text-secondary" },
+    { icon: Users, label: "Usuários ativos", value: activeUserIds.size, sub: "últimos 30 dias", accent: "bg-primary/10 text-primary" },
+    { icon: TrendingUp, label: "Novos usuários", value: periodUsers.length, sub: periodLabel[period], accent: "bg-emerald-500/10 text-emerald-600" },
+    { icon: CreditCard, label: "Assinaturas ativas", value: activeSubs.length, sub: "vigentes agora", accent: "bg-blue-500/10 text-blue-600" },
+    { icon: Download, label: "Downloads totais", value: allDownloads.length.toLocaleString("pt-BR"), sub: "desde o início", accent: "bg-orange-500/10 text-orange-600" },
+    { icon: Calendar, label: "Downloads no período", value: periodDownloads.length, sub: periodLabel[period], accent: "bg-violet-500/10 text-violet-600" },
+    { icon: BarChart3, label: "MRR estimado", value: `R$ ${mrr.toFixed(0)}`, sub: "receita mensal recorrente", accent: "bg-secondary/10 text-secondary" },
   ];
 
   return (
-    <div className="space-y-8 mt-4">
-      {/* Period Filter */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-display font-semibold">Analytics</h3>
+    <div className="space-y-10 mt-2 pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pt-2">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground/70 mb-1.5">Admin</p>
+          <h3 className="text-2xl font-display font-bold tracking-tight text-foreground">Analytics</h3>
+          <p className="text-sm text-muted-foreground mt-1">Visão geral de métricas e desempenho da plataforma.</p>
+        </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[200px] h-9 text-xs font-medium bg-card border-border/60 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {Object.entries(periodLabel).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
+              <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {kpiCards.map(({ icon: Icon, label, value, sub, color }) => (
-          <Card key={label} className="border-border/50 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-lg bg-accent/60">
-                  <Icon className={`h-4 w-4 ${color}`} />
-                </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        {kpiCards.map(({ icon: Icon, label, value, sub, accent }) => (
+          <Card key={label} className="group border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300">
+            <CardContent className="p-5">
+              <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg ${accent} mb-3`}>
+                <Icon className="h-4 w-4" />
               </div>
-              <p className="text-2xl font-display font-bold tracking-tight">{value}</p>
-              <p className="text-xs font-medium text-foreground/80 mt-0.5">{label}</p>
-              <p className="text-[10px] text-muted-foreground">{sub}</p>
+              <p className="text-2xl font-display font-bold tracking-tight text-foreground leading-none">{value}</p>
+              <p className="text-[11px] font-semibold text-foreground/75 mt-1.5 leading-tight">{label}</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{sub}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Downloads por dia" data={downloadsChart} color="hsl(268, 78%, 56%)" />
-        <ChartCard title="Novos usuários por dia" data={usersChart} color="hsl(160, 60%, 45%)" />
-        <ChartCard title="Assinaturas por dia" data={subsChart} color="hsl(220, 70%, 55%)" />
-        <BarChartCard title="Formatos mais baixados" data={topFormats} color="hsl(335, 72%, 58%)" />
-      </div>
-
-      {/* Rankings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <RankingCard title="Matrizes mais baixadas" icon={Star} items={topDesigns} />
-        <RankingCard title="Usuários mais ativos" icon={Activity} items={topUsers} />
-        <RankingCard title="Planos mais usados" icon={Layers} items={planCounts} />
-        <RankingCard title="Formatos populares" icon={FileText} items={topFormats} />
-      </div>
-
-      {/* Engagement */}
+      {/* Section: Charts */}
       <div>
-        <h3 className="text-lg font-display font-semibold mb-4">Engajamento</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <EngagementCard icon={Download} label="Média de downloads/usuário" value={avgDownloads} />
-          <EngagementCard icon={UserX} label="Usuários sem atividade (30d)" value={inactiveUsers} />
-          <EngagementCard icon={Heart} label="Total de favoritos" value={allFavorites.length} />
-          <EngagementCard icon={FileText} label="Total de matrizes" value={allDesigns.length} />
+        <SectionHeader title="Tendências" subtitle="Evolução diária das métricas no período selecionado" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+          <ChartCard title="Downloads por dia" data={downloadsChart} color="hsl(var(--primary))" gradientId="dl" />
+          <ChartCard title="Novos usuários por dia" data={usersChart} color="hsl(155, 55%, 38%)" gradientId="usr" />
+          <ChartCard title="Assinaturas por dia" data={subsChart} color="hsl(220, 70%, 55%)" gradientId="sub" />
+          <BarChartCard title="Formatos mais baixados" data={topFormats} color="hsl(var(--secondary))" />
+        </div>
+      </div>
+
+      {/* Section: Rankings */}
+      <div>
+        <SectionHeader title="Rankings" subtitle="Destaques e classificações da plataforma" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-5">
+          <RankingCard title="Matrizes mais baixadas" icon={Star} items={topDesigns} accentColor="text-amber-500" />
+          <RankingCard title="Usuários mais ativos" icon={Activity} items={topUsers} accentColor="text-primary" />
+          <RankingCard title="Planos mais usados" icon={Layers} items={planCounts} accentColor="text-blue-500" />
+          <RankingCard title="Formatos populares" icon={FileText} items={topFormats} accentColor="text-secondary" />
+        </div>
+      </div>
+
+      {/* Section: Engagement */}
+      <div>
+        <SectionHeader title="Engajamento" subtitle="Indicadores de atividade e retenção" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+          <EngagementCard icon={Download} label="Média de downloads/usuário" value={avgDownloads} accent="bg-primary/10 text-primary" />
+          <EngagementCard icon={UserX} label="Usuários sem atividade (30d)" value={inactiveUsers} accent="bg-destructive/10 text-destructive" />
+          <EngagementCard icon={Heart} label="Total de favoritos" value={allFavorites.length} accent="bg-secondary/10 text-secondary" />
+          <EngagementCard icon={FileText} label="Total de matrizes" value={allDesigns.length} accent="bg-accent text-accent-foreground" />
         </div>
       </div>
     </div>
@@ -217,30 +222,48 @@ export const AdminAnalytics = () => {
 
 /* Sub-components */
 
-function ChartCard({ title, data, color }: { title: string; data: { date: string; count: number }[]; color: string }) {
+function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="border-b border-border/40 pb-3">
+      <h4 className="text-base font-display font-semibold text-foreground">{title}</h4>
+      <p className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</p>
+    </div>
+  );
+}
+
+function ChartCard({ title, data, color, gradientId }: { title: string; data: { date: string; count: number }[]; color: string; gradientId: string }) {
   const hasData = data.some((d) => d.count > 0);
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+    <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] overflow-hidden">
+      <CardHeader className="pb-1 pt-5 px-6">
+        <CardTitle className="text-[13px] font-sans font-semibold text-foreground/80 tracking-tight">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="h-[220px]">
+      <CardContent className="h-[240px] px-4 pb-5">
         {!hasData ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sem dados no período</div>
+          <EmptyChart />
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 12, right: 12, left: -24, bottom: 0 }}>
               <defs>
-                <linearGradient id={`grad-${title}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                <linearGradient id={`grad-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.2} />
                   <stop offset="100%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 10%, 90%)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(240, 8%, 50%)" tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10 }} stroke="hsl(240, 8%, 50%)" tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid hsl(240, 10%, 90%)" }} />
-              <Area type="monotone" dataKey="count" stroke={color} strokeWidth={2} fill={`url(#grad-${title})`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 10,
+                  fontSize: 12,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--card))",
+                  boxShadow: "0 4px 12px hsl(var(--foreground) / 0.06)",
+                }}
+                labelStyle={{ fontWeight: 600, marginBottom: 2 }}
+              />
+              <Area type="monotone" dataKey="count" stroke={color} strokeWidth={2} fill={`url(#grad-${gradientId})`} dot={false} activeDot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--card))" }} />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -250,51 +273,76 @@ function ChartCard({ title, data, color }: { title: string; data: { date: string
 }
 
 function BarChartCard({ title, data, color }: { title: string; data: { name: string; value: number }[]; color: string }) {
-  if (!data.length) return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">{title}</CardTitle></CardHeader>
-      <CardContent className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">Sem dados</CardContent>
-    </Card>
-  );
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">{title}</CardTitle></CardHeader>
-      <CardContent className="h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(240, 10%, 90%)" vertical={false} />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="hsl(240, 8%, 50%)" tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 10 }} stroke="hsl(240, 8%, 50%)" tickLine={false} axisLine={false} allowDecimals={false} />
-            <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid hsl(240, 10%, 90%)" }} />
-            <Bar dataKey="value" fill={color} radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+    <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] overflow-hidden">
+      <CardHeader className="pb-1 pt-5 px-6">
+        <CardTitle className="text-[13px] font-sans font-semibold text-foreground/80 tracking-tight">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="h-[240px] px-4 pb-5">
+        {!data.length ? (
+          <EmptyChart />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 12, right: 12, left: -24, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 10,
+                  fontSize: 12,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--card))",
+                  boxShadow: "0 4px 12px hsl(var(--foreground) / 0.06)",
+                }}
+              />
+              <Bar dataKey="value" fill={color} radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function RankingCard({ title, icon: Icon, items }: { title: string; icon: any; items: { name: string; value: number }[] }) {
+function RankingCard({ title, icon: Icon, items, accentColor }: { title: string; icon: any; items: { name: string; value: number }[]; accentColor: string }) {
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary" />
-          <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+    <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)]">
+      <CardHeader className="pb-3 pt-5 px-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-accent/60">
+            <Icon className={`h-3.5 w-3.5 ${accentColor}`} />
+          </div>
+          <CardTitle className="text-[13px] font-sans font-semibold text-foreground/80">{title}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-5">
         {items.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">Sem dados</p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mb-2">
+              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/50" />
+            </div>
+            <p className="text-[11px] text-muted-foreground/60">Sem dados disponíveis</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-0">
             {items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">{i + 1}.</span>
-                  <span className="truncate text-xs">{item.name}</span>
+              <div
+                key={i}
+                className={`flex items-center justify-between py-2 ${i < items.length - 1 ? "border-b border-border/30" : ""}`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`text-[10px] font-bold w-5 text-center shrink-0 ${i < 3 ? accentColor : "text-muted-foreground/50"}`}>
+                    {i + 1}
+                  </span>
+                  <span className={`truncate text-xs ${i === 0 ? "font-semibold text-foreground" : "text-foreground/75"}`}>{item.name}</span>
                 </div>
-                <Badge variant="secondary" className="text-[10px] shrink-0 ml-2">{item.value}</Badge>
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] font-semibold shrink-0 ml-3 px-2 py-0 h-5 ${i === 0 ? "bg-primary/10 text-primary border-0" : "bg-muted/60 text-muted-foreground border-0"}`}
+                >
+                  {item.value}
+                </Badge>
               </div>
             ))}
           </div>
@@ -304,18 +352,29 @@ function RankingCard({ title, icon: Icon, items }: { title: string; icon: any; i
   );
 }
 
-function EngagementCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
+function EngagementCard({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string | number; accent: string }) {
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardContent className="pt-5 pb-4 flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-accent/60">
-          <Icon className="h-4 w-4 text-primary" />
+    <Card className="border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300">
+      <CardContent className="p-5 flex items-center gap-4">
+        <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${accent} shrink-0`}>
+          <Icon className="h-4.5 w-4.5" />
         </div>
-        <div>
-          <p className="text-xl font-display font-bold">{value}</p>
-          <p className="text-[11px] text-muted-foreground">{label}</p>
+        <div className="min-w-0">
+          <p className="text-xl font-display font-bold text-foreground leading-none">{value}</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-1 leading-tight">{label}</p>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function EmptyChart() {
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-center">
+      <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center mb-2.5">
+        <BarChart3 className="h-4 w-4 text-muted-foreground/40" />
+      </div>
+      <p className="text-xs text-muted-foreground/50 font-medium">Sem dados no período</p>
+    </div>
   );
 }
