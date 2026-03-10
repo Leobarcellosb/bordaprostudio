@@ -2,7 +2,7 @@ import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb,
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import logoHorizontalWhite from "@/assets/logo-horizontal-white.png";
+import logoIcon from "@/assets/logo-icon.png";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
