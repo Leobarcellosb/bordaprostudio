@@ -210,14 +210,36 @@ export const AdminSmartUpload = () => {
         }
       }
 
+      // Third pass: auto-generate previews from embroidery files for groups without images
       const entries = Array.from(newGroups.values());
+      for (const group of entries) {
+        if (!group.previewFile && group.files.length > 0) {
+          // Find a supported embroidery file to generate preview
+          const supportedFile = group.files.find(f => isPreviewSupported(f.format));
+          if (supportedFile) {
+            try {
+              const result = await generateEmbroideryPreview(supportedFile.blob, supportedFile.format);
+              if (result) {
+                group.previewFile = { name: "auto-preview.png", blob: result.blob };
+                group.autoPreview = true;
+                group.metadata = result.metadata;
+              }
+            } catch (err) {
+              console.warn(`Auto-preview failed for ${group.baseName}:`, err);
+            }
+          }
+        }
+      }
+
       if (entries.length === 0) {
-        toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX");
+        toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX, VP3");
         return;
       }
 
       setGroups((prev) => [...prev, ...entries]);
-      toast.success(`${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`);
+      const autoCount = entries.filter(e => e.autoPreview).length;
+      const msg = `${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`;
+      toast.success(autoCount > 0 ? `${msg} ${autoCount} preview${autoCount !== 1 ? "s" : ""} gerado${autoCount !== 1 ? "s" : ""} automaticamente.` : msg);
     },
     [categories]
   );
