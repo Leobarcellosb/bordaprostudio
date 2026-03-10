@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { db } from "@/lib/db";
 import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
+import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ import {
   FileUp,
 } from "lucide-react";
 
-const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx"];
+const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx", "vp3"];
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
 
 function getExtension(name: string) {
@@ -67,9 +68,11 @@ interface DesignGroup {
   categoryId: string;
   files: { name: string; blob: Blob; format: string }[];
   previewFile: { name: string; blob: Blob } | null;
+  autoPreview: boolean; // true if preview was auto-generated from embroidery file
   isZip: boolean;
   status: "pending" | "editing" | "uploading" | "done" | "error";
   error?: string;
+  metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
 }
 
 export const AdminSmartUpload = () => {
@@ -123,7 +126,6 @@ export const AdminSmartUpload = () => {
             const categoryId = suggestCategory(baseName, categories) || "";
 
             if (innerFiles.length > 0) {
-              // ZIP contains embroidery files — create design with individual files
               const groupId = crypto.randomUUID();
               newGroups.set(groupId, {
                 id: groupId,
@@ -133,11 +135,11 @@ export const AdminSmartUpload = () => {
                 categoryId,
                 files: innerFiles,
                 previewFile,
+                autoPreview: false,
                 isZip: false,
                 status: "pending",
               });
             } else {
-              // ZIP doesn't contain embroidery files — upload as-is
               const groupId = crypto.randomUUID();
               newGroups.set(groupId, {
                 id: groupId,
@@ -147,6 +149,7 @@ export const AdminSmartUpload = () => {
                 categoryId,
                 files: [{ name: file.name, blob: file, format: "ZIP" }],
                 previewFile,
+                autoPreview: false,
                 isZip: true,
                 status: "pending",
               });
@@ -172,6 +175,7 @@ export const AdminSmartUpload = () => {
               categoryId,
               files: [],
               previewFile: null,
+              autoPreview: false,
               isZip: false,
               status: "pending",
             });
@@ -206,14 +210,36 @@ export const AdminSmartUpload = () => {
         }
       }
 
+      // Third pass: auto-generate previews from embroidery files for groups without images
       const entries = Array.from(newGroups.values());
+      for (const group of entries) {
+        if (!group.previewFile && group.files.length > 0) {
+          // Find a supported embroidery file to generate preview
+          const supportedFile = group.files.find(f => isPreviewSupported(f.format));
+          if (supportedFile) {
+            try {
+              const result = await generateEmbroideryPreview(supportedFile.blob, supportedFile.format);
+              if (result) {
+                group.previewFile = { name: "auto-preview.png", blob: result.blob };
+                group.autoPreview = true;
+                group.metadata = result.metadata;
+              }
+            } catch (err) {
+              console.warn(`Auto-preview failed for ${group.baseName}:`, err);
+            }
+          }
+        }
+      }
+
       if (entries.length === 0) {
-        toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX");
+        toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX, VP3");
         return;
       }
 
       setGroups((prev) => [...prev, ...entries]);
-      toast.success(`${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`);
+      const autoCount = entries.filter(e => e.autoPreview).length;
+      const msg = `${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`;
+      toast.success(autoCount > 0 ? `${msg} ${autoCount} preview${autoCount !== 1 ? "s" : ""} gerado${autoCount !== 1 ? "s" : ""} automaticamente.` : msg);
     },
     [categories]
   );
@@ -313,7 +339,7 @@ export const AdminSmartUpload = () => {
             await delay(500);
           }
         } else {
-          const tags = group.tags.split(",").map((t) => t.trim()).filter(Boolean);
+          const meta = group.metadata;
           const { data: designData, error: designError } = await db
             .from("designs")
             .insert({
@@ -322,6 +348,12 @@ export const AdminSmartUpload = () => {
               category_id: group.categoryId || null,
               tags_text: group.tags,
               is_published: true,
+              ...(meta ? {
+                width_mm: meta.widthMm,
+                height_mm: meta.heightMm,
+                stitch_count: meta.stitchCount,
+                colors_count: meta.colorChanges,
+              } : {}),
             })
             .select("id")
             .single();
@@ -418,14 +450,15 @@ export const AdminSmartUpload = () => {
           <div>
             <h3 className="font-display font-bold text-lg">Upload Inteligente</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-              Envie arquivos de bordado (PES, EXP, JEF, DST, XXX), ZIPs ou imagens.
+              Envie arquivos de bordado (PES, EXP, JEF, DST, XXX, VP3), ZIPs ou imagens.
+              Previews são gerados automaticamente a partir dos arquivos de bordado.
               Arquivos com o mesmo nome base são agrupados automaticamente como um único design.
             </p>
           </div>
           <input
             ref={inputRef}
             type="file"
-            accept=".pes,.exp,.dst,.jef,.xxx,.zip,.jpg,.jpeg,.png,.webp,.gif"
+            accept=".pes,.exp,.dst,.jef,.xxx,.vp3,.zip,.jpg,.jpeg,.png,.webp,.gif"
             multiple
             onChange={handleFileSelect}
             className="hidden"
@@ -539,13 +572,20 @@ function DesignGroupCard({
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Preview thumbnail */}
-          <div className="w-20 h-20 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center border border-border/40">
+          <div className="w-20 h-20 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center border border-border/40 relative">
             {group.previewFile ? (
-              <img
-                src={URL.createObjectURL(group.previewFile.blob)}
-                alt={group.title}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={URL.createObjectURL(group.previewFile.blob)}
+                  alt={group.title}
+                  className="w-full h-full object-cover"
+                />
+                {group.autoPreview && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-primary-foreground text-[8px] text-center py-0.5 font-medium">
+                    Auto
+                  </span>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
                 <ImageIcon className="h-6 w-6" />
@@ -622,7 +662,17 @@ function DesignGroupCard({
               )}
             </div>
 
-            {/* Editable fields */}
+            {/* Metadata from auto-preview */}
+            {group.metadata && (
+              <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                <span>{group.metadata.widthMm}×{group.metadata.heightMm}mm</span>
+                <span>•</span>
+                <span>{group.metadata.stitchCount.toLocaleString()} pontos</span>
+                <span>•</span>
+                <span>{group.metadata.colorChanges} cores</span>
+              </div>
+            )}
+
             {editing && !isFinished && (
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div>

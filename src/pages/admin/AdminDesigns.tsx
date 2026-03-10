@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/db";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
+import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2 } from "lucide-react";
 
-const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX"];
+const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3"];
 
 export const AdminDesigns = () => {
   const [designs, setDesigns] = useState<any[]>([]);
@@ -105,6 +106,35 @@ export const AdminDesigns = () => {
       file_name: fileName,
     });
     if (dbError) { toast.error(dbError.message); } else { toast.success(`Arquivo ${ext} enviado!`); }
+
+    // Auto-generate preview if no cover image exists
+    if (!form.cover_image && isPreviewSupported(ext)) {
+      try {
+        const result = await generateEmbroideryPreview(file, ext);
+        if (result) {
+          const previewPath = `auto/${editing.id}-${Date.now()}.png`;
+          const { error: upErr } = await supabase.storage.from("design-covers").upload(previewPath, result.blob, { contentType: "image/png" });
+          if (!upErr) {
+            const { data: previewUrl } = supabase.storage.from("design-covers").getPublicUrl(previewPath);
+            await db.from("designs").update({
+              cover_image: previewUrl.publicUrl,
+              ...(result.metadata ? {
+                width_mm: result.metadata.widthMm,
+                height_mm: result.metadata.heightMm,
+                stitch_count: result.metadata.stitchCount,
+                colors_count: result.metadata.colorChanges,
+              } : {}),
+            }).eq("id", editing.id);
+            setForm(prev => ({ ...prev, cover_image: previewUrl.publicUrl }));
+            toast.success("Preview gerado automaticamente a partir do arquivo de bordado!");
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-preview generation failed:", err);
+        toast.info("Não foi possível gerar a visualização automática. Você pode enviar uma imagem manualmente.");
+      }
+    }
+
     await fetchDesignDetails(editing.id);
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -335,9 +365,9 @@ export const AdminDesigns = () => {
                     </div>
                   )}
                   <div>
-                    <input ref={fileInputRef} type="file" accept=".pes,.exp,.dst,.jef,.xxx" onChange={uploadFile} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
-                      <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Upload arquivo (.pes, .exp, .dst, .jef, .xxx)"}
+                    <input ref={fileInputRef} type="file" accept=".pes,.exp,.dst,.jef,.xxx,.vp3" onChange={uploadFile} className="hidden" />
+                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
+                       <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Upload arquivo (.pes, .exp, .dst, .jef, .xxx, .vp3)"}
                     </Button>
                   </div>
                 </CardContent>
