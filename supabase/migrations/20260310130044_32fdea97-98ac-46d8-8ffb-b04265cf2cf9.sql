@@ -1,0 +1,1 @@
+ALTER TABLE public.user_preferences ADD COLUMN completed_at timestamp with time zone DEFAULT null;
