@@ -572,13 +572,20 @@ function DesignGroupCard({
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Preview thumbnail */}
-          <div className="w-20 h-20 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center border border-border/40">
+          <div className="w-20 h-20 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center border border-border/40 relative">
             {group.previewFile ? (
-              <img
-                src={URL.createObjectURL(group.previewFile.blob)}
-                alt={group.title}
-                className="w-full h-full object-cover"
-              />
+              <>
+                <img
+                  src={URL.createObjectURL(group.previewFile.blob)}
+                  alt={group.title}
+                  className="w-full h-full object-cover"
+                />
+                {group.autoPreview && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-primary/80 text-primary-foreground text-[8px] text-center py-0.5 font-medium">
+                    Auto
+                  </span>
+                )}
+              </>
             ) : (
               <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
                 <ImageIcon className="h-6 w-6" />
