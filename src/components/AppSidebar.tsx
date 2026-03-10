@@ -30,8 +30,12 @@ export const AppSidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-[17rem] bg-sidebar text-sidebar-foreground h-screen sticky top-0 border-r border-sidebar-border overflow-y-auto">
       {/* Brand */}
-      <div className="h-[88px] pl-6 pr-4 flex items-center border-b border-sidebar-border shrink-0 overflow-hidden">
-        <img src={logoHorizontalWhite} alt="Borda Pro — Biblioteca de Matrizes" style={{ height: '100px', width: 'auto' }} />
+      <div className="h-[88px] px-6 flex items-center gap-3 border-b border-sidebar-border shrink-0">
+        <img src={logoIcon} alt="Borda Pro" className="h-10 w-10 rounded-lg shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-[15px] font-semibold tracking-tight text-sidebar-foreground">Borda Pro</span>
+          <span className="text-[11px] text-sidebar-foreground/40 tracking-wide">Biblioteca de Matrizes</span>
+        </div>
       </div>
 
       {/* Navigation */}
