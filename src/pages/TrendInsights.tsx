@@ -181,11 +181,15 @@ const TrendInsights = () => {
                   <Badge variant="destructive" className="text-xs">Em alta agora</Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {seasonalTrends.map((trend) => (
-                    <Card key={trend.id} className="border-destructive/30 bg-destructive/5 p-4">
-                      <TrendSection trend={trend} designs={trendData[trend.id] || []} />
-                    </Card>
-                  ))}
+                  {seasonalTrends.map((trend) => {
+                    const designs = trendData[trend.id] || [];
+                    if (designs.length === 0) return null;
+                    return (
+                      <Card key={trend.id} className="border-destructive/30 bg-destructive/5 p-4">
+                        <TrendSection trend={trend} designs={designs} />
+                      </Card>
+                    );
+                  })}
                 </div>
               </section>
             )}
