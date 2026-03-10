@@ -2,30 +2,32 @@ import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb,
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navItems = [
-  { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: Library, label: "Biblioteca", path: "/library" },
-  { icon: Heart, label: "Favoritos", path: "/favorites" },
-  { icon: Download, label: "Meus Downloads", path: "/downloads" },
-  { icon: TrendingUp, label: "Tendências", path: "/trends" },
-  { icon: Lightbulb, label: "Ideias de Produto", path: "/product-ideas" },
-  { icon: Sparkles, label: "Gerador de Vendas", path: "/sales-generator" },
-  { icon: Layers, label: "Simulador de Mockup", path: "/mockup-simulator" },
-  { icon: Calculator, label: "Calculadora de Lucro", path: "/profit-calculator" },
-  { icon: BookOpen, label: "Catálogos", path: "/catalogs" },
-  { icon: Crown, label: "Planos", path: "/pricing" },
+  { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
+  { icon: Library, labelKey: "nav.library", path: "/library" },
+  { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
+  { icon: Download, labelKey: "nav.downloads", path: "/downloads" },
+  { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
+  { icon: Lightbulb, labelKey: "nav.productIdeas", path: "/product-ideas" },
+  { icon: Sparkles, labelKey: "nav.salesGenerator", path: "/sales-generator" },
+  { icon: Layers, labelKey: "nav.mockupSimulator", path: "/mockup-simulator" },
+  { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
+  { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+  { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
 ];
 
 const adminItems = [
-  { icon: Shield, label: "Painel Admin", path: "/admin" },
+  { icon: Shield, labelKey: "nav.adminPanel", path: "/admin" },
 ];
 
 export const AppSidebar = () => {
   const { signOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <aside className="hidden md:flex flex-col w-[17rem] bg-sidebar text-sidebar-foreground h-screen sticky top-0 border-r border-sidebar-border overflow-y-auto">
@@ -40,8 +42,8 @@ export const AppSidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">Menu</p>
-        {navItems.map(({ icon: Icon, label, path }) => {
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">{t("nav.menu")}</p>
+        {navItems.map(({ icon: Icon, labelKey, path }) => {
           const active = location.pathname === path;
           return (
             <button
@@ -55,7 +57,7 @@ export const AppSidebar = () => {
               )}
             >
               <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}
@@ -63,8 +65,8 @@ export const AppSidebar = () => {
         {isAdmin && (
           <>
             <div className="h-px bg-sidebar-border/50 my-3 mx-3" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">Admin</p>
-            {adminItems.map(({ icon: Icon, label, path }) => (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">{t("nav.admin")}</p>
+            {adminItems.map(({ icon: Icon, labelKey, path }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
@@ -76,7 +78,7 @@ export const AppSidebar = () => {
                 )}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </>
@@ -96,7 +98,7 @@ export const AppSidebar = () => {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium truncate text-sidebar-foreground/90">{profile?.name || "Usuário"}</p>
+              <p className="text-[13px] font-medium truncate text-sidebar-foreground/90">{profile?.name || t("common.user")}</p>
               <p className="text-[11px] text-sidebar-foreground/35 truncate">{profile?.email}</p>
             </div>
           </div>
@@ -109,20 +111,20 @@ export const AppSidebar = () => {
             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
           >
             <Settings className="h-3.5 w-3.5" />
-            Configurações
+            {t("nav.settings")}
           </button>
           <button
             onClick={signOut}
             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sair
+            {t("nav.logout")}
           </button>
         </div>
 
         {/* Brand signature */}
         <p className="text-[10px] text-sidebar-foreground/20 text-center py-1 tracking-wide">
-          Feito com ❤️ por G Bordados
+          {t("common.madeWith")}
         </p>
       </div>
     </aside>

@@ -7,6 +7,7 @@ import { DesignCard } from "@/components/cards/DesignCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const FavoritesPage = () => {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ const FavoritesPage = () => {
   const { favoriteIds, toggle } = useFavorites();
   const [designs, setDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!user) return;
@@ -38,11 +40,11 @@ const FavoritesPage = () => {
             <Heart className="h-5 w-5 text-destructive" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">Meus Favoritos</h1>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">{t("favorites.title")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
               {designs.length > 0
-                 ? `${designs.length} ${designs.length !== 1 ? "matrizes salvas" : "matriz salva"}`
-                 : "Suas matrizes favoritas aparecerão aqui"}
+                 ? `${designs.length} ${designs.length !== 1 ? t("favorites.count") : t("favorites.countSingular")}`
+                 : t("favorites.emptyTitle")}
             </p>
           </div>
         </div>
@@ -62,9 +64,9 @@ const FavoritesPage = () => {
           <Card className="border-border/60 bg-muted/30">
             <CardContent className="py-16 text-center space-y-3">
               <Heart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-              <p className="text-muted-foreground font-medium">Nenhum favorito ainda</p>
+              <p className="text-muted-foreground font-medium">{t("favorites.noFavorites")}</p>
               <p className="text-sm text-muted-foreground/60">
-                Clique no ❤️ nas matrizes da biblioteca para salvá-las aqui.
+                {t("favorites.noFavoritesHint")}
               </p>
             </CardContent>
           </Card>

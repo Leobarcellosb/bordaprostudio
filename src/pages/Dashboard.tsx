@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Library, Download, Crown, TrendingUp, Sparkles, Clock, ArrowRight, Flame, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Seeded random for consistent "today's picks"
 const seededRandom = (seed: number) => {
@@ -18,6 +19,7 @@ const seededRandom = (seed: number) => {
 const Dashboard = () => {
   const { profile, user, subscription } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [newestDesigns, setNewestDesigns] = useState<any[]>([]);
   const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
   const [trendingDesigns, setTrendingDesigns] = useState<any[]>([]);
@@ -30,7 +32,6 @@ const Dashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch newest designs (kits)
         const { data: kits } = await db
           .from("designs")
           .select("*, categories(name)")
@@ -39,17 +40,13 @@ const Dashboard = () => {
           .limit(6);
         setNewestDesigns(kits || []);
 
-        // Fetch all downloads for stats
         const { data: allDownloads } = await db.from("downloads").select("kit_id, downloaded_at");
         
-        // Calculate 7 days ago
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         
-        // Split into recent (trending) and all-time
         const recentDownloads = (allDownloads || []).filter((d: any) => new Date(d.downloaded_at) > sevenDaysAgo);
         
-        // Most downloaded (all time)
         if (allDownloads && allDownloads.length > 0) {
           const countMap: Record<string, number> = {};
           allDownloads.forEach((d: any) => {
@@ -75,7 +72,6 @@ const Dashboard = () => {
           }
         }
 
-        // Trending (last 7 days)
         if (recentDownloads.length > 0) {
           const trendingMap: Record<string, number> = {};
           recentDownloads.forEach((d: any) => {
@@ -101,7 +97,6 @@ const Dashboard = () => {
           }
         }
 
-        // Suggested for today - seeded random based on date
         const { data: allKits } = await db
           .from("designs")
           .select("*, categories(name)")
@@ -114,7 +109,6 @@ const Dashboard = () => {
           setSuggestedDesigns(shuffled.slice(0, 4));
         }
 
-        // Fetch user favorites
         if (user) {
           const { data: userFavorites } = await db
             .from("favorites")
@@ -132,7 +126,6 @@ const Dashboard = () => {
           }
         }
 
-        // Stats
         if (user) {
           const { count: dlCount } = await db
             .from("downloads")
@@ -188,14 +181,14 @@ const Dashboard = () => {
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 md:p-10 lg:p-12">
           <div className="relative z-10">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
+              {t("dashboard.hello")}, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              Explore novas matrizes, descubra tendências e transforme seus bordados em produtos incríveis.
+              {t("dashboard.subtitle")}
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
-              Explorar Biblioteca
+              {t("dashboard.exploreLibrary")}
             </Button>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-15 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -210,7 +203,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">Matrizes disponíveis</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.availableDesigns")}</p>
               </div>
             </CardContent>
           </Card>
@@ -221,7 +214,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{stats.downloads}</p>
-                <p className="text-sm text-muted-foreground">Seus downloads</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.yourDownloads")}</p>
               </div>
             </CardContent>
           </Card>
@@ -232,7 +225,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-display font-bold">{subscription?.plan_code === "anual" ? "Plano Anual" : "Plano Mensal"}</p>
-                <p className="text-sm text-muted-foreground">Sua assinatura ativa</p>
+                <p className="text-sm text-muted-foreground">{t("dashboard.activeSubscription")}</p>
               </div>
             </CardContent>
           </Card>
@@ -247,8 +240,8 @@ const Dashboard = () => {
                   <Heart className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-display font-bold">Seus Favoritos</h2>
-                  <p className="text-sm text-muted-foreground">Matrizes que você salvou</p>
+                  <h2 className="text-lg font-display font-bold">{t("dashboard.yourFavorites")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.savedDesigns")}</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-xs gap-1">
@@ -278,8 +271,8 @@ const Dashboard = () => {
                 <Sparkles className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <h2 className="text-lg font-display font-bold">Sugestões do Dia</h2>
-                <p className="text-sm text-muted-foreground">Selecionados especialmente para você</p>
+                <h2 className="text-lg font-display font-bold">{t("dashboard.suggestionsOfDay")}</h2>
+                <p className="text-sm text-muted-foreground">{t("dashboard.selectedForYou")}</p>
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -312,7 +305,7 @@ const Dashboard = () => {
             ))}
             {suggestedDesigns.length === 0 && !loading && (
               <div className="col-span-4 text-center py-8 text-muted-foreground">
-                 Nenhuma matriz disponível no momento
+                {t("dashboard.noDesignsNow")}
               </div>
             )}
           </div>
@@ -326,15 +319,15 @@ const Dashboard = () => {
                 <Clock className="h-5 w-5 text-primary" />
               </div>
               <div>
-                 <h2 className="text-lg font-display font-bold">Novas Matrizes</h2>
-                 <p className="text-sm text-muted-foreground">Recém adicionadas à biblioteca</p>
+                 <h2 className="text-lg font-display font-bold">{t("dashboard.newDesigns")}</h2>
+                 <p className="text-sm text-muted-foreground">{t("dashboard.recentlyAdded")}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
-              Ver todas <ArrowRight className="h-3.5 w-3.5" />
+              {t("dashboard.viewAll")} <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <DesignGrid designs={newestDesigns} emptyMsg="Nenhuma matriz disponível no momento." />
+          <DesignGrid designs={newestDesigns} emptyMsg={t("dashboard.noDesignsAvailable")} />
         </section>
 
         {/* Trending (last 7 days) */}
@@ -346,11 +339,11 @@ const Dashboard = () => {
                   <Flame className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-display font-bold">Em Alta</h2>
-                  <p className="text-sm text-muted-foreground">Mais baixados nos últimos 7 dias</p>
+                  <h2 className="text-lg font-display font-bold">{t("dashboard.trending")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.trendingSubtitle")}</p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs">🔥 Em alta</Badge>
+              <Badge variant="outline" className="text-xs">🔥 {t("dashboard.trending")}</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {trendingDesigns.map((kit: any, index: number) => (
@@ -400,15 +393,15 @@ const Dashboard = () => {
                 <TrendingUp className="h-5 w-5 text-secondary" />
               </div>
               <div>
-                <h2 className="text-lg font-display font-bold">Mais Baixados</h2>
-                <p className="text-sm text-muted-foreground">As matrizes mais populares da comunidade</p>
+                <h2 className="text-lg font-display font-bold">{t("dashboard.mostDownloaded")}</h2>
+                <p className="text-sm text-muted-foreground">{t("dashboard.mostDownloadedSubtitle")}</p>
               </div>
             </div>
           </div>
           {mostDownloaded.length === 0 ? (
             <Card className="border-border/60 bg-muted/30">
               <CardContent className="py-12 text-center text-muted-foreground">
-                Os rankings aparecerão conforme as matrizes forem baixadas.
+                {t("dashboard.rankingsWillAppear")}
               </CardContent>
             </Card>
           ) : (

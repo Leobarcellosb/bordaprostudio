@@ -10,6 +10,7 @@ import { Search, Library, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const formats = ["PES", "EXP", "DST", "JEF", "XXX"];
 
@@ -23,6 +24,7 @@ const LibraryPage = () => {
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
   const { favoriteIds, toggle: toggleFavorite } = useFavorites();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,14 +83,14 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {designs.length} matrizes
+                {designs.length} {t("library.designs")}
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              Biblioteca de Matrizes
+              {t("library.title")}
             </h1>
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
-              Explore nossa biblioteca de matrizes de bordado profissionais, prontas para usar.
+              {t("library.subtitle")}
             </p>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
@@ -100,7 +102,7 @@ const LibraryPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
             <Input
-              placeholder="Buscar por título, descrição ou tags..."
+              placeholder={t("library.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 h-11 bg-muted/30 border-border/40 focus:bg-background focus:border-primary/30 transition-colors rounded-xl"
@@ -109,10 +111,10 @@ const LibraryPage = () => {
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-full sm:w-44 h-11 bg-muted/30 border-border/40 rounded-xl">
-                <SelectValue placeholder="Categoria" />
+                <SelectValue placeholder={t("library.allCategories")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as as categorias</SelectItem>
+                <SelectItem value="all">{t("library.allCategories")}</SelectItem>
                 {categories.map((c: any) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
@@ -122,10 +124,10 @@ const LibraryPage = () => {
             </Select>
             <Select value={formatFilter} onValueChange={setFormatFilter}>
               <SelectTrigger className="w-full sm:w-40 h-11 bg-muted/30 border-border/40 rounded-xl">
-                <SelectValue placeholder="Formato" />
+                <SelectValue placeholder={t("library.allFormats")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os formatos</SelectItem>
+                <SelectItem value="all">{t("library.allFormats")}</SelectItem>
                 {formats.map((f) => (
                   <SelectItem key={f} value={f}>
                     {f}
@@ -140,7 +142,7 @@ const LibraryPage = () => {
         {hasActiveFilters && filtered.length > 0 && (
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? "matriz encontrada" : "matrizes encontradas"}
+              <span className="font-semibold text-foreground">{filtered.length}</span> {filtered.length === 1 ? t("library.designFound") : t("library.designsFound")}
             </p>
             <Button
               variant="ghost"
@@ -148,7 +150,7 @@ const LibraryPage = () => {
               className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
               onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
             >
-              Limpar filtros
+              {t("library.clearFilters")}
             </Button>
           </div>
         )}
@@ -160,9 +162,9 @@ const LibraryPage = () => {
               <div className="w-20 h-20 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-5">
                 <Sparkles className="h-8 w-8 text-primary/40" />
               </div>
-              <h3 className="font-display font-semibold text-lg mb-2">Nenhuma matriz encontrada</h3>
+              <h3 className="font-display font-semibold text-lg mb-2">{t("library.noResults")}</h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.
+                {t("library.noResultsHint")}
               </p>
               {hasActiveFilters && (
                 <Button
@@ -170,7 +172,7 @@ const LibraryPage = () => {
                   className="mt-5 rounded-xl"
                   onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
                 >
-                  Limpar todos os filtros
+                  {t("library.clearAllFilters")}
                 </Button>
               )}
             </CardContent>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Zap, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
 const CHECKOUT_MENSAL = "https://chk.eduzz.com/E0D6ON5691";
@@ -49,6 +50,7 @@ const plans = [
 
 const PricingPage = () => {
   const { subscription } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <AppLayout>
@@ -57,14 +59,14 @@ const PricingPage = () => {
         <div className="text-center space-y-4 pt-4">
           <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 text-primary text-sm font-semibold">
             <img src={logoIcon} alt="Borda Pro" className="h-5 w-5 rounded" />
-            Planos Borda Pro
+            {t("pricing.badge")}
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight">
-            Invista no seu negócio <br className="hidden md:block" />
-            <span className="text-gradient-brand">de bordados</span>
+            {t("pricing.title")} <br className="hidden md:block" />
+            <span className="text-gradient-brand">{t("pricing.titleHighlight")}</span>
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            Acesse toda a biblioteca de bordados, ferramentas exclusivas e atualizações constantes.
+            {t("pricing.subtitle")}
           </p>
         </div>
 
@@ -114,7 +116,7 @@ const PricingPage = () => {
 
                   {isCurrentPlan ? (
                     <Badge variant="outline" className="w-full justify-center py-3 text-sm font-semibold">
-                      ✓ Plano atual
+                      ✓ {t("pricing.currentPlan")}
                     </Badge>
                   ) : (
                     <Button
@@ -140,11 +142,11 @@ const PricingPage = () => {
         {/* Trust */}
         <div className="text-center space-y-3 pb-4">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Checkout seguro</span>
-            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Garantia de 7 dias</span>
-            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Cancelamento a qualquer momento</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> {t("pricing.secureCheckout")}</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> {t("pricing.guarantee")}</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> {t("pricing.cancelAnytime")}</span>
           </div>
-          <p className="text-[11px] text-muted-foreground/40">Feito com ❤️ por G Bordados</p>
+          <p className="text-[11px] text-muted-foreground/40">{t("common.madeWith")}</p>
         </div>
       </div>
     </AppLayout>
