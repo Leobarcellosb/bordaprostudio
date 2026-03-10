@@ -175,6 +175,7 @@ export const AdminSmartUpload = () => {
               categoryId,
               files: [],
               previewFile: null,
+              autoPreview: false,
               isZip: false,
               status: "pending",
             });
