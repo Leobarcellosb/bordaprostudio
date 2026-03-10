@@ -453,6 +453,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          experience_level: string | null
+          favorite_categories: string[] | null
+          hoop_size: string | null
+          id: string
+          selling_activity: string | null
+          usage_goal: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          experience_level?: string | null
+          favorite_categories?: string[] | null
+          hoop_size?: string | null
+          id?: string
+          selling_activity?: string | null
+          usage_goal?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          experience_level?: string | null
+          favorite_categories?: string[] | null
+          hoop_size?: string | null
+          id?: string
+          selling_activity?: string | null
+          usage_goal?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
