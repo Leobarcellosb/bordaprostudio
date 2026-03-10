@@ -19,7 +19,7 @@ const Dashboard = () => {
   const [newestDesigns, setNewestDesigns] = useState<any[]>([]);
   const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
   const [trendingDesigns, setTrendingDesigns] = useState<any[]>([]);
-  const [suggestedDesigns, setSuggestedDesigns] = useState<any[]>([]);
+  
   const [favoriteDesigns, setFavoriteDesigns] = useState<any[]>([]);
   const [stats, setStats] = useState({ designs: 0, downloads: 0, views: 0 });
   const [loading, setLoading] = useState(true);
