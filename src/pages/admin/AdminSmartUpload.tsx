@@ -662,7 +662,17 @@ function DesignGroupCard({
               )}
             </div>
 
-            {/* Editable fields */}
+            {/* Metadata from auto-preview */}
+            {group.metadata && (
+              <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                <span>{group.metadata.widthMm}×{group.metadata.heightMm}mm</span>
+                <span>•</span>
+                <span>{group.metadata.stitchCount.toLocaleString()} pontos</span>
+                <span>•</span>
+                <span>{group.metadata.colorChanges} cores</span>
+              </div>
+            )}
+
             {editing && !isFinished && (
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div>
