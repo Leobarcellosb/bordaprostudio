@@ -7,6 +7,7 @@ import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
 import { AdminSmartUpload } from "./AdminSmartUpload";
 import { AdminSubscriptions } from "./AdminSubscriptions";
+import { AdminAnalytics } from "./AdminAnalytics";
 import { Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
