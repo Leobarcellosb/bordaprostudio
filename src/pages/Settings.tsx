@@ -151,6 +151,34 @@ const Settings = () => {
           </CardContent>
         </Card>
 
+        {/* Language Section */}
+        <Card className="border-border/60">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle className="font-display">Idioma da Interface</CardTitle>
+                <CardDescription>Escolha o idioma da plataforma.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="language">Idioma</Label>
+              <Select value={language} onValueChange={handleLanguageChange}>
+                <SelectTrigger id="language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pt">Português 🇧🇷</SelectItem>
+                  <SelectItem value="en">English 🇺🇸</SelectItem>
+                  <SelectItem value="es">Español 🇪🇸</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         <SubscriptionCard />
       </div>
     </AppLayout>
