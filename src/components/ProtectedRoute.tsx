@@ -1,10 +1,25 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { db } from "@/lib/db";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setCheckingOnboarding(false); return; }
+    db.from("user_preferences").select("id").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        setNeedsOnboarding(!data);
+        setCheckingOnboarding(false);
+      });
+  }, [user]);
+
+  if (loading || checkingOnboarding) return <div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (needsOnboarding) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 };
 
