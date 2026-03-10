@@ -139,6 +139,10 @@ const DesignDetail = () => {
     if (user && id) {
       await db.from("downloads").insert({ user_id: user.id, kit_id: id });
       setDownloadCount(prev => prev + 1);
+      // Dispatch webhook (non-blocking)
+      import("@/lib/webhooks").then(({ dispatchWebhook }) => {
+        dispatchWebhook({ event_name: "design_downloaded", user_email: user.email || undefined, user_id: user.id, design_id: id });
+      });
     }
     window.open(url, "_blank");
     toast.success(`Download de ${label} iniciado!`);
