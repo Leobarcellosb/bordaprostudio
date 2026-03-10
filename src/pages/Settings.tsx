@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,10 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Globe } from "lucide-react";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Settings = () => {
   const { profile, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const [name, setName] = useState(profile?.name || "");
   const [lastName, setLastName] = useState(profile?.last_name || "");
@@ -29,7 +31,8 @@ const Settings = () => {
   const handleLanguageChange = (val: string) => {
     setLanguage(val);
     localStorage.setItem("app_language", val);
-    toast.success("Idioma salvo!");
+    window.dispatchEvent(new Event("language-changed"));
+    toast.success(t("settings.languageSaved"));
   };
 
   const initials = [name?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "U";
@@ -47,7 +50,7 @@ const Settings = () => {
       .upload(filePath, file, { upsert: true });
 
     if (uploadError) {
-      toast.error("Erro ao enviar imagem");
+      toast.error(t("settings.uploadError"));
       setUploading(false);
       return;
     }
@@ -60,7 +63,7 @@ const Settings = () => {
     setAvatarUrl(url);
 
     await db.from("profiles").update({ avatar_url: url, updated_at: new Date().toISOString() }).eq("id", user.id);
-    toast.success("Foto atualizada!");
+    toast.success(t("settings.photoUpdated"));
     setUploading(false);
   };
 
@@ -75,19 +78,19 @@ const Settings = () => {
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     if (error) toast.error(error.message);
-    else toast.success("Perfil atualizado!");
+    else toast.success(t("settings.profileUpdated"));
     setSaving(false);
   };
 
   return (
     <AppLayout>
       <div className="space-y-8 max-w-2xl mx-auto animate-fade-in">
-        <h1 className="text-2xl md:text-3xl font-display font-bold">Configurações</h1>
+        <h1 className="text-2xl md:text-3xl font-display font-bold">{t("settings.title")}</h1>
 
         <Card className="border-border/60">
           <CardHeader>
-            <CardTitle className="font-display">Perfil</CardTitle>
-            <CardDescription>Atualize suas informações pessoais</CardDescription>
+            <CardTitle className="font-display">{t("settings.profile")}</CardTitle>
+            <CardDescription>{t("settings.updateInfo")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
             {/* Avatar Section */}
@@ -112,7 +115,7 @@ const Settings = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
-                {uploading ? "Enviando..." : "Alterar foto"}
+                {uploading ? t("settings.uploading") : t("settings.changePhoto")}
               </Button>
               <input
                 ref={fileInputRef}
@@ -127,33 +130,33 @@ const Settings = () => {
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
+                  <Label htmlFor="name">{t("settings.firstName")}</Label>
+                  <Input id="name" value={name} onChange={e => setName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Sobrenome</Label>
-                  <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Seu sobrenome" />
+                  <Label htmlFor="lastName">{t("settings.lastName")}</Label>
+                  <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("settings.email")}</Label>
                 <Input id="email" value={profile?.email || ""} disabled className="bg-muted/50" />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Label htmlFor="phone">{t("settings.phone")} <span className="text-muted-foreground font-normal">{t("settings.optional")}</span></Label>
                 <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="brandName">Nome da sua marca de bordados</Label>
-                <Input id="brandName" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="Ex: Ateliê Maria Bordados" />
+                <Label htmlFor="brandName">{t("settings.brandName")}</Label>
+                <Input id="brandName" value={brandName} onChange={e => setBrandName(e.target.value)} />
               </div>
             </div>
 
             <Button onClick={updateProfile} disabled={saving} className="w-full sm:w-auto">
-              {saving ? "Salvando..." : "Salvar alterações"}
+              {saving ? t("settings.saving") : t("settings.saveChanges")}
             </Button>
           </CardContent>
         </Card>
@@ -164,14 +167,14 @@ const Settings = () => {
             <div className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-muted-foreground" />
               <div>
-                <CardTitle className="font-display">Idioma da Interface</CardTitle>
-                <CardDescription>Escolha o idioma da plataforma.</CardDescription>
+                <CardTitle className="font-display">{t("settings.languageTitle")}</CardTitle>
+                <CardDescription>{t("settings.languageDesc")}</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-w-xs">
-              <Label htmlFor="language">Idioma</Label>
+              <Label htmlFor="language">{t("settings.language")}</Label>
               <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger id="language">
                   <SelectValue />

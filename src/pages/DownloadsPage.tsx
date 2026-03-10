@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
 import { Download, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface DownloadItem {
   id: string;
@@ -24,6 +25,7 @@ const DownloadsPage = () => {
   const navigate = useNavigate();
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!user) return;
@@ -55,8 +57,8 @@ const DownloadsPage = () => {
             <Download className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-display font-bold">Meus Downloads</h1>
-            <p className="text-sm text-muted-foreground">Histórico de matrizes baixadas</p>
+            <h1 className="text-2xl font-display font-bold">{t("downloads.title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("downloads.subtitle")}</p>
           </div>
           <Badge variant="outline" className="ml-auto text-xs gap-1">
             <Download className="h-3 w-3" /> {downloads.length}
@@ -79,8 +81,8 @@ const DownloadsPage = () => {
           <Card className="border-border/60 bg-muted/30">
             <CardContent className="py-16 text-center">
               <Download className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground">Você ainda não baixou nenhuma matriz.</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">Explore a biblioteca para começar!</p>
+              <p className="text-muted-foreground">{t("downloads.empty")}</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">{t("downloads.emptyHint")}</p>
             </CardContent>
           </Card>
         ) : (

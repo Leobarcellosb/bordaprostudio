@@ -3,20 +3,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
 const navItems = [
-  { icon: Home, label: "Dashboard", path: "/dashboard" },
-  { icon: Library, label: "Biblioteca", path: "/library" },
-  { icon: Heart, label: "Favoritos", path: "/favorites" },
-  { icon: Download, label: "Downloads", path: "/downloads" },
-  { icon: TrendingUp, label: "Tendências", path: "/trends" },
-  { icon: Lightbulb, label: "Ideias", path: "/product-ideas" },
-  { icon: Sparkles, label: "Vendas", path: "/sales-generator" },
-  { icon: Layers, label: "Mockups", path: "/mockup-simulator" },
-  { icon: Calculator, label: "Calculadora", path: "/profit-calculator" },
-  { icon: BookOpen, label: "Catálogos", path: "/catalogs" },
-  { icon: Crown, label: "Planos", path: "/pricing" },
+  { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
+  { icon: Library, labelKey: "nav.library", path: "/library" },
+  { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
+  { icon: Download, labelKey: "nav.mobile.downloads", path: "/downloads" },
+  { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
+  { icon: Lightbulb, labelKey: "nav.mobile.ideas", path: "/product-ideas" },
+  { icon: Sparkles, labelKey: "nav.mobile.sales", path: "/sales-generator" },
+  { icon: Layers, labelKey: "nav.mobile.mockups", path: "/mockup-simulator" },
+  { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
+  { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+  { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
 ];
 
 export const MobileNav = () => {
@@ -24,6 +25,7 @@ export const MobileNav = () => {
   const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -38,24 +40,24 @@ export const MobileNav = () => {
       </header>
       {open && (
         <div className="md:hidden fixed inset-0 top-[61px] bg-background z-50 p-4 space-y-1 animate-fade-in overflow-y-auto">
-          {navItems.map(({ icon: Icon, label, path }) => (
+          {navItems.map(({ icon: Icon, labelKey, path }) => (
             <button key={path} onClick={() => { navigate(path); setOpen(false); }}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
               )}>
-              <Icon className="h-4 w-4" />{label}
+              <Icon className="h-4 w-4" />{t(labelKey)}
             </button>
           ))}
           {isAdmin && (
             <button onClick={() => { navigate("/admin"); setOpen(false); }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
-              <Shield className="h-4 w-4" />Painel Admin
+              <Shield className="h-4 w-4" />{t("nav.adminPanel")}
             </button>
           )}
           <div className="h-px bg-border my-2" />
           <button onClick={() => { signOut(); setOpen(false); }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
-            <LogOut className="h-4 w-4" />Sair
+            <LogOut className="h-4 w-4" />{t("nav.logout")}
           </button>
         </div>
       )}
