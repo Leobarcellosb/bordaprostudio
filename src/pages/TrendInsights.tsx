@@ -32,6 +32,7 @@ const TrendInsights = () => {
   const navigate = useNavigate();
   const [trendData, setTrendData] = useState<Record<string, any[]>>({});
   const [topDownloaded, setTopDownloaded] = useState<any[]>([]);
+  const [hotNow, setHotNow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const currentMonth = new Date().getMonth() + 1;
@@ -42,7 +43,6 @@ const TrendInsights = () => {
     const fetchTrends = async () => {
       setLoading(true);
 
-      // Fetch all published kits
       const { data: allKits } = await db
         .from("designs")
         .select("*, categories(name)")
@@ -53,36 +53,46 @@ const TrendInsights = () => {
         return;
       }
 
-      // Fetch download counts
-      const { data: downloads } = await db.from("downloads").select("kit_id");
+      // All-time download counts
+      const { data: allDownloads } = await db.from("downloads").select("kit_id, created_at");
       const downloadCounts: Record<string, number> = {};
-      (downloads || []).forEach((d: any) => {
+      const recentCounts: Record<string, number> = {};
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      (allDownloads || []).forEach((d: any) => {
         downloadCounts[d.kit_id] = (downloadCounts[d.kit_id] || 0) + 1;
+        if (new Date(d.created_at) >= sevenDaysAgo) {
+          recentCounts[d.kit_id] = (recentCounts[d.kit_id] || 0) + 1;
+        }
       });
 
-      // Top downloaded
+      // Hot now — top 6 by downloads in last 7 days
+      const hotDesigns = [...allKits]
+        .map((k) => ({ ...k, recentDownloads: recentCounts[k.id] || 0, downloadCount: downloadCounts[k.id] || 0 }))
+        .filter((k) => k.recentDownloads > 0)
+        .sort((a, b) => b.recentDownloads - a.recentDownloads)
+        .slice(0, 6);
+      setHotNow(hotDesigns);
+
+      // Top downloaded all-time
       const sorted = [...allKits]
         .map((k) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
         .sort((a, b) => b.downloadCount - a.downloadCount)
         .slice(0, 6);
       setTopDownloaded(sorted);
 
-      // Match kits to trends
+      // Seasonal keyword matching
       const trendResults: Record<string, any[]> = {};
-
       for (const trend of TRENDS) {
         const matches = allKits.filter((kit: any) => {
           const text = `${kit.name} ${kit.tags_text || ""} ${kit.categories?.name || ""}`.toLowerCase();
           return trend.keywords.some((kw) => text.includes(kw));
         });
-
-        // Sort by downloads and take top 4
-        const withCounts = matches
+        trendResults[trend.id] = matches
           .map((k: any) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
           .sort((a: any, b: any) => b.downloadCount - a.downloadCount)
           .slice(0, 4);
-
-        trendResults[trend.id] = withCounts;
       }
 
       setTrendData(trendResults);
