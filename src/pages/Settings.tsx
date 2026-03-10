@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { db } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Camera, User } from "lucide-react";
+import { Camera, Globe } from "lucide-react";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
 
 const Settings = () => {
@@ -23,6 +24,13 @@ const Settings = () => {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem("app_language") || "pt");
+
+  const handleLanguageChange = (val: string) => {
+    setLanguage(val);
+    localStorage.setItem("app_language", val);
+    toast.success("Idioma salvo!");
+  };
 
   const initials = [name?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "U";
 
@@ -147,6 +155,34 @@ const Settings = () => {
             <Button onClick={updateProfile} disabled={saving} className="w-full sm:w-auto">
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Language Section */}
+        <Card className="border-border/60">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle className="font-display">Idioma da Interface</CardTitle>
+                <CardDescription>Escolha o idioma da plataforma.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="language">Idioma</Label>
+              <Select value={language} onValueChange={handleLanguageChange}>
+                <SelectTrigger id="language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pt">Português 🇧🇷</SelectItem>
+                  <SelectItem value="en">English 🇺🇸</SelectItem>
+                  <SelectItem value="es">Español 🇪🇸</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
