@@ -365,9 +365,9 @@ export const AdminDesigns = () => {
                     </div>
                   )}
                   <div>
-                    <input ref={fileInputRef} type="file" accept=".pes,.exp,.dst,.jef,.xxx" onChange={uploadFile} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
-                      <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Upload arquivo (.pes, .exp, .dst, .jef, .xxx)"}
+                    <input ref={fileInputRef} type="file" accept=".pes,.exp,.dst,.jef,.xxx,.vp3" onChange={uploadFile} className="hidden" />
+                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
+                       <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Upload arquivo (.pes, .exp, .dst, .jef, .xxx, .vp3)"}
                     </Button>
                   </div>
                 </CardContent>
