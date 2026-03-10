@@ -51,6 +51,7 @@ const AdminPanel = () => {
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
           <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>
           <TabsContent value="integrations"><AdminIntegrations /></TabsContent>
+          <TabsContent value="kits"><AdminPremiumKits /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>
