@@ -458,7 +458,7 @@ export const AdminSmartUpload = () => {
           <input
             ref={inputRef}
             type="file"
-            accept=".pes,.exp,.dst,.jef,.xxx,.zip,.jpg,.jpeg,.png,.webp,.gif"
+            accept=".pes,.exp,.dst,.jef,.xxx,.vp3,.zip,.jpg,.jpeg,.png,.webp,.gif"
             multiple
             onChange={handleFileSelect}
             className="hidden"
