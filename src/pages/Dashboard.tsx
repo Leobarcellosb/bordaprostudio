@@ -248,53 +248,8 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* Suggested for today */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-secondary/10">
-                <Sparkles className="h-5 w-5 text-secondary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-display font-bold">{t("dashboard.suggestionsOfDay")}</h2>
-                <p className="text-sm text-muted-foreground">{t("dashboard.selectedForYou")}</p>
-              </div>
-            </div>
-            <Badge variant="secondary" className="text-xs">
-              {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
-            </Badge>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {suggestedDesigns.map((kit: any) => (
-              <Card
-                key={kit.id}
-                className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-lg hover:border-secondary/40 transition-all"
-                onClick={() => navigate(`/library/${kit.id}`)}
-              >
-                <div className="aspect-square relative overflow-hidden bg-muted">
-                  {kit.cover_image ? (
-                    <img
-                      src={kit.cover_image}
-                      alt={kit.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">🧵</div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-primary-foreground text-sm font-medium truncate drop-shadow-lg">{kit.name}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-            {suggestedDesigns.length === 0 && !loading && (
-              <div className="col-span-4 text-center py-8 text-muted-foreground">
-                {t("dashboard.noDesignsNow")}
-              </div>
-            )}
-          </div>
-        </section>
+        {/* Inspiração do Dia */}
+        <InspiracaoDoDia />
 
         {/* Newest designs */}
         <section>
