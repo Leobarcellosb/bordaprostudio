@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { db } from "@/lib/db";
 import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
+import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ import {
   FileUp,
 } from "lucide-react";
 
-const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx"];
+const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx", "vp3"];
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
 
 function getExtension(name: string) {
