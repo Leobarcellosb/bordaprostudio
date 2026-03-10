@@ -10,9 +10,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!user) { setCheckingOnboarding(false); return; }
-    db.from("user_preferences").select("id").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => {
-        setNeedsOnboarding(!data);
+    db.from("user_preferences")
+      .select("id, completed_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        setNeedsOnboarding(!data || !data.completed_at);
         setCheckingOnboarding(false);
       });
   }, [user]);

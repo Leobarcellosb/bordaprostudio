@@ -85,36 +85,48 @@ const Onboarding = () => {
   };
 
   const handleFinish = async () => {
-    if (!user) return;
+    if (!user || saving) return;
     setSaving(true);
     try {
-      const { error } = await db.from("user_preferences").insert({
+      const payload = {
         user_id: user.id,
         usage_goal: answers.usage_goal || null,
         favorite_categories: answers.favorite_categories || [],
         hoop_size: answers.hoop_size || null,
         experience_level: answers.experience_level || null,
         selling_activity: answers.selling_activity || null,
-      });
+        completed_at: new Date().toISOString(),
+      };
+      const { error } = await db
+        .from("user_preferences")
+        .upsert(payload, { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Preferências salvas! Bem-vinda ao Borda Pro 🎉");
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      console.error(err);
+      console.error("Onboarding save error:", err);
       toast.error("Erro ao salvar preferências. Tente novamente.");
-    } finally {
       setSaving(false);
     }
   };
 
   const handleSkip = async () => {
-    if (!user) return;
+    if (!user || saving) return;
     setSaving(true);
     try {
-      await db.from("user_preferences").insert({ user_id: user.id });
-    } catch {}
-    navigate("/dashboard", { replace: true });
-    setSaving(false);
+      const { error } = await db
+        .from("user_preferences")
+        .upsert(
+          { user_id: user.id, completed_at: new Date().toISOString() },
+          { onConflict: "user_id" }
+        );
+      if (error) throw error;
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      console.error("Onboarding skip error:", err);
+      toast.error("Erro ao pular. Tente novamente.");
+      setSaving(false);
+    }
   };
 
   return (
