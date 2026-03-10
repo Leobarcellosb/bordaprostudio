@@ -39,6 +39,7 @@ const AdminPanel = () => {
               <TabsTrigger value="downloads" className="font-medium text-xs">{t("admin.downloads")}</TabsTrigger>
               <TabsTrigger value="subscriptions" className="font-medium text-xs">{t("admin.subscriptions")}</TabsTrigger>
               <TabsTrigger value="integrations" className="font-medium text-xs">Integrações</TabsTrigger>
+              <TabsTrigger value="kits" className="font-medium text-xs">Kits Premium</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
