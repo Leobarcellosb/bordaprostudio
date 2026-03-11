@@ -111,7 +111,7 @@ export const AdminDesigns = () => {
     if (!form.cover_image && isPreviewSupported(ext)) {
       try {
         const result = await generateEmbroideryPreview(file, ext);
-        if (result) {
+        if (result && result.blob) {
           const previewPath = `auto/${editing.id}-${Date.now()}.png`;
           const { error: upErr } = await supabase.storage.from("design-covers").upload(previewPath, result.blob, { contentType: "image/png" });
           if (!upErr) {
