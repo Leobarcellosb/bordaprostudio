@@ -38,6 +38,10 @@ function getBaseName(name: string) {
 function cleanTitle(name: string) {
   return name
     .replace(/[-_]+/g, " ")
+    // Remove UUID fragments (8-4-4-4-12 hex pattern or partial hex blocks of 8+ chars)
+    .replace(/\b[0-9a-fA-F]{8}(?:[- ][0-9a-fA-F]{4}){0,3}(?:[- ][0-9a-fA-F]{4,12})?\b/g, " ")
+    // Remove standalone hex-like fragments (8+ hex chars that aren't real words)
+    .replace(/\b[0-9a-fA-F]{8,}\b/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());

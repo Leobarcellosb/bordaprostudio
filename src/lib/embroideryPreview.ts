@@ -1,7 +1,7 @@
 /**
  * Client-side embroidery file parser and preview renderer.
  * Supports: PES, DST, JEF, EXP, XXX
- * Renders stitch paths on an OffscreenCanvas and returns a PNG Blob.
+ * Renders stitch paths on a Canvas and returns a PNG Blob.
  */
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ interface EmbroideryData {
 
 // Flags
 const NORMAL = 0;
-const MOVE = 1;   // jump / move without stitching
+const MOVE = 1;
 const TRIM = 2;
 const COLOR_CHANGE = 4;
 const END = 8;
@@ -45,15 +45,15 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
 
-  // Verify magic "#PES"
   const magic = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
   if (magic !== "#PES") throw new Error("Not a PES file");
 
-  // Read PEC offset (at byte 8, little-endian 32-bit)
   const pecOffset = view.getUint32(8, true);
   
-  // PEC block: skip the PEC header to get to stitch data
-  // PEC header is 532 bytes after the PEC start marker
+  // PEC section: find the actual stitch data start
+  // The PEC section starts at pecOffset. We need to skip past the PEC header.
+  // The PEC header contains the label (19 bytes), then some color info.
+  // Stitch data begins 532 bytes after pecOffset.
   const pecStart = pecOffset + 532;
 
   if (pecStart >= buffer.byteLength) throw new Error("Invalid PES: PEC data out of bounds");
@@ -68,16 +68,14 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     const b2 = bytes[i + 1];
 
     if (b1 === 0xFF && b2 === 0x00) {
-      // End of stitches
       stitches.push({ x, y, flags: END });
       break;
     }
 
     if (b1 === 0xFE && b2 === 0xB0) {
-      // Color change
       colorChanges++;
       stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 3; // skip the color change byte
+      i += 3;
       continue;
     }
 
@@ -85,10 +83,9 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     let flags = NORMAL;
 
     if (b1 & 0x80) {
-      // 12-bit x value
       if (i + 2 >= buffer.byteLength) break;
       dx = ((b1 & 0x0F) << 8) | b2;
-      if (b1 & 0x20) dx -= 4096;
+      if (dx & 0x800) dx -= 0x1000;
       if (b1 & 0x10) flags = MOVE;
       i += 2;
       const b3 = bytes[i];
@@ -96,27 +93,27 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
         if (i + 1 >= buffer.byteLength) break;
         const b4 = bytes[i + 1];
         dy = ((b3 & 0x0F) << 8) | b4;
-        if (b3 & 0x20) dy -= 4096;
+        if (dy & 0x800) dy -= 0x1000;
         if (b3 & 0x10) flags = MOVE;
         i += 2;
       } else {
-        dy = b3 & 0x7F;
-        if (b3 & 0x40) dy -= 128;
+        dy = b3;
+        if (dy > 63) dy -= 128;
         i += 1;
       }
     } else {
-      dx = b1 & 0x7F;
-      if (b1 & 0x40) dx -= 128;
+      dx = b1;
+      if (dx > 63) dx -= 128;
       if (b2 & 0x80) {
         if (i + 2 >= buffer.byteLength) break;
         const b3 = bytes[i + 2];
         dy = ((b2 & 0x0F) << 8) | b3;
-        if (b2 & 0x20) dy -= 4096;
+        if (dy & 0x800) dy -= 0x1000;
         if (b2 & 0x10) flags = MOVE;
         i += 3;
       } else {
-        dy = b2 & 0x7F;
-        if (b2 & 0x40) dy -= 128;
+        dy = b2;
+        if (dy > 63) dy -= 128;
         i += 2;
       }
     }
@@ -133,7 +130,6 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
 
 function parseDST(buffer: ArrayBuffer): EmbroideryData {
   const bytes = new Uint8Array(buffer);
-  // DST header is 512 bytes
   const headerEnd = 512;
   if (buffer.byteLength < headerEnd + 3) throw new Error("Invalid DST file");
 
@@ -146,19 +142,15 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     const b1 = bytes[i + 1];
     const b2 = bytes[i + 2];
 
-    // End code
-    if (b2 & 0x40) {
-      // Possible stop/end
-      if (b0 === 0x00 && b1 === 0x00 && (b2 & 0xF3) === 0xF3) {
-        stitches.push({ x, y, flags: END });
-        break;
-      }
+    if (b0 === 0x00 && b1 === 0x00 && (b2 & 0xF3) === 0xF3) {
+      stitches.push({ x, y, flags: END });
+      break;
     }
 
     let dx = 0, dy = 0;
     let flags = NORMAL;
 
-    // Decode X
+    // Decode X using DST bit layout
     if (b0 & 0x01) dx += 1;
     if (b0 & 0x02) dx -= 1;
     if (b0 & 0x04) dx += 9;
@@ -170,17 +162,17 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     if (b2 & 0x01) dx += 81;
     if (b2 & 0x02) dx -= 81;
 
-    // Decode Y
-    if (b0 & 0x80) dy += 1;
-    if (b0 & 0x40) dy -= 1;
-    if (b0 & 0x20) dy += 9;
-    if (b0 & 0x10) dy -= 9;
-    if (b1 & 0x80) dy += 3;
-    if (b1 & 0x40) dy -= 3;
-    if (b1 & 0x20) dy += 27;
-    if (b1 & 0x10) dy -= 27;
-    if (b2 & 0x20) dy += 81;
-    if (b2 & 0x10) dy -= 81;
+    // Decode Y using DST bit layout
+    if (b0 & 0x80) dy -= 1;
+    if (b0 & 0x40) dy += 1;
+    if (b0 & 0x20) dy -= 9;
+    if (b0 & 0x10) dy += 9;
+    if (b1 & 0x80) dy -= 3;
+    if (b1 & 0x40) dy += 3;
+    if (b1 & 0x20) dy -= 27;
+    if (b1 & 0x10) dy += 27;
+    if (b2 & 0x20) dy -= 81;
+    if (b2 & 0x10) dy += 81;
 
     // Check flags
     if (b2 & 0x80) {
@@ -212,39 +204,35 @@ function parseEXP(buffer: ArrayBuffer): EmbroideryData {
     const b0 = bytes[i];
     const b1 = bytes[i + 1];
 
-    // Color change: 0x80 0x01 followed by 0x00 0x00
     if (b0 === 0x80 && b1 === 0x01) {
       colorChanges++;
       stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 2; // skip the 0x00 0x00 after color change
+      i += 2;
       continue;
     }
 
-    // Move: 0x80 0x04
     if (b0 === 0x80 && b1 === 0x04) {
       i += 2;
       if (i + 1 >= buffer.byteLength) break;
       const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
-      const dy = bytes[i + 1] > 127 ? bytes[i + 1] - 256 : bytes[i + 1];
+      const dy = bytes[i + 1] > 127 ? -(bytes[i + 1] - 256) : -bytes[i + 1];
       x += dx;
       y += dy;
       stitches.push({ x, y, flags: MOVE });
       continue;
     }
 
-    // End
     if (b0 === 0x80 && b1 === 0x80) {
       stitches.push({ x, y, flags: END });
       break;
     }
 
-    // 0x80 prefix for other control codes
     if (b0 === 0x80) {
       continue;
     }
 
     const dx = b0 > 127 ? b0 - 256 : b0;
-    const dy = b1 > 127 ? b1 - 256 : b1;
+    const dy = b1 > 127 ? -(b1 - 256) : -b1;
     x += dx;
     y += dy;
     stitches.push({ x, y, flags: NORMAL });
@@ -259,7 +247,6 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
   const view = new DataView(buffer);
   if (buffer.byteLength < 116) throw new Error("Invalid JEF file");
 
-  // JEF header: offset to stitch data at byte 24
   const stitchOffset = view.getInt32(24, true);
   if (stitchOffset <= 0 || stitchOffset >= buffer.byteLength) {
     throw new Error("Invalid JEF stitch offset");
@@ -274,36 +261,32 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
     const b0 = bytes[i];
     const b1 = bytes[i + 1];
 
-    // End
     if (b0 === 0x80 && b1 === 0x01) {
       stitches.push({ x, y, flags: END });
       break;
     }
 
-    // Color change
     if (b0 === 0x80 && b1 === 0x02) {
       colorChanges++;
       stitches.push({ x, y, flags: COLOR_CHANGE });
       continue;
     }
 
-    // Move / trim
     if (b0 === 0x80 && b1 === 0x10) {
       i += 2;
       if (i + 1 >= buffer.byteLength) break;
       const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
       const dy = bytes[i + 1] > 127 ? bytes[i + 1] - 256 : bytes[i + 1];
       x += dx;
-      y += dy;
+      y -= dy; // JEF Y is inverted
       stitches.push({ x, y, flags: MOVE });
       continue;
     }
 
-    // Normal stitch
     const dx = b0 > 127 ? b0 - 256 : b0;
     const dy = b1 > 127 ? b1 - 256 : b1;
     x += dx;
-    y += dy;
+    y -= dy; // JEF Y is inverted
     stitches.push({ x, y, flags: NORMAL });
   }
 
@@ -317,8 +300,7 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
   const bytes = new Uint8Array(buffer);
   if (buffer.byteLength < 0x100) throw new Error("Invalid XXX file");
 
-  // XXX stitch data offset is stored at byte 0x20
-  let stitchOffset = 0x100; // default
+  let stitchOffset = 0x100;
   try {
     const offset = view.getUint32(0x20, true);
     if (offset > 0 && offset < buffer.byteLength) stitchOffset = offset;
@@ -335,15 +317,13 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
     const b1 = bytes[i + 1];
 
     if (b0 === 0x7F && b1 === 0x7F) {
-      // Color change
       colorChanges++;
       stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 2; // skip extra bytes
+      i += 2;
       continue;
     }
 
     if (b0 === 0x7E && b1 === 0x7E) {
-      // End
       stitches.push({ x, y, flags: END });
       break;
     }
@@ -351,7 +331,6 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
     const dx = b0 > 127 ? b0 - 256 : b0;
     const dy = b1 > 127 ? b1 - 256 : b1;
 
-    // Large move
     if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
       x += dx;
       y += dy;
@@ -382,7 +361,7 @@ function buildResult(stitches: Stitch[], colorChanges: number): EmbroideryData {
     if (s.y > maxY) maxY = s.y;
   }
 
-  // Normalize coordinates
+  // Normalize coordinates to start at 0,0
   for (const s of stitches) {
     s.x -= minX;
     s.y -= minY;
@@ -395,6 +374,49 @@ function buildResult(stitches: Stitch[], colorChanges: number): EmbroideryData {
     stitchCount,
     colorChanges,
   };
+}
+
+// ── Quality Validation ─────────────────────────────────────────────────
+
+function validatePreviewQuality(data: EmbroideryData): boolean {
+  // Must have a meaningful number of normal stitches
+  if (data.stitchCount < 20) return false;
+
+  // Design must have non-trivial dimensions
+  if (data.width < 5 || data.height < 5) return false;
+
+  // Calculate the ratio of normal stitches to total entries
+  const totalEntries = data.stitches.length;
+  const normalRatio = data.stitchCount / totalEntries;
+  
+  // If almost all stitches are jumps/moves, the preview will look broken
+  if (normalRatio < 0.15) return false;
+
+  // Check for degenerate aspect ratio (extremely thin lines)
+  const aspectRatio = Math.max(data.width, data.height) / Math.min(data.width, data.height);
+  if (aspectRatio > 50) return false;
+
+  // Check that stitches aren't all clustered in a tiny area with huge outliers
+  // by sampling variance
+  const normalStitches = data.stitches.filter(s => s.flags === NORMAL);
+  if (normalStitches.length > 10) {
+    const xs = normalStitches.map(s => s.x);
+    const ys = normalStitches.map(s => s.y);
+    xs.sort((a, b) => a - b);
+    ys.sort((a, b) => a - b);
+    // Check that the middle 80% of stitches cover a reasonable area
+    const p10 = Math.floor(xs.length * 0.1);
+    const p90 = Math.floor(xs.length * 0.9);
+    const innerWidth = xs[p90] - xs[p10];
+    const innerHeight = ys[p90] - ys[p10];
+    // If the inner 80% is <5% of total bounds, outliers are dominating
+    if (data.width > 0 && data.height > 0) {
+      const coverage = (innerWidth / data.width) * (innerHeight / data.height);
+      if (coverage < 0.01) return false;
+    }
+  }
+
+  return true;
 }
 
 // ── Renderer ────────────────────────────────────────────────────────────
@@ -423,72 +445,51 @@ function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasEle
   const offsetX = padding + (drawArea - data.width * scale) / 2;
   const offsetY = padding + (drawArea - data.height * scale) / 2;
 
-  // Draw stitches
+  // Draw stitches with thicker lines for better visual quality
   let colorIndex = 0;
-  ctx.lineWidth = Math.max(1.2, size / 500);
+  const baseWidth = Math.max(1.5, size / 400);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  let pathStarted = false;
-
-  for (let i = 0; i < data.stitches.length; i++) {
+  let i = 0;
+  while (i < data.stitches.length) {
     const s = data.stitches[i];
-    const sx = s.x * scale + offsetX;
-    const sy = s.y * scale + offsetY;
-
-    if (s.flags === END) {
-      if (pathStarted) {
-        ctx.stroke();
-        pathStarted = false;
-      }
-      break;
-    }
+    if (s.flags === END) break;
 
     if (s.flags === COLOR_CHANGE) {
-      if (pathStarted) {
-        ctx.stroke();
-        pathStarted = false;
-      }
       colorIndex++;
+      i++;
       continue;
     }
 
     if (s.flags === MOVE || s.flags === TRIM) {
-      if (pathStarted) {
-        ctx.stroke();
-        pathStarted = false;
-      }
+      i++;
       continue;
     }
 
-    // Normal stitch
-    if (!pathStarted) {
-      ctx.beginPath();
-      ctx.strokeStyle = THREAD_PALETTE[colorIndex % THREAD_PALETTE.length];
-      // Move to previous normal stitch or current position
-      const prev = findPrevNormal(data.stitches, i);
-      if (prev) {
-        ctx.moveTo(prev.x * scale + offsetX, prev.y * scale + offsetY);
-      } else {
-        ctx.moveTo(sx, sy);
-      }
-      pathStarted = true;
+    // Start a new path segment for consecutive normal stitches
+    ctx.beginPath();
+    ctx.strokeStyle = THREAD_PALETTE[colorIndex % THREAD_PALETTE.length];
+    ctx.lineWidth = baseWidth;
+
+    // Move to current stitch position
+    const sx = s.x * scale + offsetX;
+    const sy = s.y * scale + offsetY;
+    ctx.moveTo(sx, sy);
+
+    i++;
+    // Continue drawing connected normal stitches
+    while (i < data.stitches.length) {
+      const next = data.stitches[i];
+      if (next.flags !== NORMAL) break;
+      ctx.lineTo(next.x * scale + offsetX, next.y * scale + offsetY);
+      i++;
     }
 
-    ctx.lineTo(sx, sy);
+    ctx.stroke();
   }
-
-  if (pathStarted) ctx.stroke();
 
   return canvas;
-}
-
-function findPrevNormal(stitches: Stitch[], index: number): Stitch | null {
-  for (let i = index - 1; i >= 0; i--) {
-    if (stitches[i].flags === NORMAL) return stitches[i];
-    if (stitches[i].flags === COLOR_CHANGE || stitches[i].flags === END) return null;
-  }
-  return null;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────
@@ -515,7 +516,7 @@ const FORMAT_PARSERS: Record<string, (buf: ArrayBuffer) => EmbroideryData> = {
 
 /**
  * Generate a preview image from an embroidery file.
- * Returns a PNG blob and metadata, or null if parsing fails.
+ * Returns a PNG blob and metadata, or null if parsing fails or quality is too low.
  */
 export async function generateEmbroideryPreview(
   file: Blob,
@@ -532,6 +533,12 @@ export async function generateEmbroideryPreview(
 
     if (data.stitches.length < 5) return null;
 
+    // Quality gate: don't produce previews that look broken
+    if (!validatePreviewQuality(data)) {
+      console.warn(`Embroidery preview quality check failed for ${format} — skipping auto-preview`);
+      return null;
+    }
+
     const canvas = renderToCanvas(data, imageSize);
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png")
@@ -539,7 +546,7 @@ export async function generateEmbroideryPreview(
     if (!blob) return null;
 
     // Convert from stitch units to approximate mm (1 unit ≈ 0.1mm for most formats)
-    const unitToMm = ext === "dst" ? 0.1 : 0.1;
+    const unitToMm = 0.1;
 
     return {
       blob,
