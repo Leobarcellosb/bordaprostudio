@@ -131,7 +131,7 @@ export const AdminDesigns = () => {
         }
       } catch (err) {
         console.warn("Auto-preview generation failed:", err);
-        toast.info("Não foi possível gerar a visualização automática. Você pode enviar uma imagem manualmente.");
+        toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
       }
     }
 
