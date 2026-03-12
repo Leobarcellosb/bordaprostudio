@@ -584,6 +584,7 @@ export const AdminSmartUpload = () => {
             file_name: file.name,
             file_url: urlData.publicUrl,
             format: fileFormat,
+            file_hash: fileHash,
           });
 
           if (fileRecordError) {
