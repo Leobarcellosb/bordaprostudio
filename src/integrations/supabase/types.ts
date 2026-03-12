@@ -97,10 +97,12 @@ export type Database = {
           created_at: string | null
           description: string | null
           featured_for_daily_inspiration: boolean
+          generated_title: string | null
           height_mm: number | null
           id: string
           is_published: boolean | null
           name: string
+          raw_filename: string | null
           stitch_count: number | null
           tags_text: string | null
           updated_at: string | null
@@ -113,10 +115,12 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           featured_for_daily_inspiration?: boolean
+          generated_title?: string | null
           height_mm?: number | null
           id?: string
           is_published?: boolean | null
           name: string
+          raw_filename?: string | null
           stitch_count?: number | null
           tags_text?: string | null
           updated_at?: string | null
@@ -129,10 +133,12 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           featured_for_daily_inspiration?: boolean
+          generated_title?: string | null
           height_mm?: number | null
           id?: string
           is_published?: boolean | null
           name?: string
+          raw_filename?: string | null
           stitch_count?: number | null
           tags_text?: string | null
           updated_at?: string | null

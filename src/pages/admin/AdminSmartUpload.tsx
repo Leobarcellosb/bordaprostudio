@@ -74,16 +74,20 @@ function suggestCategory(name: string, categories: any[]): string | null {
 interface DesignGroup {
   id: string;
   baseName: string;
+  rawFilename: string;
   title: string;
+  generatedTitle: string | null;
+  titleSource: "ai" | "filename";
   tags: string;
   categoryId: string;
   files: { name: string; blob: Blob; format: string }[];
   previewFile: { name: string; blob: Blob } | null;
-  autoPreview: boolean; // true if preview was auto-generated from embroidery file
+  autoPreview: boolean;
   isZip: boolean;
   status: "pending" | "editing" | "uploading" | "done" | "error";
   error?: string;
   metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
+  generatingTitle: boolean;
 }
 
 export const AdminSmartUpload = () => {
@@ -141,7 +145,10 @@ export const AdminSmartUpload = () => {
               newGroups.set(groupId, {
                 id: groupId,
                 baseName,
+                rawFilename: file.name,
                 title,
+                generatedTitle: null,
+                titleSource: "filename",
                 tags: tags.join(", "),
                 categoryId,
                 files: innerFiles,
@@ -149,13 +156,17 @@ export const AdminSmartUpload = () => {
                 autoPreview: false,
                 isZip: false,
                 status: "pending",
+                generatingTitle: false,
               });
             } else {
               const groupId = crypto.randomUUID();
               newGroups.set(groupId, {
                 id: groupId,
                 baseName,
+                rawFilename: file.name,
                 title,
+                generatedTitle: null,
+                titleSource: "filename",
                 tags: tags.join(", "),
                 categoryId,
                 files: [{ name: file.name, blob: file, format: "ZIP" }],
@@ -163,6 +174,7 @@ export const AdminSmartUpload = () => {
                 autoPreview: false,
                 isZip: true,
                 status: "pending",
+                generatingTitle: false,
               });
             }
           } catch {
@@ -181,7 +193,10 @@ export const AdminSmartUpload = () => {
             newGroups.set(key, {
               id: crypto.randomUUID(),
               baseName,
+              rawFilename: file.name,
               title,
+              generatedTitle: null,
+              titleSource: "filename",
               tags: tags.join(", "),
               categoryId,
               files: [],
@@ -189,6 +204,7 @@ export const AdminSmartUpload = () => {
               autoPreview: false,
               isZip: false,
               status: "pending",
+              generatingTitle: false,
             });
           }
           newGroups.get(key)!.files.push({
@@ -260,9 +276,58 @@ export const AdminSmartUpload = () => {
       const autoCount = entries.filter(e => e.autoPreview).length;
       const msg = `${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`;
       toast.success(autoCount > 0 ? `${msg} ${autoCount} preview${autoCount !== 1 ? "s" : ""} gerado${autoCount !== 1 ? "s" : ""} automaticamente.` : msg);
+
+      // Trigger AI title generation for entries with previews
+      for (const entry of entries) {
+        if (entry.previewFile) {
+          generateAITitle(entry);
+        }
+      }
     },
     [categories]
   );
+
+  const generateAITitle = useCallback(async (group: DesignGroup) => {
+    setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: true } : g));
+
+    try {
+      let imageUrl: string | null = null;
+      if (group.previewFile) {
+        imageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(group.previewFile!.blob);
+        });
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-design-title", {
+        body: {
+          image_url: imageUrl,
+          tags: group.tags,
+          metadata: group.metadata,
+          raw_filename: group.rawFilename,
+        },
+      });
+
+      if (error) throw error;
+
+      const aiTitle = data?.title;
+      if (aiTitle && typeof aiTitle === "string" && aiTitle.length > 0) {
+        setGroups((prev) =>
+          prev.map((g) =>
+            g.id === group.id
+              ? { ...g, title: aiTitle, generatedTitle: aiTitle, titleSource: "ai" as const, generatingTitle: false }
+              : g
+          )
+        );
+      } else {
+        setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+      }
+    } catch (err) {
+      console.warn("AI title generation failed for", group.baseName, err);
+      setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+    }
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -364,6 +429,8 @@ export const AdminSmartUpload = () => {
             .from("designs")
             .insert({
               name: group.title,
+              raw_filename: group.rawFilename,
+              generated_title: group.generatedTitle,
               cover_image: previewUrl,
               category_id: group.categoryId || null,
               tags_text: group.tags,
@@ -625,7 +692,22 @@ function DesignGroupCard({
                     className="h-8 text-sm font-medium"
                   />
                 ) : (
-                  <p className="font-medium text-sm truncate">{group.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    {group.generatingTitle ? (
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando título...
+                      </span>
+                    ) : (
+                      <>
+                        <p className="font-medium text-sm truncate">{group.title}</p>
+                        {group.titleSource === "ai" && (
+                          <Badge variant="secondary" className="text-[9px] gap-0.5 shrink-0">
+                            <Sparkles className="h-2.5 w-2.5" /> IA
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -666,6 +748,13 @@ function DesignGroupCard({
                 )}
               </div>
             </div>
+
+            {/* Raw filename info */}
+            {group.rawFilename && group.titleSource === "ai" && (
+              <p className="text-[10px] text-muted-foreground truncate">
+                Arquivo: {group.rawFilename}
+              </p>
+            )}
 
             {/* File format badges */}
             <div className="flex flex-wrap gap-1.5">
