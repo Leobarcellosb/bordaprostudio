@@ -376,9 +376,25 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
   const view = new DataView(buffer);
   if (buffer.byteLength < 116) throw new Error("Invalid JEF file");
 
-  const stitchOffset = view.getInt32(24, true);
+  const stitchOffset = view.getInt32(0, true);
   if (stitchOffset <= 0 || stitchOffset >= buffer.byteLength) {
     throw new Error("Invalid JEF stitch offset");
+  }
+
+  const colorCount = Math.max(0, view.getInt32(24, true));
+  const threadColors: string[] = [];
+  const colorTableOffset = 116;
+
+  for (let c = 0; c < colorCount; c++) {
+    const offset = colorTableOffset + c * 4;
+    if (offset + 4 > stitchOffset || offset + 4 > buffer.byteLength) break;
+
+    const colorIndex = view.getInt32(offset, true);
+    if (colorIndex > 0 && colorIndex < PEC_THREAD_COLORS.length) {
+      threadColors.push(PEC_THREAD_COLORS[colorIndex]);
+    } else {
+      threadColors.push(CATALOG_PALETTE[Math.abs(colorIndex) % CATALOG_PALETTE.length]);
+    }
   }
 
   const bytes = new Uint8Array(buffer);
@@ -401,14 +417,23 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
       continue;
     }
 
-    if (b0 === 0x80 && b1 === 0x10) {
+    if (b0 === 0x80 && b1 === 0x04) {
+      stitches.push({ x, y, flags: STOP });
+      continue;
+    }
+
+    if (b0 === 0x80 && (b1 === 0x10 || b1 === 0x20)) {
       i += 2;
       if (i + 1 >= buffer.byteLength) break;
       const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
       const dy = bytes[i + 1] > 127 ? bytes[i + 1] - 256 : bytes[i + 1];
       x += dx;
       y -= dy; // JEF Y is inverted
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: b1 === 0x20 ? TRIM : JUMP });
+      continue;
+    }
+
+    if (b0 === 0x80) {
       continue;
     }
 
@@ -419,7 +444,11 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
     stitches.push({ x, y, flags: NORMAL });
   }
 
-  return buildResult(stitches, colorChanges);
+  const result = buildResult(stitches, colorChanges);
+  if (threadColors.length > 0) {
+    result.threadColors = threadColors;
+  }
+  return result;
 }
 
 // ── XXX Parser (Singer) ─────────────────────────────────────────────────
