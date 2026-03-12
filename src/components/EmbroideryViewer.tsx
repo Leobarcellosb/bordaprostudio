@@ -163,12 +163,17 @@ function drawPattern(
   };
 
   if (mode === "commercial") {
-    // Delicate, elegant rendering
-    const baseThickness = Math.max(1.0, (Math.min(canvasWidth, canvasHeight) / 380) * zoom);
+    // Fine, delicate thread rendering — resembles real embroidery thread
+    const size = Math.min(canvasWidth, canvasHeight);
+    const rawThickness = (size / 600) * Math.sqrt(zoom);
+    const baseThickness = Math.max(0.6, Math.min(1.2, rawThickness));
     for (const block of blocks) {
-      drawPaths(block.paths, block.darkerHex, baseThickness * 1.1, 0.2);
-      drawPaths(block.paths, block.hex, baseThickness, 0.9);
-      drawPaths(block.paths, block.highlightHex, baseThickness * 0.3, 0.15);
+      // Subtle shadow for depth — very light
+      drawPaths(block.paths, block.darkerHex, baseThickness * 1.15, 0.12);
+      // Main thread stroke — slightly transparent for overlap blending
+      drawPaths(block.paths, block.hex, baseThickness, 0.85);
+      // Fine sheen highlight
+      drawPaths(block.paths, block.highlightHex, baseThickness * 0.25, 0.1);
     }
   } else {
     // Technical: thick, full opacity for stitch analysis
