@@ -177,6 +177,8 @@ export const AdminSmartUpload = () => {
                 isZip: false,
                 status: "pending",
                 generatingTitle: false,
+                pipelineLog: [],
+                importResult: null,
               });
             } else {
               const groupId = crypto.randomUUID();
