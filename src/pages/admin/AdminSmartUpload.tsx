@@ -597,7 +597,7 @@ export const AdminSmartUpload = () => {
           successCount++;
         }
       } catch (err: any) {
-        log("PIPELINE_ERROR", err.message);
+        plog("PIPELINE_ERROR", "error", err.message);
         console.error(`Import error for ${group.baseName}:`, err);
         updateGroup(group.id, { status: "error", error: err.message });
         failCount++;
