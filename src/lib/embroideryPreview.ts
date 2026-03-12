@@ -534,6 +534,60 @@ function buildResult(stitches: Stitch[], colorChanges: number): EmbroideryData {
   };
 }
 
+function suppressLikelyJumpLines(data: EmbroideryData): EmbroideryData {
+  const stepDistances: number[] = [];
+  let prevNormal: Stitch | null = null;
+
+  for (const stitch of data.stitches) {
+    if (stitch.flags !== NORMAL) {
+      prevNormal = null;
+      continue;
+    }
+
+    if (prevNormal) {
+      stepDistances.push(Math.hypot(stitch.x - prevNormal.x, stitch.y - prevNormal.y));
+    }
+
+    prevNormal = stitch;
+  }
+
+  if (stepDistances.length < 12) return data;
+
+  const sorted = [...stepDistances].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)] || 0;
+  const p90 = sorted[Math.floor(sorted.length * 0.9)] || median;
+  const diagonal = Math.hypot(data.width, data.height);
+  const jumpThreshold = Math.max(14, median * 5, p90 * 1.8, diagonal * 0.09);
+
+  let previousIndex = -1;
+  let normalCount = 0;
+
+  for (let i = 0; i < data.stitches.length; i++) {
+    const current = data.stitches[i];
+    if (current.flags !== NORMAL) {
+      previousIndex = -1;
+      continue;
+    }
+
+    if (previousIndex >= 0) {
+      const prev = data.stitches[previousIndex];
+      const distance = Math.hypot(current.x - prev.x, current.y - prev.y);
+
+      if (distance > jumpThreshold) {
+        current.flags = JUMP;
+        previousIndex = -1;
+        continue;
+      }
+    }
+
+    normalCount++;
+    previousIndex = i;
+  }
+
+  data.stitchCount = normalCount;
+  return data;
+}
+
 // ── Quality Validation ─────────────────────────────────────────────────
 
 function validatePreviewQuality(data: EmbroideryData): boolean {
