@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Download, Image as ImageIcon, Layers, RotateCcw, ZoomIn, Move } from "lucide-react";
+import { Download, Image as ImageIcon, Layers, RotateCcw, ZoomIn, Move, Palette } from "lucide-react";
 
 const MOCKUPS = [
   { id: "baby-towel", label: "Toalha de Bebê", src: "/mockups/baby-towel.jpg", overlayArea: { x: 0.25, y: 0.45, w: 0.5, h: 0.35 } },
@@ -16,10 +16,22 @@ const MOCKUPS = [
   { id: "pillow-cover", label: "Capa de Almofada", src: "/mockups/pillow-cover.jpg", overlayArea: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
 ];
 
+const FABRIC_COLORS = [
+  { id: "branco", label: "Branco", hex: "#FFFFFF" },
+  { id: "preto", label: "Preto", hex: "#1A1A1A" },
+  { id: "bege", label: "Bege/Cru", hex: "#E8DCC8" },
+  { id: "rosa", label: "Rosa Claro", hex: "#F4C2C2" },
+  { id: "azul-bebe", label: "Azul Bebê", hex: "#B5D8F7" },
+  { id: "cinza", label: "Cinza Mescla", hex: "#B0B0B0" },
+  { id: "vermelho", label: "Vermelho", hex: "#C41E3A" },
+  { id: "marinho", label: "Azul Marinho", hex: "#1B2A4A" },
+];
+
 const MockupSimulator = () => {
   const [kits, setKits] = useState<any[]>([]);
   const [selectedKit, setSelectedKit] = useState<any>(null);
   const [selectedMockup, setSelectedMockup] = useState(MOCKUPS[0]);
+  const [selectedColor, setSelectedColor] = useState(FABRIC_COLORS[0]);
   const [scale, setScale] = useState(100);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
@@ -36,7 +48,7 @@ const MockupSimulator = () => {
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !selectedKit?.cover_image) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -46,9 +58,25 @@ const MockupSimulator = () => {
     mockupImg.onload = () => {
       canvas.width = mockupImg.width;
       canvas.height = mockupImg.height;
+
+      // Draw the original mockup
       ctx.drawImage(mockupImg, 0, 0);
 
-      if (selectedKit.cover_image) {
+      // Apply color tint overlay if not white
+      if (selectedColor.id !== "branco") {
+        // Use multiply blend to recolor the fabric while preserving texture
+        ctx.globalCompositeOperation = "multiply";
+        ctx.fillStyle = selectedColor.hex;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = "source-over";
+
+        // Restore some brightness/contrast by overlaying the original at low opacity
+        ctx.globalAlpha = 0.15;
+        ctx.drawImage(mockupImg, 0, 0);
+        ctx.globalAlpha = 1;
+      }
+
+      if (selectedKit?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
         designImg.onload = () => {
@@ -57,7 +85,6 @@ const MockupSimulator = () => {
           const baseW = canvas.width * area.w * scaleFactor;
           const baseH = canvas.height * area.h * scaleFactor;
 
-          // Maintain aspect ratio
           const ratio = designImg.width / designImg.height;
           let drawW = baseW;
           let drawH = baseW / ratio;
@@ -77,7 +104,7 @@ const MockupSimulator = () => {
       }
     };
     mockupImg.src = selectedMockup.src;
-  }, [selectedKit, selectedMockup, scale, offsetX, offsetY]);
+  }, [selectedKit, selectedMockup, selectedColor, scale, offsetX, offsetY]);
 
   useEffect(() => {
     drawCanvas();
@@ -87,13 +114,10 @@ const MockupSimulator = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setRendering(true);
-
-    // Re-draw at full quality before export
     await new Promise((resolve) => setTimeout(resolve, 200));
-
     try {
       const link = document.createElement("a");
-      link.download = `mockup-${selectedMockup.id}-${selectedKit?.name || "matriz"}.png`;
+      link.download = `mockup-${selectedMockup.id}-${selectedColor.id}-${selectedKit?.name || "matriz"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Mockup baixado com sucesso!");
@@ -189,6 +213,37 @@ const MockupSimulator = () => {
               </CardContent>
             </Card>
 
+            {/* Color selection */}
+            <Card className="border-border/60">
+              <CardContent className="p-4 space-y-3">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-primary" /> Cor do Produto
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {FABRIC_COLORS.map((color) => (
+                    <button
+                      key={color.id}
+                      onClick={() => setSelectedColor(color)}
+                      title={color.label}
+                      className={`group relative w-9 h-9 rounded-full border-2 transition-all ${
+                        selectedColor.id === color.id
+                          ? "border-primary ring-2 ring-primary/30 scale-110"
+                          : "border-border/50 hover:border-border hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                    >
+                      {selectedColor.id === color.id && (
+                        <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${
+                          ["preto", "marinho", "vermelho"].includes(color.id) ? "text-white" : "text-foreground"
+                        }`}>✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">{selectedColor.label}</p>
+              </CardContent>
+            </Card>
+
             {/* Position controls */}
             {selectedKit && (
               <Card className="border-border/60">
@@ -248,10 +303,7 @@ const MockupSimulator = () => {
                       </div>
                     </div>
                   ) : (
-                    <canvas
-                      ref={canvasRef}
-                      className="w-full h-full object-contain"
-                    />
+                    <canvas ref={canvasRef} className="w-full h-full object-contain" />
                   )}
                 </div>
               </CardContent>
@@ -261,7 +313,9 @@ const MockupSimulator = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{selectedKit.name} × {selectedMockup.label}</p>
-                  <p className="text-xs text-muted-foreground">Ajuste o tamanho e posição antes de baixar</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cor: {selectedColor.label} · Ajuste o tamanho e posição antes de baixar
+                  </p>
                 </div>
                 <Button onClick={handleDownload} disabled={rendering} className="gap-2">
                   <Download className="h-4 w-4" />
