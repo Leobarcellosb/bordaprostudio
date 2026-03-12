@@ -193,7 +193,10 @@ export const AdminSmartUpload = () => {
             newGroups.set(key, {
               id: crypto.randomUUID(),
               baseName,
+              rawFilename: file.name,
               title,
+              generatedTitle: null,
+              titleSource: "filename",
               tags: tags.join(", "),
               categoryId,
               files: [],
@@ -201,6 +204,7 @@ export const AdminSmartUpload = () => {
               autoPreview: false,
               isZip: false,
               status: "pending",
+              generatingTitle: false,
             });
           }
           newGroups.get(key)!.files.push({
