@@ -768,9 +768,9 @@ export async function generateEmbroideryPreview(
 
   try {
     const buffer = await file.arrayBuffer();
-    const data = parser(buffer);
+    const data = suppressLikelyJumpLines(parser(buffer));
 
-    if (data.stitches.length < 5) return null;
+    if (data.stitchCount < 5) return null;
 
     // Quality gate: don't produce previews that look broken
     if (!validatePreviewQuality(data)) {
