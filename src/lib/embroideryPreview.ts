@@ -863,11 +863,13 @@ function renderCommercial(pattern: EmbroideryPattern, size: number): HTMLCanvasE
   const offsetX = padding + (drawArea - pw * scale) / 2;
   const offsetY = padding + (drawArea - ph * scale) / 2;
 
-  // Delicate thread: thinner than technical mode
-  const baseThickness = Math.max(1.2, size / 350);
+  // Fine, delicate thread — resembles real embroidery
+  const baseThickness = Math.max(0.6, Math.min(1.2, size / 600));
 
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   const blocks = buildColorBlocks(pattern, scale, offsetX, offsetY);
 
@@ -876,12 +878,12 @@ function renderCommercial(pattern: EmbroideryPattern, size: number): HTMLCanvasE
     const darkerHex = shadeColor(hex, -15);
     const highlightHex = shadeColor(hex, 50);
 
-    // Subtle shadow layer (very light)
-    drawPaths(ctx, block.paths, darkerHex, baseThickness * 1.15, 0.25);
-    // Main thread color
-    drawPaths(ctx, block.paths, hex, baseThickness, 0.92);
-    // Delicate highlight sheen
-    drawPaths(ctx, block.paths, highlightHex, baseThickness * 0.3, 0.2);
+    // Subtle shadow for depth — very light
+    drawPaths(ctx, block.paths, darkerHex, baseThickness * 1.15, 0.12);
+    // Main thread stroke — slightly transparent for natural overlap blending
+    drawPaths(ctx, block.paths, hex, baseThickness, 0.85);
+    // Fine sheen highlight
+    drawPaths(ctx, block.paths, highlightHex, baseThickness * 0.25, 0.1);
   }
 
   ctx.globalAlpha = 1.0;
