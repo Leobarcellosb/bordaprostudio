@@ -240,8 +240,8 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     const numColors = bytes[pecOffset + 48] + 1; // stored as count-1
     for (let c = 0; c < numColors && c < 64; c++) {
       const colorIdx = bytes[pecOffset + 49 + c];
-      if (colorIdx > 0 && colorIdx < PEC_THREAD_COLORS.length) {
-        threadColors.push(PEC_THREAD_COLORS[colorIdx]);
+      if (colorIdx > 0 && colorIdx < BROTHER_THREAD_COLORS.length) {
+        threadColors.push(BROTHER_THREAD_COLORS[colorIdx]);
       } else {
         threadColors.push(CATALOG_PALETTE[c % CATALOG_PALETTE.length]);
       }
