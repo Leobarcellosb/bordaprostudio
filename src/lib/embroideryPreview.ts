@@ -18,6 +18,7 @@ interface EmbroideryData {
   height: number;
   stitchCount: number;
   colorChanges: number;
+  threadColors?: string[]; // Extracted thread colors from file (if available)
 }
 
 // Flags
