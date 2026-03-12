@@ -1006,7 +1006,7 @@ export async function generateEmbroideryPreview(
       return null;
     }
 
-    const canvas = renderToCanvas(pattern, imageSize);
+    const canvas = renderToCanvas(pattern, { mode: "commercial", size: imageSize });
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png")
     );
