@@ -1,0 +1,1 @@
+ALTER TABLE public.designs ADD COLUMN hoop_size text DEFAULT NULL;

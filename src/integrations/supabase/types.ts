@@ -99,6 +99,7 @@ export type Database = {
           featured_for_daily_inspiration: boolean
           generated_title: string | null
           height_mm: number | null
+          hoop_size: string | null
           id: string
           is_published: boolean | null
           name: string
@@ -117,6 +118,7 @@ export type Database = {
           featured_for_daily_inspiration?: boolean
           generated_title?: string | null
           height_mm?: number | null
+          hoop_size?: string | null
           id?: string
           is_published?: boolean | null
           name: string
@@ -135,6 +137,7 @@ export type Database = {
           featured_for_daily_inspiration?: boolean
           generated_title?: string | null
           height_mm?: number | null
+          hoop_size?: string | null
           id?: string
           is_published?: boolean | null
           name?: string
