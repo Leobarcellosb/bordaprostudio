@@ -23,10 +23,15 @@ interface EmbroideryData {
 
 // Flags
 const NORMAL = 0;
-const MOVE = 1;
+const JUMP = 1;
 const TRIM = 2;
 const COLOR_CHANGE = 4;
 const END = 8;
+const STOP = 16;
+
+function isNonRenderingStitch(flags: number): boolean {
+  return flags === JUMP || flags === TRIM || flags === STOP;
+}
 
 // ── Curated catalog palette — harmonious, high-contrast embroidery thread colors ──
 // Modeled after popular Madeira / Isacord thread ranges
