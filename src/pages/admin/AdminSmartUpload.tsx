@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
 import { db } from "@/lib/db";
 import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
+import { classifyHoopSize } from "@/lib/hoopSize";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { Button } from "@/components/ui/button";
