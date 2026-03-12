@@ -622,6 +622,7 @@ export const AdminSmartUpload = () => {
 
   const pendingCount = groups.filter((g) => g.status === "pending" || g.status === "editing").length;
   const doneCount = groups.filter((g) => g.status === "done").length;
+  const duplicateCount = groups.filter((g) => g.status === "duplicate").length;
   const errorCount = groups.filter((g) => g.status === "error").length;
 
   return (
