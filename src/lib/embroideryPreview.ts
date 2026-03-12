@@ -1010,3 +1010,19 @@ export async function generateEmbroideryPreview(
 export function isPreviewSupported(format: string): boolean {
   return format.toLowerCase().replace(".", "") in FORMAT_PARSERS;
 }
+
+/**
+ * Parse an embroidery file buffer and return the pattern object.
+ * Used by the interactive EmbroideryViewer component.
+ */
+export function parseEmbroideryFile(buffer: ArrayBuffer, format: string): EmbroideryPattern | null {
+  const ext = format.toLowerCase().replace(".", "");
+  const parser = FORMAT_PARSERS[ext];
+  if (!parser) return null;
+  try {
+    return parser(buffer);
+  } catch (err) {
+    console.warn(`Failed to parse ${format}:`, err);
+    return null;
+  }
+}
