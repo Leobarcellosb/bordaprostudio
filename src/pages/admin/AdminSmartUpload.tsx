@@ -38,10 +38,17 @@ function getBaseName(name: string) {
 function cleanTitle(name: string) {
   return name
     .replace(/[-_]+/g, " ")
-    // Remove UUID fragments (8-4-4-4-12 hex pattern or partial hex blocks of 8+ chars)
-    .replace(/\b[0-9a-fA-F]{8}(?:[- ][0-9a-fA-F]{4}){0,3}(?:[- ][0-9a-fA-F]{4,12})?\b/g, " ")
-    // Remove standalone hex-like fragments (8+ hex chars that aren't real words)
-    .replace(/\b[0-9a-fA-F]{8,}\b/g, " ")
+    // Remove full UUIDs (8-4-4-4-12)
+    .replace(/\b[0-9a-fA-F]{8}[- ]?[0-9a-fA-F]{4}[- ]?[0-9a-fA-F]{4}[- ]?[0-9a-fA-F]{4}[- ]?[0-9a-fA-F]{12}\b/g, " ")
+    // Remove hex hashes (6+ hex chars that contain at least one digit AND one letter, so real words aren't removed)
+    .replace(/\b(?=[0-9a-fA-F]*[0-9])(?=[0-9a-fA-F]*[a-fA-F])[0-9a-fA-F]{6,}\b/g, " ")
+    // Remove pure numeric IDs (5+ digits)
+    .replace(/\b\d{5,}\b/g, " ")
+    // Remove common file suffixes like "(1)", "_v2", "_copy"
+    .replace(/\s*\(\d+\)\s*/g, " ")
+    .replace(/\b(v\d+|copy|copia|final|rev\d*)\b/gi, " ")
+    // Remove leading/trailing format hints
+    .replace(/\b(pes|dst|jef|exp|xxx|vp3)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
