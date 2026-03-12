@@ -23,10 +23,15 @@ interface EmbroideryData {
 
 // Flags
 const NORMAL = 0;
-const MOVE = 1;
+const JUMP = 1;
 const TRIM = 2;
 const COLOR_CHANGE = 4;
 const END = 8;
+const STOP = 16;
+
+function isNonRenderingStitch(flags: number): boolean {
+  return flags === JUMP || flags === TRIM || flags === STOP;
+}
 
 // ── Curated catalog palette — harmonious, high-contrast embroidery thread colors ──
 // Modeled after popular Madeira / Isacord thread ranges
@@ -150,7 +155,7 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     const numColors = bytes[pecOffset + 48] + 1; // stored as count-1
     for (let c = 0; c < numColors && c < 64; c++) {
       const colorIdx = bytes[pecOffset + 49 + c];
-      if (colorIdx < PEC_THREAD_COLORS.length) {
+      if (colorIdx > 0 && colorIdx < PEC_THREAD_COLORS.length) {
         threadColors.push(PEC_THREAD_COLORS[colorIdx]);
       } else {
         threadColors.push(CATALOG_PALETTE[c % CATALOG_PALETTE.length]);
@@ -185,21 +190,23 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     }
 
     let dx = 0, dy = 0;
-    let flags = NORMAL;
+    let commandBitsX = 0;
+    let commandBitsY = 0;
 
     if (b1 & 0x80) {
       if (i + 2 >= buffer.byteLength) break;
       dx = ((b1 & 0x0F) << 8) | b2;
       if (dx & 0x800) dx -= 0x1000;
-      if (b1 & 0x10) flags = MOVE;
+      commandBitsX = b1 & 0x30;
       i += 2;
+
       const b3 = bytes[i];
       if (b3 & 0x80) {
         if (i + 1 >= buffer.byteLength) break;
         const b4 = bytes[i + 1];
         dy = ((b3 & 0x0F) << 8) | b4;
         if (dy & 0x800) dy -= 0x1000;
-        if (b3 & 0x10) flags = MOVE;
+        commandBitsY = b3 & 0x30;
         i += 2;
       } else {
         dy = b3;
@@ -209,18 +216,26 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     } else {
       dx = b1;
       if (dx > 63) dx -= 128;
+
       if (b2 & 0x80) {
         if (i + 2 >= buffer.byteLength) break;
         const b3 = bytes[i + 2];
         dy = ((b2 & 0x0F) << 8) | b3;
         if (dy & 0x800) dy -= 0x1000;
-        if (b2 & 0x10) flags = MOVE;
+        commandBitsY = b2 & 0x30;
         i += 3;
       } else {
         dy = b2;
         if (dy > 63) dy -= 128;
         i += 2;
       }
+    }
+
+    let flags = NORMAL;
+    if ((commandBitsX & 0x20) || (commandBitsY & 0x20)) {
+      flags = TRIM;
+    } else if ((commandBitsX & 0x10) || (commandBitsY & 0x10)) {
+      flags = JUMP;
     }
 
     x += dx;
@@ -250,14 +265,14 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     const b0 = bytes[i];
     const b1 = bytes[i + 1];
     const b2 = bytes[i + 2];
+    const command = b2 & 0xC3;
 
-    if (b0 === 0x00 && b1 === 0x00 && (b2 & 0xF3) === 0xF3) {
+    if (b0 === 0x00 && b1 === 0x00 && command === 0xF3) {
       stitches.push({ x, y, flags: END });
       break;
     }
 
     let dx = 0, dy = 0;
-    let flags = NORMAL;
 
     // Decode X using DST bit layout
     if (b0 & 0x01) dx += 1;
@@ -283,14 +298,14 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     if (b2 & 0x20) dy -= 81;
     if (b2 & 0x10) dy += 81;
 
-    // Check flags
-    if (b2 & 0x80) {
-      if (b2 & 0x40) {
-        flags = COLOR_CHANGE;
-        colorChanges++;
-      } else {
-        flags = MOVE;
-      }
+    let flags = NORMAL;
+    if (command === 0xC3) {
+      flags = COLOR_CHANGE;
+      colorChanges++;
+    } else if (command === 0x83) {
+      flags = (dx === 0 && dy === 0) ? TRIM : JUMP;
+    } else if (command === 0x43) {
+      flags = STOP;
     }
 
     x += dx;
@@ -327,7 +342,12 @@ function parseEXP(buffer: ArrayBuffer): EmbroideryData {
       const dy = bytes[i + 1] > 127 ? -(bytes[i + 1] - 256) : -bytes[i + 1];
       x += dx;
       y += dy;
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: JUMP });
+      continue;
+    }
+
+    if (b0 === 0x80 && b1 === 0x02) {
+      stitches.push({ x, y, flags: STOP });
       continue;
     }
 
@@ -356,9 +376,25 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
   const view = new DataView(buffer);
   if (buffer.byteLength < 116) throw new Error("Invalid JEF file");
 
-  const stitchOffset = view.getInt32(24, true);
+  const stitchOffset = view.getInt32(0, true);
   if (stitchOffset <= 0 || stitchOffset >= buffer.byteLength) {
     throw new Error("Invalid JEF stitch offset");
+  }
+
+  const colorCount = Math.max(0, view.getInt32(24, true));
+  const threadColors: string[] = [];
+  const colorTableOffset = 116;
+
+  for (let c = 0; c < colorCount; c++) {
+    const offset = colorTableOffset + c * 4;
+    if (offset + 4 > stitchOffset || offset + 4 > buffer.byteLength) break;
+
+    const colorIndex = view.getInt32(offset, true);
+    if (colorIndex > 0 && colorIndex < PEC_THREAD_COLORS.length) {
+      threadColors.push(PEC_THREAD_COLORS[colorIndex]);
+    } else {
+      threadColors.push(CATALOG_PALETTE[Math.abs(colorIndex) % CATALOG_PALETTE.length]);
+    }
   }
 
   const bytes = new Uint8Array(buffer);
@@ -381,14 +417,23 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
       continue;
     }
 
-    if (b0 === 0x80 && b1 === 0x10) {
+    if (b0 === 0x80 && b1 === 0x04) {
+      stitches.push({ x, y, flags: STOP });
+      continue;
+    }
+
+    if (b0 === 0x80 && (b1 === 0x10 || b1 === 0x20)) {
       i += 2;
       if (i + 1 >= buffer.byteLength) break;
       const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
       const dy = bytes[i + 1] > 127 ? bytes[i + 1] - 256 : bytes[i + 1];
       x += dx;
       y -= dy; // JEF Y is inverted
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: b1 === 0x20 ? TRIM : JUMP });
+      continue;
+    }
+
+    if (b0 === 0x80) {
       continue;
     }
 
@@ -399,7 +444,11 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
     stitches.push({ x, y, flags: NORMAL });
   }
 
-  return buildResult(stitches, colorChanges);
+  const result = buildResult(stitches, colorChanges);
+  if (threadColors.length > 0) {
+    result.threadColors = threadColors;
+  }
+  return result;
 }
 
 // ── XXX Parser (Singer) ─────────────────────────────────────────────────
@@ -443,7 +492,7 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
     if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
       x += dx;
       y += dy;
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: JUMP });
     } else {
       x += dx;
       y += dy;
@@ -483,6 +532,60 @@ function buildResult(stitches: Stitch[], colorChanges: number): EmbroideryData {
     stitchCount,
     colorChanges,
   };
+}
+
+function suppressLikelyJumpLines(data: EmbroideryData): EmbroideryData {
+  const stepDistances: number[] = [];
+  let prevNormal: Stitch | null = null;
+
+  for (const stitch of data.stitches) {
+    if (stitch.flags !== NORMAL) {
+      prevNormal = null;
+      continue;
+    }
+
+    if (prevNormal) {
+      stepDistances.push(Math.hypot(stitch.x - prevNormal.x, stitch.y - prevNormal.y));
+    }
+
+    prevNormal = stitch;
+  }
+
+  if (stepDistances.length < 12) return data;
+
+  const sorted = [...stepDistances].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)] || 0;
+  const p90 = sorted[Math.floor(sorted.length * 0.9)] || median;
+  const diagonal = Math.hypot(data.width, data.height);
+  const jumpThreshold = Math.max(14, median * 5, p90 * 1.8, diagonal * 0.09);
+
+  let previousIndex = -1;
+  let normalCount = 0;
+
+  for (let i = 0; i < data.stitches.length; i++) {
+    const current = data.stitches[i];
+    if (current.flags !== NORMAL) {
+      previousIndex = -1;
+      continue;
+    }
+
+    if (previousIndex >= 0) {
+      const prev = data.stitches[previousIndex];
+      const distance = Math.hypot(current.x - prev.x, current.y - prev.y);
+
+      if (distance > jumpThreshold) {
+        current.flags = JUMP;
+        previousIndex = -1;
+        continue;
+      }
+    }
+
+    normalCount++;
+    previousIndex = i;
+  }
+
+  data.stitchCount = normalCount;
+  return data;
 }
 
 // ── Quality Validation ─────────────────────────────────────────────────
@@ -598,7 +701,7 @@ function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasEle
       continue;
     }
 
-    if (s.flags === MOVE || s.flags === TRIM) {
+    if (isNonRenderingStitch(s.flags)) {
       i++;
       continue;
     }
@@ -665,9 +768,9 @@ export async function generateEmbroideryPreview(
 
   try {
     const buffer = await file.arrayBuffer();
-    const data = parser(buffer);
+    const data = suppressLikelyJumpLines(parser(buffer));
 
-    if (data.stitches.length < 5) return null;
+    if (data.stitchCount < 5) return null;
 
     // Quality gate: don't produce previews that look broken
     if (!validatePreviewQuality(data)) {
