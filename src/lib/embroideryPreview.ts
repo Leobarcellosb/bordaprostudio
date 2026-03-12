@@ -142,13 +142,25 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
   if (magic !== "#PES") throw new Error("Not a PES file");
 
   const pecOffset = view.getUint32(8, true);
-  
-  // PEC section: find the actual stitch data start
-  // The PEC section starts at pecOffset. We need to skip past the PEC header.
-  // The PEC header contains the label (19 bytes), then some color info.
-  // Stitch data begins 532 bytes after pecOffset.
-  const pecStart = pecOffset + 532;
 
+  // Extract PEC thread color list from PEC header
+  // PEC header: offset+48 = number of colors, then color index bytes
+  const threadColors: string[] = [];
+  try {
+    const numColors = bytes[pecOffset + 48] + 1; // stored as count-1
+    for (let c = 0; c < numColors && c < 64; c++) {
+      const colorIdx = bytes[pecOffset + 49 + c];
+      if (colorIdx < PEC_THREAD_COLORS.length) {
+        threadColors.push(PEC_THREAD_COLORS[colorIdx]);
+      } else {
+        threadColors.push(CATALOG_PALETTE[c % CATALOG_PALETTE.length]);
+      }
+    }
+  } catch {
+    // Color extraction failed — will use fallback palette
+  }
+
+  const pecStart = pecOffset + 532;
   if (pecStart >= buffer.byteLength) throw new Error("Invalid PES: PEC data out of bounds");
 
   const stitches: Stitch[] = [];
@@ -216,7 +228,11 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     stitches.push({ x, y, flags });
   }
 
-  return buildResult(stitches, colorChanges);
+  const result = buildResult(stitches, colorChanges);
+  if (threadColors.length > 0) {
+    result.threadColors = threadColors;
+  }
+  return result;
 }
 
 // ── DST Parser (Tajima) ─────────────────────────────────────────────────
