@@ -681,6 +681,7 @@ export const AdminSmartUpload = () => {
               <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                 {pendingCount > 0 && <span>⏳ {pendingCount} pendente{pendingCount !== 1 ? "s" : ""}</span>}
                 {doneCount > 0 && <span className="text-green-600">✓ {doneCount} importado{doneCount !== 1 ? "s" : ""}</span>}
+                {duplicateCount > 0 && <span className="text-amber-600">⊘ {duplicateCount} duplicado{duplicateCount !== 1 ? "s" : ""}</span>}
                 {errorCount > 0 && <span className="text-destructive">✕ {errorCount} erro{errorCount !== 1 ? "s" : ""}</span>}
               </div>
             </div>
