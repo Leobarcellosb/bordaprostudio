@@ -734,12 +734,6 @@ function DesignGroupCard({
               </div>
             </div>
 
-            {/* Raw filename info */}
-            {group.rawFilename && group.titleSource === "ai" && (
-              <p className="text-[10px] text-muted-foreground truncate">
-                Arquivo: {group.rawFilename}
-              </p>
-            )}
 
             {/* File format badges */}
             <div className="flex flex-wrap gap-1.5">
