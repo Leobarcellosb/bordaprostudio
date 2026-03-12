@@ -342,7 +342,12 @@ function parseEXP(buffer: ArrayBuffer): EmbroideryData {
       const dy = bytes[i + 1] > 127 ? -(bytes[i + 1] - 256) : -bytes[i + 1];
       x += dx;
       y += dy;
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: JUMP });
+      continue;
+    }
+
+    if (b0 === 0x80 && b1 === 0x02) {
+      stitches.push({ x, y, flags: STOP });
       continue;
     }
 
