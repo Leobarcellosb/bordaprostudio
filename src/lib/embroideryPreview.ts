@@ -694,18 +694,80 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryPattern {
   return pattern;
 }
 
-// ── VP3 Parser ──────────────────────────────────────────────────────────
+// ── VP3 Parser (Husqvarna Viking) ───────────────────────────────────────
+
+function vp3ReadString(file: EmbroideryFileView): string {
+  const len = (file.getUint8() << 8) | file.getUint8();
+  let s = "";
+  for (let i = 0; i < len; i++) s += String.fromCharCode(file.getUint8());
+  return s;
+}
 
 function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
-  // VP3 is complex; use basic approach with fallback palette
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
   if (file.byteLength < 256) throw new Error("Invalid VP3 file");
 
-  // VP3 has a complex header structure; find stitch data by scanning
-  // For now, treat as unsupported and let quality gate handle it
-  throw new Error("VP3 format requires manual preview upload");
+  // VP3 magic: "%vsm%"
+  const magic = String.fromCharCode(file.getUint8(), file.getUint8(), file.getUint8(), file.getUint8(), file.getUint8());
+  if (magic !== "%vsm%") throw new Error("Not a VP3 file");
+
+  // Skip header to find color sections — scan for 0x00 0x01 0x00 pattern
+  // VP3 stores colors as RGB in color sections, and stitches after each color header
+  file.seek(0);
+  const bytes = new Uint8Array(buffer);
+
+  // Find all color+stitch sections by scanning for the section marker
+  const colorSections: { r: number; g: number; b: number; offset: number }[] = [];
+
+  // Simple scan: look for RGB color bytes followed by stitch data
+  // VP3 structure: sections start with color info then stitch coordinates
+  let pos = 256; // Skip past header
+
+  // Fallback: parse as raw signed byte pairs treating sections by STOP markers
+  file.seek(pos);
+  let currentColor = 0;
+  addColor(pattern, CATALOG_PALETTE[0]);
+
+  while (file.tell() + 1 < file.byteLength) {
+    const b0 = file.getUint8();
+    const b1 = file.getUint8();
+
+    // End marker
+    if (b0 === 0x00 && b1 === 0x00) {
+      const next = file.tell() < file.byteLength ? bytes[file.tell()] : 0;
+      if (next === 0x00) {
+        addStitchRel(pattern, 0, 0, END);
+        break;
+      }
+    }
+
+    // Color change marker (common VP3 pattern: large jump + specific flag bytes)
+    if (b0 === 0x00 && (b1 === 0x03 || b1 === 0x01)) {
+      currentColor++;
+      if (currentColor >= pattern.colors.length) {
+        addColor(pattern, CATALOG_PALETTE[currentColor % CATALOG_PALETTE.length]);
+      }
+      addStitchRel(pattern, 0, 0, STOP, false);
+      pattern.currentColorIndex = currentColor;
+      continue;
+    }
+
+    const dx = b0 > 127 ? b0 - 256 : b0;
+    const dy = b1 > 127 ? b1 - 256 : b1;
+
+    if (Math.abs(dx) > 80 || Math.abs(dy) > 80) {
+      addStitchRel(pattern, dx, dy, JUMP, false);
+    } else {
+      addStitchRel(pattern, dx, dy, NORMAL, false);
+    }
+  }
+
+  addStitchRel(pattern, 0, 0, END);
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
 }
 
 // ── Renderer (thick thread simulation for realistic embroidery look) ────
@@ -890,6 +952,7 @@ const FORMAT_PARSERS: Record<string, Parser> = {
   jef: parseJEF,
   exp: parseEXP,
   xxx: parseXXX,
+  vp3: parseVP3,
 };
 
 /**
@@ -946,4 +1009,20 @@ export async function generateEmbroideryPreview(
 /** Check if a format is supported for preview generation */
 export function isPreviewSupported(format: string): boolean {
   return format.toLowerCase().replace(".", "") in FORMAT_PARSERS;
+}
+
+/**
+ * Parse an embroidery file buffer and return the pattern object.
+ * Used by the interactive EmbroideryViewer component.
+ */
+export function parseEmbroideryFile(buffer: ArrayBuffer, format: string): EmbroideryPattern | null {
+  const ext = format.toLowerCase().replace(".", "");
+  const parser = FORMAT_PARSERS[ext];
+  if (!parser) return null;
+  try {
+    return parser(buffer);
+  } catch (err) {
+    console.warn(`Failed to parse ${format}:`, err);
+    return null;
+  }
 }

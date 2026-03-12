@@ -26,6 +26,7 @@ import Settings from "./pages/Settings";
 import PricingPage from "./pages/PricingPage";
 import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
+import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
             <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
+            <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
             <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
