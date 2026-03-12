@@ -28,16 +28,108 @@ const TRIM = 2;
 const COLOR_CHANGE = 4;
 const END = 8;
 
-// Default thread palette (rich embroidery colors)
-const THREAD_PALETTE = [
-  "#1a1a2e", "#e94560", "#0f3460", "#16213e", "#e23e57",
-  "#00b4d8", "#6a0572", "#ab83a1", "#d4a373", "#588157",
-  "#e07a5f", "#3d405b", "#81b29a", "#f2cc8f", "#264653",
-  "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51", "#606c38",
-  "#283618", "#dda15e", "#bc6c25", "#6b705c", "#a5a58d",
-  "#b5838d", "#ffb4a2", "#6d6875", "#e5989b", "#b5179e",
-  "#7209b7", "#560bad", "#480ca8", "#3a0ca3", "#3f37c9",
-  "#4361ee", "#4895ef", "#4cc9f0", "#f72585", "#7400b8",
+// ── Curated catalog palette — harmonious, high-contrast embroidery thread colors ──
+// Modeled after popular Madeira / Isacord thread ranges
+const CATALOG_PALETTE = [
+  "#1B3A5C", // Navy blue
+  "#C0392B", // Rich red
+  "#27AE60", // Emerald green
+  "#F39C12", // Golden amber
+  "#8E44AD", // Deep purple
+  "#2980B9", // Royal blue
+  "#D35400", // Burnt orange
+  "#16A085", // Teal green
+  "#C2185B", // Raspberry
+  "#5D4037", // Chocolate brown
+  "#1565C0", // Cobalt blue
+  "#E74C3C", // Scarlet
+  "#2E7D32", // Forest green
+  "#F57C00", // Tangerine
+  "#7B1FA2", // Violet
+  "#00838F", // Deep cyan
+  "#AD1457", // Magenta
+  "#33691E", // Olive green
+  "#BF360C", // Rust
+  "#4A148C", // Indigo
+  "#00695C", // Dark teal
+  "#FF6F00", // Warm amber
+  "#1A237E", // Dark navy
+  "#B71C1C", // Deep crimson
+  "#004D40", // Dark emerald
+  "#E65100", // Burnt sienna
+  "#6A1B9A", // Plum
+  "#0277BD", // Azure
+  "#558B2F", // Sage green
+  "#D84315", // Terra cotta
+];
+
+// PEC embedded thread color table (Brother standard, 65 colors, index 1-based)
+const PEC_THREAD_COLORS: string[] = [
+  "#000000", // 0 - placeholder (not used)
+  "#1a0a94", // 1  - Prussian Blue
+  "#0f75bc", // 2  - Blue
+  "#26a948", // 3  - Teal Green
+  "#f0c300", // 4  - Corn Flower Yellow
+  "#e2001b", // 5  - Red
+  "#d4007d", // 6  - Pink / Reddish Brown?
+  "#7a4f2b", // 7  - Brown
+  "#ffffff", // 8  - White
+  "#3d1465", // 9  - Purple
+  "#ffa200", // 10 - Orange / Variegated Blue
+  "#c4a302", // 11 - Old Gold
+  "#27004e", // 12 - Dark Purple
+  "#f5c9b7", // 13 - Beige/Flesh
+  "#ecbcb5", // 14 - Pale Pink
+  "#d99300", // 15 - Dark Gold
+  "#c69b00", // 16 - Mustard
+  "#e20032", // 17 - Red (alt)
+  "#a32700", // 18 - Brown/Brick Red
+  "#000000", // 19 - Black
+  "#001e83", // 20 - Navy Blue
+  "#5aa7d7", // 21 - Sky Blue
+  "#0d5117", // 22 - Dark Green
+  "#6b0f00", // 23 - Dark Brown
+  "#e7c87c", // 24 - Wheat
+  "#c42d51", // 25 - Dark Rose
+  "#f99d9d", // 26 - Light Pink
+  "#c5861e", // 27 - Caramel
+  "#7e5d31", // 28 - Tan Brown
+  "#ff7f00", // 29 - Bright Orange
+  "#ffe600", // 30 - Yellow
+  "#97d700", // 31 - Lime Green
+  "#6fc339", // 32 - Green
+  "#006e38", // 33 - Forest Green
+  "#005c26", // 34 - Dark Green (alt)
+  "#15662e", // 35 - Green (alt)
+  "#ffcc00", // 36 - Amber Yellow
+  "#ffc864", // 37 - Light Orange
+  "#ffc8c8", // 38 - Light Pink (alt)
+  "#690073", // 39 - Grape Purple
+  "#e5e5e5", // 40 - Light Grey
+  "#f2a0b7", // 41 - Pink (alt)
+  "#eca6d4", // 42 - Orchid Pink
+  "#009ddb", // 43 - Bright Blue
+  "#87cefa", // 44 - Light Blue
+  "#aebdcb", // 45 - Slate Blue-ish
+  "#70d0a0", // 46 - Mint Green
+  "#3c9a3e", // 47 - Grass Green
+  "#2ba515", // 48 - Spring Green
+  "#7e9973", // 49 - Olive Drab
+  "#ba7834", // 50 - Bronze
+  "#e0a050", // 51 - Harvest Gold
+  "#cca03e", // 52 - Gold (alt)
+  "#c1c1c1", // 53 - Silver Grey
+  "#d2691e", // 54 - Sienna
+  "#cc0044", // 55 - Deep Rose
+  "#d4ecff", // 56 - Pale Blue
+  "#fffff0", // 57 - Ivory
+  "#d09050", // 58 - Copper
+  "#f0c0a0", // 59 - Salmon Pink
+  "#7b5b3a", // 60 - Medium Brown
+  "#a0522d", // 61 - Saddle Brown
+  "#c0c0c0", // 62 - Gray
+  "#808080", // 63 - Dark Gray
+  "#505050", // 64 - Charcoal
 ];
 
 // ── PES Parser ──────────────────────────────────────────────────────────
