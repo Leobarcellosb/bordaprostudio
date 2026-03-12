@@ -8,15 +8,10 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Download, Image as ImageIcon, Layers, RotateCcw, ZoomIn, Move, Palette } from "lucide-react";
 
-const MOCKUPS = [
-  { id: "baby-towel", label: "Toalha de Bebê", src: "/mockups/baby-towel.jpg", overlayArea: { x: 0.25, y: 0.45, w: 0.5, h: 0.35 } },
-  { id: "dish-towel", label: "Pano de Prato", src: "/mockups/dish-towel.jpg", overlayArea: { x: 0.2, y: 0.3, w: 0.6, h: 0.4 } },
-  { id: "baby-bib", label: "Babador", src: "/mockups/baby-bib.jpg", overlayArea: { x: 0.3, y: 0.4, w: 0.4, h: 0.3 } },
-  { id: "baby-clothes", label: "Roupinha de Bebê", src: "/mockups/baby-clothes.jpg", overlayArea: { x: 0.3, y: 0.3, w: 0.4, h: 0.35 } },
-  { id: "pillow-cover", label: "Capa de Almofada", src: "/mockups/pillow-cover.jpg", overlayArea: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
-];
+const COLOR_IDS = ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"] as const;
+type ColorId = typeof COLOR_IDS[number];
 
-const FABRIC_COLORS = [
+const FABRIC_COLORS: { id: ColorId; label: string; hex: string }[] = [
   { id: "branco", label: "Branco", hex: "#FFFFFF" },
   { id: "preto", label: "Preto", hex: "#1A1A1A" },
   { id: "bege", label: "Bege/Cru", hex: "#E8DCC8" },
@@ -26,6 +21,24 @@ const FABRIC_COLORS = [
   { id: "vermelho", label: "Vermelho", hex: "#C41E3A" },
   { id: "marinho", label: "Azul Marinho", hex: "#1B2A4A" },
 ];
+
+interface MockupProduct {
+  id: string;
+  label: string;
+  overlayArea: { x: number; y: number; w: number; h: number };
+}
+
+const MOCKUPS: MockupProduct[] = [
+  { id: "baby-towel", label: "Toalha de Bebê", overlayArea: { x: 0.25, y: 0.35, w: 0.5, h: 0.4 } },
+  { id: "dish-towel", label: "Pano de Prato", overlayArea: { x: 0.2, y: 0.3, w: 0.6, h: 0.4 } },
+  { id: "baby-bib", label: "Babador", overlayArea: { x: 0.3, y: 0.4, w: 0.4, h: 0.3 } },
+  { id: "baby-clothes", label: "Roupinha de Bebê", overlayArea: { x: 0.3, y: 0.25, w: 0.4, h: 0.4 } },
+  { id: "pillow-cover", label: "Capa de Almofada", overlayArea: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
+];
+
+/** Build asset path for product+color variant */
+const getMockupSrc = (productId: string, colorId: ColorId) =>
+  `/mockups/${productId}-${colorId}.png`;
 
 const MockupSimulator = () => {
   const [kits, setKits] = useState<any[]>([]);
@@ -49,54 +62,21 @@ const MockupSimulator = () => {
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const mockupSrc = getMockupSrc(selectedMockup.id, selectedColor.id);
     const mockupImg = new Image();
     mockupImg.crossOrigin = "anonymous";
     mockupImg.onload = () => {
       canvas.width = mockupImg.width;
       canvas.height = mockupImg.height;
 
-      // --- Layer 1: Base mockup (texture, shadows, lighting) ---
+      // Transparent canvas — draw product PNG directly (already has correct color)
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(mockupImg, 0, 0);
 
-      // --- Layer 2: Fabric color tint (preserves texture/shadows) ---
-      if (selectedColor.id !== "branco") {
-        // Extract luminance from the original mockup to preserve shadows/highlights
-        const offscreen = document.createElement("canvas");
-        offscreen.width = canvas.width;
-        offscreen.height = canvas.height;
-        const offCtx = offscreen.getContext("2d")!;
-
-        // Draw grayscale version of mockup (luminance map)
-        offCtx.drawImage(mockupImg, 0, 0);
-        offCtx.globalCompositeOperation = "saturation";
-        offCtx.fillStyle = "hsl(0, 0%, 50%)";
-        offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
-
-        // On the main canvas: apply color via multiply (tints darks, preserves whites)
-        ctx.globalCompositeOperation = "multiply";
-        ctx.fillStyle = selectedColor.hex;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Restore highlights using the luminance map with screen blend
-        ctx.globalCompositeOperation = "screen";
-        ctx.globalAlpha = 0.08;
-        ctx.drawImage(offscreen, 0, 0);
-        ctx.globalAlpha = 1;
-
-        // Restore texture detail from original via overlay at low opacity
-        ctx.globalCompositeOperation = "overlay";
-        ctx.globalAlpha = 0.25;
-        ctx.drawImage(mockupImg, 0, 0);
-        ctx.globalAlpha = 1;
-
-        ctx.globalCompositeOperation = "source-over";
-      }
-
-      // --- Layer 3: Embroidery design (unaffected by tint) ---
+      // Overlay embroidery design
       if (selectedKit?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
@@ -117,14 +97,20 @@ const MockupSimulator = () => {
           const centerX = canvas.width * area.x + (canvas.width * area.w - drawW) / 2 + offsetX * canvas.width * 0.002;
           const centerY = canvas.height * area.y + (canvas.height * area.h - drawH) / 2 + offsetY * canvas.height * 0.002;
 
-          ctx.globalAlpha = 0.88;
+          ctx.globalAlpha = 0.9;
           ctx.drawImage(designImg, centerX, centerY, drawW, drawH);
           ctx.globalAlpha = 1;
         };
         designImg.src = selectedKit.cover_image;
       }
     };
-    mockupImg.src = selectedMockup.src;
+    mockupImg.onerror = () => {
+      // Fallback: clear canvas on missing asset
+      canvas.width = 1024;
+      canvas.height = 1024;
+      ctx.clearRect(0, 0, 1024, 1024);
+    };
+    mockupImg.src = mockupSrc;
   }, [selectedKit, selectedMockup, selectedColor, scale, offsetX, offsetY]);
 
   useEffect(() => {
@@ -226,7 +212,11 @@ const MockupSimulator = () => {
                           : "border-border/40 hover:border-border hover:bg-muted/30"
                       }`}
                     >
-                      <img src={mockup.src} alt={mockup.label} className="w-12 h-12 rounded-md object-cover" />
+                      <img
+                        src={getMockupSrc(mockup.id, "branco")}
+                        alt={mockup.label}
+                        className="w-12 h-12 rounded-md object-cover bg-muted/50"
+                      />
                       <span className="text-sm font-medium">{mockup.label}</span>
                     </button>
                   ))}
@@ -277,7 +267,6 @@ const MockupSimulator = () => {
                       <RotateCcw className="h-3 w-3" /> Reset
                     </Button>
                   </div>
-
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
@@ -312,7 +301,13 @@ const MockupSimulator = () => {
           <div className="lg:col-span-2 space-y-4">
             <Card className="border-border/60 overflow-hidden">
               <CardContent className="p-0">
-                <div className="aspect-square bg-muted/30 flex items-center justify-center relative">
+                <div
+                  className="aspect-square flex items-center justify-center relative"
+                  style={{
+                    backgroundImage: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)",
+                    backgroundSize: "20px 20px",
+                  }}
+                >
                   {!selectedKit ? (
                     <div className="text-center space-y-3 p-8">
                       <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
