@@ -229,6 +229,8 @@ export const AdminSmartUpload = () => {
               isZip: false,
               status: "pending",
               generatingTitle: false,
+              pipelineLog: [],
+              importResult: null,
             });
           }
           newGroups.get(key)!.files.push({
