@@ -602,7 +602,7 @@ export const AdminSmartUpload = () => {
         const result: ImportResult = { previewStatus, designRecord, filesUploaded, filesSkipped };
 
         if (filesUploaded === 0 && filesSkipped > 0 && !isNewDesign) {
-          updateGroup(group.id, { status: "duplicate", error: "Design já existente, arquivos duplicados ignorados", importResult: result });
+          updateGroup(group.id, { status: "duplicate", error: "Design existente encontrado. Todos os arquivos são idênticos (mesmo hash), duplicados ignorados.", importResult: result });
           skippedCount++;
         } else {
           updateGroup(group.id, { status: "done", importResult: result });
