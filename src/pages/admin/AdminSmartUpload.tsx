@@ -22,7 +22,11 @@ import {
   Trash2,
   Sparkles,
   FileUp,
+  ChevronDown,
+  AlertTriangle,
+  Copy,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx", "vp3"];
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
@@ -71,6 +75,20 @@ function suggestCategory(name: string, categories: any[]): string | null {
   return null;
 }
 
+interface PipelineStep {
+  step: string;
+  detail?: string;
+  timestamp: Date;
+  level: "info" | "success" | "warn" | "error";
+}
+
+interface ImportResult {
+  previewStatus: "generated" | "failed" | "skipped" | null;
+  designRecord: "created" | "existing" | null;
+  filesUploaded: number;
+  filesSkipped: number;
+}
+
 interface DesignGroup {
   id: string;
   baseName: string;
@@ -84,10 +102,12 @@ interface DesignGroup {
   previewFile: { name: string; blob: Blob } | null;
   autoPreview: boolean;
   isZip: boolean;
-  status: "pending" | "editing" | "uploading" | "done" | "error";
+  status: "pending" | "editing" | "uploading" | "done" | "duplicate" | "error";
   error?: string;
   metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
   generatingTitle: boolean;
+  pipelineLog: PipelineStep[];
+  importResult: ImportResult | null;
 }
 
 export const AdminSmartUpload = () => {
@@ -157,6 +177,8 @@ export const AdminSmartUpload = () => {
                 isZip: false,
                 status: "pending",
                 generatingTitle: false,
+                pipelineLog: [],
+                importResult: null,
               });
             } else {
               const groupId = crypto.randomUUID();
@@ -175,6 +197,8 @@ export const AdminSmartUpload = () => {
                 isZip: true,
                 status: "pending",
                 generatingTitle: false,
+                pipelineLog: [],
+                importResult: null,
               });
             }
           } catch {
@@ -205,6 +229,8 @@ export const AdminSmartUpload = () => {
               isZip: false,
               status: "pending",
               generatingTitle: false,
+              pipelineLog: [],
+              importResult: null,
             });
           }
           newGroups.get(key)!.files.push({
@@ -372,6 +398,17 @@ export const AdminSmartUpload = () => {
     return null;
   };
 
+  const addPipelineStep = (groupId: string, step: string, level: PipelineStep["level"] = "info", detail?: string) => {
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupId
+          ? { ...g, pipelineLog: [...g.pipelineLog, { step, detail, timestamp: new Date(), level }] }
+          : g
+      )
+    );
+    console.log(`[UPLOAD] [${groupId}] ${step}`, detail ?? "");
+  };
+
   const importAll = async () => {
     const pending = groups.filter((g) => g.status === "pending" || g.status === "editing");
     if (pending.length === 0) return;
@@ -383,18 +420,20 @@ export const AdminSmartUpload = () => {
     let skippedCount = 0;
 
     for (const group of pending) {
-      updateGroup(group.id, { status: "uploading" });
-      const log = (step: string, detail?: any) => console.log(`[UPLOAD] [${group.title}] ${step}`, detail ?? "");
+      updateGroup(group.id, { status: "uploading", pipelineLog: [], importResult: null });
+      const gid = group.id;
+      const plog = (step: string, level: PipelineStep["level"] = "info", detail?: string) => addPipelineStep(gid, step, level, detail);
 
       try {
         if (completed > 0) await delay(2000);
 
-        log("UPLOAD_START", { files: group.files.length, hasPreview: !!group.previewFile, rawFilename: group.rawFilename });
+        plog("UPLOAD_START", "info", `${group.files.length} arquivo(s), preview: ${group.previewFile ? "sim" : "não"}`);
 
         // Step 1: Upload preview image if present
         let previewUrl: string | null = null;
+        let previewStatus: ImportResult["previewStatus"] = null;
         if (group.previewFile) {
-          log("PREVIEW_UPLOAD_START");
+          plog("PREVIEW_UPLOAD_START", "info");
           const ext = getExtension(group.previewFile.name);
           const path = `smart/${crypto.randomUUID()}.${ext}`;
           const uploadResult = await uploadWithRetry(
@@ -405,15 +444,20 @@ export const AdminSmartUpload = () => {
           if (uploadResult) {
             const { data } = supabase.storage.from("design-covers").getPublicUrl(uploadResult.path);
             previewUrl = data.publicUrl;
-            log("PREVIEW_UPLOAD_COMPLETE", { url: previewUrl });
+            previewStatus = "generated";
+            plog("PREVIEW_UPLOAD_COMPLETE", "success");
           } else {
-            log("PREVIEW_UPLOAD_FAILED", "Storage upload returned null");
+            previewStatus = "failed";
+            plog("PREVIEW_UPLOAD_FAILED", "warn", "Storage upload retornou null");
           }
           await delay(1000);
+        } else {
+          previewStatus = "skipped";
+          plog("PREVIEW_SKIPPED", "warn", "Nenhuma imagem de preview disponível");
         }
 
         // Step 2: Find or create design
-        log("DB_LOOKUP_START", { title: group.title });
+        plog("DB_LOOKUP_START", "info", group.title);
         const normalizedTitle = group.title.trim().toLowerCase();
         const { data: existingDesigns, error: lookupError } = await db
           .from("designs")
@@ -421,7 +465,7 @@ export const AdminSmartUpload = () => {
           .ilike("name", normalizedTitle);
 
         if (lookupError) {
-          log("DB_LOOKUP_ERROR", lookupError);
+          plog("DB_LOOKUP_ERROR", "error", lookupError.message);
           throw new Error(`Erro ao buscar designs: ${lookupError.message}`);
         }
 
@@ -429,19 +473,21 @@ export const AdminSmartUpload = () => {
 
         let designId: string;
         let isNewDesign = false;
+        let designRecord: ImportResult["designRecord"] = null;
         const existingDesign = existingDesigns?.find(
           (d: any) => d.name.trim().toLowerCase() === normalizedTitle
         );
 
         if (existingDesign) {
           designId = existingDesign.id;
-          log("DB_DESIGN_EXISTS", { designId, existingName: existingDesign.name });
+          designRecord = "existing";
+          plog("DB_DESIGN_EXISTS", "warn", `ID: ${designId}`);
           if (previewUrl) {
             await db.from("designs").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
             await delay(500);
           }
         } else {
-          log("DB_INSERT_START");
+          plog("DB_INSERT_START", "info");
           const meta = group.metadata;
           const { data: designData, error: designError } = await db
             .from("designs")
@@ -464,12 +510,13 @@ export const AdminSmartUpload = () => {
             .single();
 
           if (designError) {
-            log("DB_INSERT_ERROR", designError);
+            plog("DB_INSERT_ERROR", "error", designError.message);
             throw new Error(`Erro ao criar design: ${designError.message}`);
           }
           designId = designData.id;
           isNewDesign = true;
-          log("DB_INSERT_SUCCESS", { designId });
+          designRecord = "created";
+          plog("DB_INSERT_SUCCESS", "success", `ID: ${designId}`);
           await delay(1000);
         }
 
@@ -482,7 +529,7 @@ export const AdminSmartUpload = () => {
           const fileFormat = file.format.toUpperCase();
 
           if (fileFormat !== "ZIP" && !EMBROIDERY_EXTENSIONS.includes(fileFormat.toLowerCase())) {
-            log("FILE_SKIP_UNSUPPORTED", { fileName: file.name, format: fileFormat });
+            plog("FILE_SKIP_UNSUPPORTED", "warn", `${file.name} (${fileFormat})`);
             continue;
           }
 
@@ -495,14 +542,14 @@ export const AdminSmartUpload = () => {
             .maybeSingle();
 
           if (existingFile) {
-            log("FILE_SKIP_DUPLICATE", { fileName: file.name, format: fileFormat, existingId: existingFile.id });
+            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} (${fileFormat})`);
             filesSkipped++;
             continue;
           }
 
           await delay(1000);
 
-          log("FILE_UPLOAD_START", { fileName: file.name, format: fileFormat });
+          plog("FILE_UPLOAD_START", "info", `${file.name} (${fileFormat})`);
           const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
@@ -510,13 +557,13 @@ export const AdminSmartUpload = () => {
           const uploadResult = await uploadWithRetry(bucket, filePath, file.blob);
 
           if (!uploadResult) {
-            log("FILE_UPLOAD_FAILED", { fileName: file.name });
+            plog("FILE_UPLOAD_FAILED", "error", file.name);
             updateGroup(group.id, { status: "error", error: `Falha ao enviar arquivo: ${file.name}` });
             failCount++;
             continue;
           }
 
-          log("FILE_UPLOAD_COMPLETE", { path: uploadResult.path });
+          plog("FILE_UPLOAD_COMPLETE", "success", file.name);
           await delay(1000);
 
           // Insert record
@@ -529,27 +576,28 @@ export const AdminSmartUpload = () => {
           });
 
           if (fileRecordError) {
-            log("FILE_RECORD_ERROR", { fileName: file.name, error: fileRecordError });
+            plog("FILE_RECORD_ERROR", "error", `${file.name}: ${fileRecordError.message}`);
             continue;
           }
 
-          log("FILE_RECORD_SUCCESS", { fileName: file.name, format: fileFormat });
+          plog("FILE_RECORD_SUCCESS", "success", `${file.name} (${fileFormat})`);
           filesUploaded++;
           await delay(500);
         }
 
-        log("UPLOAD_COMPLETE", { designId, isNewDesign, filesUploaded, filesSkipped });
+        plog("UPLOAD_COMPLETE", "success", `Novos: ${filesUploaded}, Ignorados: ${filesSkipped}`);
+
+        const result: ImportResult = { previewStatus, designRecord, filesUploaded, filesSkipped };
 
         if (filesUploaded === 0 && filesSkipped > 0 && !isNewDesign) {
-          // All files were duplicates on an existing design — not really a success
-          updateGroup(group.id, { status: "done", error: "Design já existente, arquivos duplicados ignorados" });
+          updateGroup(group.id, { status: "duplicate", error: "Design já existente, arquivos duplicados ignorados", importResult: result });
           skippedCount++;
         } else {
-          updateGroup(group.id, { status: "done" });
+          updateGroup(group.id, { status: "done", importResult: result });
           successCount++;
         }
       } catch (err: any) {
-        log("PIPELINE_ERROR", err.message);
+        plog("PIPELINE_ERROR", "error", err.message);
         console.error(`Import error for ${group.baseName}:`, err);
         updateGroup(group.id, { status: "error", error: err.message });
         failCount++;
@@ -574,6 +622,7 @@ export const AdminSmartUpload = () => {
 
   const pendingCount = groups.filter((g) => g.status === "pending" || g.status === "editing").length;
   const doneCount = groups.filter((g) => g.status === "done").length;
+  const duplicateCount = groups.filter((g) => g.status === "duplicate").length;
   const errorCount = groups.filter((g) => g.status === "error").length;
 
   return (
@@ -632,6 +681,7 @@ export const AdminSmartUpload = () => {
               <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                 {pendingCount > 0 && <span>⏳ {pendingCount} pendente{pendingCount !== 1 ? "s" : ""}</span>}
                 {doneCount > 0 && <span className="text-green-600">✓ {doneCount} importado{doneCount !== 1 ? "s" : ""}</span>}
+                {duplicateCount > 0 && <span className="text-amber-600">⊘ {duplicateCount} duplicado{duplicateCount !== 1 ? "s" : ""}</span>}
                 {errorCount > 0 && <span className="text-destructive">✕ {errorCount} erro{errorCount !== 1 ? "s" : ""}</span>}
               </div>
             </div>
@@ -691,21 +741,25 @@ function DesignGroupCard({
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
 
-  const isFinished = group.status === "done" || group.status === "error" || group.status === "uploading";
+  const isFinished = group.status === "done" || group.status === "duplicate" || group.status === "error" || group.status === "uploading";
+
+  const statusColor =
+    group.status === "done"
+      ? "border-green-500/40 bg-green-500/5"
+      : group.status === "duplicate"
+      ? "border-amber-500/40 bg-amber-500/5"
+      : group.status === "error"
+      ? "border-destructive/40 bg-destructive/5"
+      : group.status === "uploading"
+      ? "border-primary/40 bg-primary/5"
+      : "";
+
+  const r = group.importResult;
 
   return (
-    <Card
-      className={`border-border/60 overflow-hidden transition-all ${
-        group.status === "done"
-          ? "border-green-500/40 bg-green-500/5"
-          : group.status === "error"
-          ? "border-destructive/40 bg-destructive/5"
-          : group.status === "uploading"
-          ? "border-primary/40 bg-primary/5"
-          : ""
-      }`}
-    >
+    <Card className={`border-border/60 overflow-hidden transition-all ${statusColor}`}>
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Preview thumbnail */}
@@ -751,6 +805,11 @@ function DesignGroupCard({
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                 )}
+                {group.status === "duplicate" && (
+                  <div className="p-1 rounded-full bg-amber-500 text-white">
+                    <Copy className="h-3.5 w-3.5" />
+                  </div>
+                )}
                 {group.status === "error" && (
                   <div className="p-1 rounded-full bg-destructive text-destructive-foreground">
                     <XCircle className="h-3.5 w-3.5" />
@@ -763,27 +822,16 @@ function DesignGroupCard({
                 )}
                 {!isFinished && (
                   <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setEditing(!editing)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(!editing)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onRemove(group.id)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(group.id)}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </>
                 )}
               </div>
             </div>
-
 
             {/* File format badges */}
             <div className="flex flex-wrap gap-1.5">
@@ -815,18 +863,13 @@ function DesignGroupCard({
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
-                  <Select
-                    value={group.categoryId}
-                    onValueChange={(v) => onUpdate(group.id, { categoryId: v })}
-                  >
+                  <Select value={group.categoryId} onValueChange={(v) => onUpdate(group.id, { categoryId: v })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Auto-detectar ou selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">
-                          {c.name}
-                        </SelectItem>
+                        <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -867,22 +910,74 @@ function DesignGroupCard({
                   </Badge>
                 )}
                 {group.tags &&
-                  group.tags
-                    .split(",")
-                    .slice(0, 4)
-                    .map((tag) => (
-                      <Badge key={tag.trim()} variant="outline" className="text-[9px] text-muted-foreground">
-                        {tag.trim()}
-                      </Badge>
-                    ))}
+                  group.tags.split(",").slice(0, 4).map((tag) => (
+                    <Badge key={tag.trim()} variant="outline" className="text-[9px] text-muted-foreground">
+                      {tag.trim()}
+                    </Badge>
+                  ))}
               </div>
             )}
 
+            {/* Status messages */}
             {group.status === "error" && (
               <p className="text-xs text-destructive">{group.error}</p>
             )}
             {group.status === "done" && (
-              <p className="text-xs text-green-600 font-medium">✓ Importado como rascunho</p>
+              <p className="text-xs text-green-600 font-medium">✓ Importado com sucesso</p>
+            )}
+            {group.status === "duplicate" && (
+              <p className="text-xs text-amber-600 font-medium">⊘ Duplicado — {group.error}</p>
+            )}
+
+            {/* Import result summary */}
+            {r && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+                <span>
+                  Preview:{" "}
+                  <span className={r.previewStatus === "generated" ? "text-green-600" : r.previewStatus === "failed" ? "text-destructive" : "text-amber-600"}>
+                    {r.previewStatus === "generated" ? "gerado" : r.previewStatus === "failed" ? "falhou" : "não gerado"}
+                  </span>
+                </span>
+                <span>
+                  Design:{" "}
+                  <span className={r.designRecord === "created" ? "text-green-600" : "text-amber-600"}>
+                    {r.designRecord === "created" ? "criado" : "existente"}
+                  </span>
+                </span>
+                <span>Enviados: <strong>{r.filesUploaded}</strong></span>
+                {r.filesSkipped > 0 && <span>Ignorados: <strong>{r.filesSkipped}</strong></span>}
+              </div>
+            )}
+
+            {/* Collapsible pipeline log */}
+            {group.pipelineLog.length > 0 && (
+              <Collapsible open={logOpen} onOpenChange={setLogOpen}>
+                <CollapsibleTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1">
+                  <ChevronDown className={`h-3 w-3 transition-transform ${logOpen ? "rotate-180" : ""}`} />
+                  Pipeline ({group.pipelineLog.length} etapas)
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 rounded-md bg-muted/50 border border-border/40 p-2 space-y-0.5 max-h-48 overflow-y-auto">
+                    {group.pipelineLog.map((entry, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[10px] font-mono leading-relaxed">
+                        <span className="text-muted-foreground/60 shrink-0">
+                          {entry.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </span>
+                        <span className={`shrink-0 ${
+                          entry.level === "success" ? "text-green-600" :
+                          entry.level === "error" ? "text-destructive" :
+                          entry.level === "warn" ? "text-amber-600" :
+                          "text-muted-foreground"
+                        }`}>
+                          {entry.level === "success" ? "✓" : entry.level === "error" ? "✕" : entry.level === "warn" ? "⚠" : "→"}
+                        </span>
+                        <span className="text-foreground font-medium shrink-0">{entry.step}</span>
+                        {entry.detail && <span className="text-muted-foreground truncate">{entry.detail}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
         </div>
