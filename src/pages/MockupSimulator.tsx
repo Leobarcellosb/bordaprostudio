@@ -59,24 +59,44 @@ const MockupSimulator = () => {
       canvas.width = mockupImg.width;
       canvas.height = mockupImg.height;
 
-      // Draw the original mockup
+      // --- Layer 1: Base mockup (texture, shadows, lighting) ---
       ctx.drawImage(mockupImg, 0, 0);
 
-      // Apply color tint overlay if not white
+      // --- Layer 2: Fabric color tint (preserves texture/shadows) ---
       if (selectedColor.id !== "branco") {
-        // Use multiply blend to recolor the fabric while preserving texture
+        // Extract luminance from the original mockup to preserve shadows/highlights
+        const offscreen = document.createElement("canvas");
+        offscreen.width = canvas.width;
+        offscreen.height = canvas.height;
+        const offCtx = offscreen.getContext("2d")!;
+
+        // Draw grayscale version of mockup (luminance map)
+        offCtx.drawImage(mockupImg, 0, 0);
+        offCtx.globalCompositeOperation = "saturation";
+        offCtx.fillStyle = "hsl(0, 0%, 50%)";
+        offCtx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+        // On the main canvas: apply color via multiply (tints darks, preserves whites)
         ctx.globalCompositeOperation = "multiply";
         ctx.fillStyle = selectedColor.hex;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.globalCompositeOperation = "source-over";
 
-        // Restore some brightness/contrast by overlaying the original at low opacity
-        ctx.globalAlpha = 0.15;
+        // Restore highlights using the luminance map with screen blend
+        ctx.globalCompositeOperation = "screen";
+        ctx.globalAlpha = 0.08;
+        ctx.drawImage(offscreen, 0, 0);
+        ctx.globalAlpha = 1;
+
+        // Restore texture detail from original via overlay at low opacity
+        ctx.globalCompositeOperation = "overlay";
+        ctx.globalAlpha = 0.25;
         ctx.drawImage(mockupImg, 0, 0);
         ctx.globalAlpha = 1;
+
+        ctx.globalCompositeOperation = "source-over";
       }
 
-      if (selectedKit?.cover_image) {
+      // --- Layer 3: Embroidery design (unaffected by tint) ---
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
         designImg.onload = () => {
