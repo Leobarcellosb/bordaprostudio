@@ -265,14 +265,14 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     const b0 = bytes[i];
     const b1 = bytes[i + 1];
     const b2 = bytes[i + 2];
+    const command = b2 & 0xC3;
 
-    if (b0 === 0x00 && b1 === 0x00 && (b2 & 0xF3) === 0xF3) {
+    if (b0 === 0x00 && b1 === 0x00 && command === 0xF3) {
       stitches.push({ x, y, flags: END });
       break;
     }
 
     let dx = 0, dy = 0;
-    let flags = NORMAL;
 
     // Decode X using DST bit layout
     if (b0 & 0x01) dx += 1;
@@ -298,14 +298,14 @@ function parseDST(buffer: ArrayBuffer): EmbroideryData {
     if (b2 & 0x20) dy -= 81;
     if (b2 & 0x10) dy += 81;
 
-    // Check flags
-    if (b2 & 0x80) {
-      if (b2 & 0x40) {
-        flags = COLOR_CHANGE;
-        colorChanges++;
-      } else {
-        flags = MOVE;
-      }
+    let flags = NORMAL;
+    if (command === 0xC3) {
+      flags = COLOR_CHANGE;
+      colorChanges++;
+    } else if (command === 0x83) {
+      flags = (dx === 0 && dy === 0) ? TRIM : JUMP;
+    } else if (command === 0x43) {
+      flags = STOP;
     }
 
     x += dx;
