@@ -163,7 +163,10 @@ export const AdminSmartUpload = () => {
               newGroups.set(groupId, {
                 id: groupId,
                 baseName,
+                rawFilename: file.name,
                 title,
+                generatedTitle: null,
+                titleSource: "filename",
                 tags: tags.join(", "),
                 categoryId,
                 files: [{ name: file.name, blob: file, format: "ZIP" }],
@@ -171,6 +174,7 @@ export const AdminSmartUpload = () => {
                 autoPreview: false,
                 isZip: true,
                 status: "pending",
+                generatingTitle: false,
               });
             }
           } catch {
