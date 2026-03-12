@@ -387,6 +387,8 @@ export const AdminSmartUpload = () => {
             .from("designs")
             .insert({
               name: group.title,
+              raw_filename: group.rawFilename,
+              generated_title: group.generatedTitle,
               cover_image: previewUrl,
               category_id: group.categoryId || null,
               tags_text: group.tags,
