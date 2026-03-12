@@ -741,21 +741,25 @@ function DesignGroupCard({
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
 
-  const isFinished = group.status === "done" || group.status === "error" || group.status === "uploading";
+  const isFinished = group.status === "done" || group.status === "duplicate" || group.status === "error" || group.status === "uploading";
+
+  const statusColor =
+    group.status === "done"
+      ? "border-green-500/40 bg-green-500/5"
+      : group.status === "duplicate"
+      ? "border-amber-500/40 bg-amber-500/5"
+      : group.status === "error"
+      ? "border-destructive/40 bg-destructive/5"
+      : group.status === "uploading"
+      ? "border-primary/40 bg-primary/5"
+      : "";
+
+  const r = group.importResult;
 
   return (
-    <Card
-      className={`border-border/60 overflow-hidden transition-all ${
-        group.status === "done"
-          ? "border-green-500/40 bg-green-500/5"
-          : group.status === "error"
-          ? "border-destructive/40 bg-destructive/5"
-          : group.status === "uploading"
-          ? "border-primary/40 bg-primary/5"
-          : ""
-      }`}
-    >
+    <Card className={`border-border/60 overflow-hidden transition-all ${statusColor}`}>
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Preview thumbnail */}
@@ -801,6 +805,11 @@ function DesignGroupCard({
                     <CheckCircle2 className="h-3.5 w-3.5" />
                   </div>
                 )}
+                {group.status === "duplicate" && (
+                  <div className="p-1 rounded-full bg-amber-500 text-white">
+                    <Copy className="h-3.5 w-3.5" />
+                  </div>
+                )}
                 {group.status === "error" && (
                   <div className="p-1 rounded-full bg-destructive text-destructive-foreground">
                     <XCircle className="h-3.5 w-3.5" />
@@ -813,27 +822,16 @@ function DesignGroupCard({
                 )}
                 {!isFinished && (
                   <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setEditing(!editing)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(!editing)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => onRemove(group.id)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onRemove(group.id)}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </>
                 )}
               </div>
             </div>
-
 
             {/* File format badges */}
             <div className="flex flex-wrap gap-1.5">
@@ -865,18 +863,13 @@ function DesignGroupCard({
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
-                  <Select
-                    value={group.categoryId}
-                    onValueChange={(v) => onUpdate(group.id, { categoryId: v })}
-                  >
+                  <Select value={group.categoryId} onValueChange={(v) => onUpdate(group.id, { categoryId: v })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Auto-detectar ou selecione" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">
-                          {c.name}
-                        </SelectItem>
+                        <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -917,22 +910,74 @@ function DesignGroupCard({
                   </Badge>
                 )}
                 {group.tags &&
-                  group.tags
-                    .split(",")
-                    .slice(0, 4)
-                    .map((tag) => (
-                      <Badge key={tag.trim()} variant="outline" className="text-[9px] text-muted-foreground">
-                        {tag.trim()}
-                      </Badge>
-                    ))}
+                  group.tags.split(",").slice(0, 4).map((tag) => (
+                    <Badge key={tag.trim()} variant="outline" className="text-[9px] text-muted-foreground">
+                      {tag.trim()}
+                    </Badge>
+                  ))}
               </div>
             )}
 
+            {/* Status messages */}
             {group.status === "error" && (
               <p className="text-xs text-destructive">{group.error}</p>
             )}
             {group.status === "done" && (
-              <p className="text-xs text-green-600 font-medium">✓ Importado como rascunho</p>
+              <p className="text-xs text-green-600 font-medium">✓ Importado com sucesso</p>
+            )}
+            {group.status === "duplicate" && (
+              <p className="text-xs text-amber-600 font-medium">⊘ Duplicado — {group.error}</p>
+            )}
+
+            {/* Import result summary */}
+            {r && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+                <span>
+                  Preview:{" "}
+                  <span className={r.previewStatus === "generated" ? "text-green-600" : r.previewStatus === "failed" ? "text-destructive" : "text-amber-600"}>
+                    {r.previewStatus === "generated" ? "gerado" : r.previewStatus === "failed" ? "falhou" : "não gerado"}
+                  </span>
+                </span>
+                <span>
+                  Design:{" "}
+                  <span className={r.designRecord === "created" ? "text-green-600" : "text-amber-600"}>
+                    {r.designRecord === "created" ? "criado" : "existente"}
+                  </span>
+                </span>
+                <span>Enviados: <strong>{r.filesUploaded}</strong></span>
+                {r.filesSkipped > 0 && <span>Ignorados: <strong>{r.filesSkipped}</strong></span>}
+              </div>
+            )}
+
+            {/* Collapsible pipeline log */}
+            {group.pipelineLog.length > 0 && (
+              <Collapsible open={logOpen} onOpenChange={setLogOpen}>
+                <CollapsibleTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1">
+                  <ChevronDown className={`h-3 w-3 transition-transform ${logOpen ? "rotate-180" : ""}`} />
+                  Pipeline ({group.pipelineLog.length} etapas)
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 rounded-md bg-muted/50 border border-border/40 p-2 space-y-0.5 max-h-48 overflow-y-auto">
+                    {group.pipelineLog.map((entry, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[10px] font-mono leading-relaxed">
+                        <span className="text-muted-foreground/60 shrink-0">
+                          {entry.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </span>
+                        <span className={`shrink-0 ${
+                          entry.level === "success" ? "text-green-600" :
+                          entry.level === "error" ? "text-destructive" :
+                          entry.level === "warn" ? "text-amber-600" :
+                          "text-muted-foreground"
+                        }`}>
+                          {entry.level === "success" ? "✓" : entry.level === "error" ? "✕" : entry.level === "warn" ? "⚠" : "→"}
+                        </span>
+                        <span className="text-foreground font-medium shrink-0">{entry.step}</span>
+                        {entry.detail && <span className="text-muted-foreground truncate">{entry.detail}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
         </div>
