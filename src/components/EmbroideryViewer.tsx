@@ -108,10 +108,23 @@ function drawPattern(
   zoom: number,
   panX: number,
   panY: number,
+  mode: "commercial" | "technical" = "technical",
 ) {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  if (mode === "technical") {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  } else {
+    // Checkerboard to visualize transparency
+    const cSize = 12;
+    for (let y = 0; y < canvasHeight; y += cSize) {
+      for (let x = 0; x < canvasWidth; x += cSize) {
+        ctx.fillStyle = ((x / cSize + y / cSize) % 2 === 0) ? "#f0f0f0" : "#e0e0e0";
+        ctx.fillRect(x, y, cSize, cSize);
+      }
+    }
+  }
 
   if (blocks.length === 0) return;
 
@@ -131,9 +144,6 @@ function drawPattern(
   const offsetX = cx - pcx * scale;
   const offsetY = cy - pcy * scale;
 
-  // Thread thickness scales with zoom
-  const baseThickness = Math.max(1.5, (Math.min(canvasWidth, canvasHeight) / 250) * zoom);
-
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
@@ -152,10 +162,22 @@ function drawPattern(
     }
   };
 
-  for (const block of blocks) {
-    drawPaths(block.paths, block.darkerHex, baseThickness * 1.3, 0.45);
-    drawPaths(block.paths, block.hex, baseThickness, 1.0);
-    drawPaths(block.paths, block.highlightHex, baseThickness * 0.4, 0.3);
+  if (mode === "commercial") {
+    // Delicate, elegant rendering
+    const baseThickness = Math.max(1.0, (Math.min(canvasWidth, canvasHeight) / 380) * zoom);
+    for (const block of blocks) {
+      drawPaths(block.paths, block.darkerHex, baseThickness * 1.1, 0.2);
+      drawPaths(block.paths, block.hex, baseThickness, 0.9);
+      drawPaths(block.paths, block.highlightHex, baseThickness * 0.3, 0.15);
+    }
+  } else {
+    // Technical: thick, full opacity for stitch analysis
+    const baseThickness = Math.max(1.5, (Math.min(canvasWidth, canvasHeight) / 250) * zoom);
+    for (const block of blocks) {
+      drawPaths(block.paths, block.darkerHex, baseThickness * 1.3, 0.45);
+      drawPaths(block.paths, block.hex, baseThickness, 1.0);
+      drawPaths(block.paths, block.highlightHex, baseThickness * 0.4, 0.3);
+    }
   }
 
   ctx.globalAlpha = 1.0;
@@ -166,9 +188,10 @@ function drawPattern(
 interface EmbroideryViewerProps {
   pattern: EmbroideryPattern;
   className?: string;
+  mode?: "commercial" | "technical";
 }
 
-export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerProps) {
+export function EmbroideryViewer({ pattern, className = "", mode = "technical" }: EmbroideryViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
@@ -200,8 +223,8 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y);
-  }, [pattern, zoom, pan]);
+    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, mode);
+  }, [pattern, zoom, pan, mode]);
 
   useEffect(() => {
     render();

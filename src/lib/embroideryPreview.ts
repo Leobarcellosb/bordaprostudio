@@ -770,46 +770,20 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
   return pattern;
 }
 
-// ── Renderer (thick thread simulation for realistic embroidery look) ────
+// ── Rendering Modes ─────────────────────────────────────────────────────
 
-function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
+export type PreviewMode = "commercial" | "technical";
 
-  // White background
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, size, size);
+interface RenderOptions {
+  mode?: PreviewMode;
+  size?: number;
+}
 
-  if (pattern.stitches.length < 2) return canvas;
+// Build color-block polylines for efficient batch rendering
+interface Segment { x: number; y: number }
+interface ColorBlock { color: EmbroideryColor; paths: Segment[][] }
 
-  // Calculate scale to fit in canvas with padding
-  const padding = size * 0.08;
-  const drawArea = size - padding * 2;
-  const patternWidth = pattern.right - pattern.left;
-  const patternHeight = pattern.bottom - pattern.top;
-  const scaleX = patternWidth > 0 ? drawArea / patternWidth : 1;
-  const scaleY = patternHeight > 0 ? drawArea / patternHeight : 1;
-  const scale = Math.min(scaleX, scaleY);
-
-  // Center offset
-  const offsetX = padding + (drawArea - patternWidth * scale) / 2;
-  const offsetY = padding + (drawArea - patternHeight * scale) / 2;
-
-  // Thread thickness: scale proportionally so fills look dense
-  // Typical embroidery thread is ~0.4mm; at common stitch densities this
-  // produces a filled appearance when strokes overlap.
-  const baseThickness = Math.max(2.0, size / 200);
-
-  // Round caps and joins simulate thread shape
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  // Build color-block polylines for efficient batch rendering
-  interface Segment { x: number; y: number }
-  interface ColorBlock { color: EmbroideryColor; paths: Segment[][] }
-
+function buildColorBlocks(pattern: EmbroideryPattern, scale: number, offsetX: number, offsetY: number): ColorBlock[] {
   const blocks: ColorBlock[] = [];
   let curColor = pattern.colors[pattern.stitches[0].color] || CATALOG_PALETTE[0];
   let curPaths: Segment[][] = [];
@@ -817,16 +791,14 @@ function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCan
 
   for (let i = 0; i < pattern.stitches.length; i++) {
     const s = pattern.stitches[i];
-
-    // On color change, flush current block
     const sColor = pattern.colors[s.color] || CATALOG_PALETTE[s.color % CATALOG_PALETTE.length];
+
     if (i > 0 && (sColor.r !== curColor.r || sColor.g !== curColor.g || sColor.b !== curColor.b)) {
       if (curPath.length > 0) { curPaths.push(curPath); curPath = []; }
       if (curPaths.length > 0) { blocks.push({ color: curColor, paths: curPaths }); curPaths = []; }
       curColor = sColor;
     }
 
-    // Skip non-rendering stitches (jump, trim, stop, end) — break the path
     if (s.flags === JUMP || s.flags === TRIM || s.flags === (TRIM | STOP) ||
         (s.flags & STOP) === STOP || s.flags === END) {
       if (curPath.length > 0) { curPaths.push(curPath); curPath = []; }
@@ -836,13 +808,11 @@ function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCan
     const sx = (s.x - pattern.left) * scale + offsetX;
     const sy = (s.y - pattern.top) * scale + offsetY;
 
-    // If this is the first point after a break, just start a new path
     if (curPath.length === 0) {
       curPath.push({ x: sx, y: sy });
       continue;
     }
 
-    // Skip zero-length segments
     const prev = curPath[curPath.length - 1];
     const dx = sx - prev.x;
     const dy = sy - prev.y;
@@ -851,64 +821,123 @@ function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCan
     curPath.push({ x: sx, y: sy });
   }
 
-  // Flush remaining
   if (curPath.length > 0) curPaths.push(curPath);
   if (curPaths.length > 0) blocks.push({ color: curColor, paths: curPaths });
 
-  // Render each color block
+  return blocks;
+}
+
+function drawPaths(ctx: CanvasRenderingContext2D, paths: Segment[][], style: string, width: number, alpha: number) {
+  ctx.lineWidth = width;
+  ctx.strokeStyle = style;
+  ctx.globalAlpha = alpha;
+  for (const path of paths) {
+    if (path.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let j = 1; j < path.length; j++) {
+      ctx.lineTo(path[j].x, path[j].y);
+    }
+    ctx.stroke();
+  }
+}
+
+// ── Commercial Renderer (transparent, elegant, delicate) ────────────────
+
+function renderCommercial(pattern: EmbroideryPattern, size: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  // Transparent background — no fill
+  ctx.clearRect(0, 0, size, size);
+
+  if (pattern.stitches.length < 2) return canvas;
+
+  const padding = size * 0.06;
+  const drawArea = size - padding * 2;
+  const pw = pattern.right - pattern.left;
+  const ph = pattern.bottom - pattern.top;
+  const scale = Math.min(pw > 0 ? drawArea / pw : 1, ph > 0 ? drawArea / ph : 1);
+  const offsetX = padding + (drawArea - pw * scale) / 2;
+  const offsetY = padding + (drawArea - ph * scale) / 2;
+
+  // Delicate thread: thinner than technical mode
+  const baseThickness = Math.max(1.2, size / 350);
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  const blocks = buildColorBlocks(pattern, scale, offsetX, offsetY);
+
+  for (const block of blocks) {
+    const hex = rgbToHex(block.color);
+    const darkerHex = shadeColor(hex, -15);
+    const highlightHex = shadeColor(hex, 50);
+
+    // Subtle shadow layer (very light)
+    drawPaths(ctx, block.paths, darkerHex, baseThickness * 1.15, 0.25);
+    // Main thread color
+    drawPaths(ctx, block.paths, hex, baseThickness, 0.92);
+    // Delicate highlight sheen
+    drawPaths(ctx, block.paths, highlightHex, baseThickness * 0.3, 0.2);
+  }
+
+  ctx.globalAlpha = 1.0;
+  return canvas;
+}
+
+// ── Technical Renderer (white background, thick, for stitch analysis) ───
+
+function renderTechnical(pattern: EmbroideryPattern, size: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  // Solid white background for analysis
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+
+  if (pattern.stitches.length < 2) return canvas;
+
+  const padding = size * 0.08;
+  const drawArea = size - padding * 2;
+  const pw = pattern.right - pattern.left;
+  const ph = pattern.bottom - pattern.top;
+  const scale = Math.min(pw > 0 ? drawArea / pw : 1, ph > 0 ? drawArea / ph : 1);
+  const offsetX = padding + (drawArea - pw * scale) / 2;
+  const offsetY = padding + (drawArea - ph * scale) / 2;
+
+  const baseThickness = Math.max(2.0, size / 200);
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  const blocks = buildColorBlocks(pattern, scale, offsetX, offsetY);
+
   for (const block of blocks) {
     const hex = rgbToHex(block.color);
     const darkerHex = shadeColor(hex, -25);
+    const highlightHex = shadeColor(hex, 70);
 
-    // Layer 1: slightly wider, darker stroke for thread shadow/depth
-    ctx.lineWidth = baseThickness * 1.3;
-    ctx.strokeStyle = darkerHex;
-    ctx.globalAlpha = 0.45;
-
-    for (const path of block.paths) {
-      if (path.length < 2) continue;
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let j = 1; j < path.length; j++) {
-        ctx.lineTo(path[j].x, path[j].y);
-      }
-      ctx.stroke();
-    }
-
-    // Layer 2: main thread color at full opacity
-    ctx.lineWidth = baseThickness;
-    ctx.strokeStyle = hex;
-    ctx.globalAlpha = 1.0;
-
-    for (const path of block.paths) {
-      if (path.length < 2) continue;
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let j = 1; j < path.length; j++) {
-        ctx.lineTo(path[j].x, path[j].y);
-      }
-      ctx.stroke();
-    }
-
-    // Layer 3: thin highlight for thread sheen
-    ctx.lineWidth = baseThickness * 0.4;
-    ctx.strokeStyle = shadeColor(hex, 70);
-    ctx.globalAlpha = 0.3;
-
-    for (const path of block.paths) {
-      if (path.length < 2) continue;
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let j = 1; j < path.length; j++) {
-        ctx.lineTo(path[j].x, path[j].y);
-      }
-      ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1.0;
+    drawPaths(ctx, block.paths, darkerHex, baseThickness * 1.3, 0.45);
+    drawPaths(ctx, block.paths, hex, baseThickness, 1.0);
+    drawPaths(ctx, block.paths, highlightHex, baseThickness * 0.4, 0.3);
   }
 
+  ctx.globalAlpha = 1.0;
   return canvas;
+}
+
+// ── Unified render entry point ──────────────────────────────────────────
+
+function renderToCanvas(pattern: EmbroideryPattern, options: RenderOptions = {}): HTMLCanvasElement {
+  const { mode = "commercial", size = 800 } = options;
+  return mode === "technical"
+    ? renderTechnical(pattern, size)
+    : renderCommercial(pattern, size);
 }
 
 // ── Quality Validation ─────────────────────────────────────────────────
@@ -977,7 +1006,7 @@ export async function generateEmbroideryPreview(
       return null;
     }
 
-    const canvas = renderToCanvas(pattern, imageSize);
+    const canvas = renderToCanvas(pattern, { mode: "commercial", size: imageSize });
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png")
     );
