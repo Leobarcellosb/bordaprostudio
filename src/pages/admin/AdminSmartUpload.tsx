@@ -243,20 +243,22 @@ export const AdminSmartUpload = () => {
 
       for (const group of entries) {
         if (!group.previewFile && group.files.length > 0) {
-          // Find a supported embroidery file to generate preview
           const supportedFile = group.files.find(f => isPreviewSupported(f.format));
           if (supportedFile) {
             try {
+              console.log(`[UPLOAD] [${group.baseName}] PARSE_START`, { format: supportedFile.format, size: supportedFile.blob.size });
               const result = await generateEmbroideryPreview(supportedFile.blob, supportedFile.format);
               if (result) {
                 group.previewFile = { name: "auto-preview.png", blob: result.blob };
                 group.autoPreview = true;
                 group.metadata = result.metadata;
+                console.log(`[UPLOAD] [${group.baseName}] PARSE_COMPLETE`, { metadata: result.metadata, previewSize: result.blob.size });
               } else {
+                console.warn(`[UPLOAD] [${group.baseName}] PARSE_COMPLETE — no preview generated (null result)`);
                 previewFailures++;
               }
             } catch (err) {
-              console.warn(`Auto-preview failed for ${group.baseName}:`, err);
+              console.error(`[UPLOAD] [${group.baseName}] PARSE_ERROR`, err);
               previewFailures++;
             }
           }
