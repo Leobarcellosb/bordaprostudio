@@ -276,6 +276,13 @@ export const AdminSmartUpload = () => {
       const autoCount = entries.filter(e => e.autoPreview).length;
       const msg = `${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`;
       toast.success(autoCount > 0 ? `${msg} ${autoCount} preview${autoCount !== 1 ? "s" : ""} gerado${autoCount !== 1 ? "s" : ""} automaticamente.` : msg);
+
+      // Trigger AI title generation for entries with previews
+      for (const entry of entries) {
+        if (entry.previewFile) {
+          generateAITitle(entry);
+        }
+      }
     },
     [categories]
   );
