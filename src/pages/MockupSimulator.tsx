@@ -97,6 +97,7 @@ const MockupSimulator = () => {
       }
 
       // --- Layer 3: Embroidery design (unaffected by tint) ---
+      if (selectedKit?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
         designImg.onload = () => {
