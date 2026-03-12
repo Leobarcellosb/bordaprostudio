@@ -227,9 +227,12 @@ export const AdminSmartUpload = () => {
                 group.previewFile = { name: "auto-preview.png", blob: result.blob };
                 group.autoPreview = true;
                 group.metadata = result.metadata;
+              } else {
+                toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
               }
             } catch (err) {
               console.warn(`Auto-preview failed for ${group.baseName}:`, err);
+              toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
             }
           }
         }
