@@ -1,5 +1,8 @@
 /**
  * Client-side embroidery file parser and preview renderer.
+ * Based on the proven open-source embroidery-viewer project by Leonardo Murça.
+ * Reference: https://github.com/leomurca/embroidery-viewer (MIT License)
+ *
  * Supports: PES, DST, JEF, EXP, XXX
  * Renders stitch paths on a Canvas and returns a PNG Blob.
  */
@@ -10,564 +13,669 @@ interface Stitch {
   x: number;
   y: number;
   flags: number;
+  color: number;
 }
 
-interface EmbroideryData {
+interface EmbroideryColor {
+  r: number;
+  g: number;
+  b: number;
+  name: string;
+}
+
+interface EmbroideryPattern {
   stitches: Stitch[];
-  width: number;
-  height: number;
-  stitchCount: number;
-  colorChanges: number;
-  threadColors?: string[]; // Extracted thread colors from file (if available)
+  colors: EmbroideryColor[];
+  lastX: number;
+  lastY: number;
+  currentColorIndex: number;
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
 }
 
-// Flags
+// ── Stitch Flags (matching embroidery-viewer) ───────────────────────────
+
 const NORMAL = 0;
 const JUMP = 1;
 const TRIM = 2;
-const COLOR_CHANGE = 4;
+const STOP = 4;
 const END = 8;
-const STOP = 16;
 
-function isNonRenderingStitch(flags: number): boolean {
-  return flags === JUMP || flags === TRIM || flags === STOP;
+// ── Pattern Builder ─────────────────────────────────────────────────────
+
+function createPattern(): EmbroideryPattern {
+  return {
+    stitches: [],
+    colors: [],
+    lastX: 0,
+    lastY: 0,
+    currentColorIndex: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  };
 }
 
-// ── Curated catalog palette — harmonious, high-contrast embroidery thread colors ──
-// Modeled after popular Madeira / Isacord thread ranges
-const CATALOG_PALETTE = [
-  "#1B3A5C", // Navy blue
-  "#C0392B", // Rich red
-  "#27AE60", // Emerald green
-  "#F39C12", // Golden amber
-  "#8E44AD", // Deep purple
-  "#2980B9", // Royal blue
-  "#D35400", // Burnt orange
-  "#16A085", // Teal green
-  "#C2185B", // Raspberry
-  "#5D4037", // Chocolate brown
-  "#1565C0", // Cobalt blue
-  "#E74C3C", // Scarlet
-  "#2E7D32", // Forest green
-  "#F57C00", // Tangerine
-  "#7B1FA2", // Violet
-  "#00838F", // Deep cyan
-  "#AD1457", // Magenta
-  "#33691E", // Olive green
-  "#BF360C", // Rust
-  "#4A148C", // Indigo
-  "#00695C", // Dark teal
-  "#FF6F00", // Warm amber
-  "#1A237E", // Dark navy
-  "#B71C1C", // Deep crimson
-  "#004D40", // Dark emerald
-  "#E65100", // Burnt sienna
-  "#6A1B9A", // Plum
-  "#0277BD", // Azure
-  "#558B2F", // Sage green
-  "#D84315", // Terra cotta
-];
+function addColor(pattern: EmbroideryPattern, color: EmbroideryColor) {
+  pattern.colors.push(color);
+}
 
-// Brother PEC thread color table (standard 64 colors, index 1-based)
-// Reference: Brother PE-Design color chart
-const BROTHER_THREAD_COLORS: string[] = [
-  "#000000", // 0 - placeholder (not used)
-  "#1a0a94", // 1  - Prussian Blue
-  "#0f75bc", // 2  - Blue
-  "#00934c", // 3  - Teal Green
-  "#babdbd", // 4  - Corn Flower Blue
-  "#ec0000", // 5  - Red
-  "#e4995a", // 6  - Reddish Brown
-  "#cc48ab", // 7  - Magenta
-  "#fdc4fa", // 8  - Light Lilac
-  "#dd00dd", // 9  - Violet
-  "#5b32cc", // 10 - Blue Violet
-  "#1899d6", // 11 - Ultramarine
-  "#e4a945", // 12 - Light Brown
-  "#ffd687", // 13 - Champagne
-  "#e8e800", // 14 - Yellow Green
-  "#bead00", // 15 - Dark Gold
-  "#e79917", // 16 - Orange Yellow
-  "#f06f24", // 17 - Orange
-  "#a32700", // 18 - Brick Red
-  "#de0726", // 19 - Wine Red
-  "#000000", // 20 - Black
-  "#a5a5a5", // 21 - Medium Grey
-  "#ffffff", // 22 - White
-  "#68c4e8", // 23 - Light Blue
-  "#009dc5", // 24 - Peacock Blue
-  "#fbe689", // 25 - Beige
-  "#7b5623", // 26 - Sepia
-  "#fee5d1", // 27 - Cream White
-  "#e08552", // 28 - Pecan
-  "#c5a88b", // 29 - Tawny Brown
-  "#d1bfa6", // 30 - Khaki
-  "#78cdaf", // 31 - Aquamarine
-  "#22a54d", // 32 - Emerald Green
-  "#006632", // 33 - Forest Green
-  "#9acb46", // 34 - Grass Green
-  "#8cc94c", // 35 - Lime Green
-  "#f5f5dc", // 36 - Cream Yellow
-  "#f0c300", // 37 - Yellow
-  "#ff6347", // 38 - Tangerine
-  "#c832cd", // 39 - Orchid Purple
-  "#e5e5e5", // 40 - Light Grey
-  "#f2a0b7", // 41 - Rose Pink
-  "#eca6d4", // 42 - Orchid Pink
-  "#f57baa", // 43 - Peony
-  "#ffc864", // 44 - Light Orange
-  "#ffc8c8", // 45 - Baby Pink
-  "#36a5af", // 46 - Teal
-  "#db7093", // 47 - Pale Violet Red
-  "#d2691e", // 48 - Sienna
-  "#7e9973", // 49 - Olive Drab
-  "#ba7834", // 50 - Bronze
-  "#e0a050", // 51 - Harvest Gold
-  "#cca03e", // 52 - Gold
-  "#c1c1c1", // 53 - Silver Grey
-  "#cc0044", // 54 - Deep Rose
-  "#d4ecff", // 55 - Pale Blue
-  "#fffff0", // 56 - Ivory
-  "#d09050", // 57 - Copper
-  "#f0c0a0", // 58 - Salmon Pink
-  "#7b5b3a", // 59 - Medium Brown
-  "#a0522d", // 60 - Saddle Brown
-  "#c0c0c0", // 61 - Gray
-  "#808080", // 62 - Dark Gray
-  "#505050", // 63 - Charcoal
-  "#1a0a94", // 64 - Prussian Blue (wrap)
-];
+function addStitchAbs(pattern: EmbroideryPattern, x: number, y: number, flags: number, autoColorIndex: boolean) {
+  if ((flags & END) === END) {
+    calculateBoundingBox(pattern);
+    fixColorCount(pattern);
+    return;
+  }
+  if ((flags & STOP) === STOP && pattern.stitches.length === 0) return;
+  if ((flags & STOP) === STOP && autoColorIndex) {
+    pattern.currentColorIndex++;
+  }
+  pattern.stitches.push({ x, y, flags, color: pattern.currentColorIndex });
+}
 
-// Janome thread color table (used by JEF format)
-// Reference: Janome Digitizer color chart
-const JANOME_THREAD_COLORS: string[] = [
-  "#000000", // 0  - Black
-  "#000000", // 1  - Black
-  "#1a1a1a", // 2  - Very Dark Grey
-  "#404040", // 3  - Dark Grey
-  "#808080", // 4  - Grey
-  "#c0c0c0", // 5  - Silver
-  "#ffffff", // 6  - White
-  "#ff5797", // 7  - Pink
-  "#d0006f", // 8  - Hot Pink
-  "#cc0000", // 9  - Red
-  "#850000", // 10 - Dark Red
-  "#990033", // 11 - Wine Red
-  "#f24a8a", // 12 - Rose
-  "#ff6600", // 13 - Orange
-  "#ffcc00", // 14 - Yellow
-  "#e7a100", // 15 - Gold
-  "#c9a227", // 16 - Old Gold
-  "#826633", // 17 - Medium Brown
-  "#4d2600", // 18 - Dark Brown
-  "#a5682a", // 19 - Tan
-  "#ceb68b", // 20 - Beige
-  "#f5e1c8", // 21 - Cream
-  "#bada55", // 22 - Yellow Green
-  "#66cc33", // 23 - Light Green
-  "#228b22", // 24 - Green
-  "#006633", // 25 - Dark Green
-  "#004d00", // 26 - Very Dark Green
-  "#2e8b57", // 27 - Sea Green
-  "#00b7a0", // 28 - Teal
-  "#66cccc", // 29 - Light Teal
-  "#87ceeb", // 30 - Sky Blue
-  "#4169e1", // 31 - Blue
-  "#003399", // 32 - Dark Blue
-  "#000066", // 33 - Navy Blue
-  "#7b68ee", // 34 - Medium Slate Blue
-  "#663399", // 35 - Purple
-  "#9933cc", // 36 - Violet
-  "#9370db", // 37 - Medium Purple
-  "#d8bfd8", // 38 - Lavender
-  "#ffb6c1", // 39 - Light Pink
-  "#f0e68c", // 40 - Light Yellow
-  "#00ced1", // 41 - Aqua
-  "#ff4500", // 42 - Red Orange
-  "#f0c0a0", // 43 - Peach
-  "#d2691e", // 44 - Sienna
-  "#8b4513", // 45 - Saddle Brown
-  "#bc8f8f", // 46 - Rosy Brown
-  "#708090", // 47 - Slate Grey
-  "#b0c4de", // 48 - Light Steel Blue
-  "#daa520", // 49 - Goldenrod
-  "#cd853f", // 50 - Peru
-  "#556b2f", // 51 - Dark Olive Green
-  "#6b8e23", // 52 - Olive Drab
-  "#2f4f4f", // 53 - Dark Slate Grey
-  "#191970", // 54 - Midnight Blue
-  "#800080", // 55 - Deep Purple
-  "#8b0000", // 56 - Dark Crimson
-  "#ffd700", // 57 - Bright Gold
-  "#32cd32", // 58 - Lime Green
-  "#00bfff", // 59 - Deep Sky Blue
-  "#ff1493", // 60 - Deep Pink
-  "#ff69b4", // 61 - Hot Pink Light
-  "#4682b4", // 62 - Steel Blue
-  "#b22222", // 63 - Fire Brick
-  "#deb887", // 64 - Burlywood
-  "#f5deb3", // 65 - Wheat
-  "#ffdead", // 66 - Navajo White
-  "#ffe4e1", // 67 - Misty Rose
-  "#e6e6fa", // 68 - Lavender Web
-  "#98fb98", // 69 - Pale Green
-  "#afeeee", // 70 - Pale Turquoise
-  "#fffacd", // 71 - Lemon Chiffon
-  "#faebd7", // 72 - Antique White
-  "#cd5c5c", // 73 - Indian Red
-  "#20b2aa", // 74 - Light Sea Green
-  "#778899", // 75 - Light Slate Grey
-  "#da70d6", // 76 - Orchid
-  "#db7093", // 77 - Pale Violet Red
-  "#48d1cc", // 78 - Medium Turquoise
-];
+function addStitchRel(pattern: EmbroideryPattern, dx: number, dy: number, flags: number, autoColorIndex = false) {
+  if (pattern.stitches.length !== 0) {
+    const nx = pattern.lastX + dx;
+    const ny = pattern.lastY + dy;
+    pattern.lastX = nx;
+    pattern.lastY = ny;
+    addStitchAbs(pattern, nx, ny, flags, autoColorIndex);
+  } else {
+    pattern.lastX = dx;
+    pattern.lastY = dy;
+    addStitchAbs(pattern, dx, dy, flags, autoColorIndex);
+  }
+}
 
-// ── PES Parser ──────────────────────────────────────────────────────────
+function calculateBoundingBox(pattern: EmbroideryPattern) {
+  if (pattern.stitches.length === 0) {
+    pattern.bottom = 1;
+    pattern.right = 1;
+    return;
+  }
+  pattern.left = Infinity;
+  pattern.top = Infinity;
+  pattern.right = -Infinity;
+  pattern.bottom = -Infinity;
 
-function parsePES(buffer: ArrayBuffer): EmbroideryData {
-  const view = new DataView(buffer);
-  const bytes = new Uint8Array(buffer);
-
-  const magic = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
-  if (magic !== "#PES") throw new Error("Not a PES file");
-
-  const pecOffset = view.getUint32(8, true);
-
-  // Extract PEC thread color list from PEC header
-  // PEC header: offset+48 = number of colors, then color index bytes
-  const threadColors: string[] = [];
-  try {
-    const numColors = bytes[pecOffset + 48] + 1; // stored as count-1
-    for (let c = 0; c < numColors && c < 64; c++) {
-      const colorIdx = bytes[pecOffset + 49 + c];
-      if (colorIdx > 0 && colorIdx < BROTHER_THREAD_COLORS.length) {
-        threadColors.push(BROTHER_THREAD_COLORS[colorIdx]);
-      } else {
-        threadColors.push(CATALOG_PALETTE[c % CATALOG_PALETTE.length]);
-      }
+  for (const pt of pattern.stitches) {
+    if (!(pt.flags & TRIM)) {
+      if (pt.x < pattern.left) pattern.left = pt.x;
+      if (pt.y < pattern.top) pattern.top = pt.y;
+      if (pt.x > pattern.right) pattern.right = pt.x;
+      if (pt.y > pattern.bottom) pattern.bottom = pt.y;
     }
-  } catch {
-    // Color extraction failed — will use fallback palette
+  }
+}
+
+function moveToPositive(pattern: EmbroideryPattern) {
+  for (const s of pattern.stitches) {
+    s.x -= pattern.left;
+    s.y -= pattern.top;
+  }
+  pattern.right -= pattern.left;
+  pattern.left = 0;
+  pattern.bottom -= pattern.top;
+  pattern.top = 0;
+}
+
+function invertPatternVertical(pattern: EmbroideryPattern) {
+  const tempTop = -pattern.top;
+  for (const s of pattern.stitches) {
+    s.y = -s.y;
+  }
+  pattern.top = -pattern.bottom;
+  pattern.bottom = tempTop;
+}
+
+function fixColorCount(pattern: EmbroideryPattern) {
+  let maxColorIndex = 0;
+  for (const s of pattern.stitches) {
+    if (s.color > maxColorIndex) maxColorIndex = s.color;
+  }
+  while (pattern.colors.length <= maxColorIndex) {
+    // Use catalog fallback palette for missing colors
+    const idx = pattern.colors.length % CATALOG_PALETTE.length;
+    const cp = CATALOG_PALETTE[idx];
+    pattern.colors.push(cp);
+  }
+  pattern.colors.splice(maxColorIndex + 1);
+}
+
+// ── Curated catalog fallback palette ────────────────────────────────────
+
+const CATALOG_PALETTE: EmbroideryColor[] = [
+  { r: 27, g: 58, b: 92, name: "Navy Blue" },
+  { r: 192, g: 57, b: 43, name: "Rich Red" },
+  { r: 39, g: 174, b: 96, name: "Emerald Green" },
+  { r: 243, g: 156, b: 18, name: "Golden Amber" },
+  { r: 142, g: 68, b: 173, name: "Deep Purple" },
+  { r: 41, g: 128, b: 185, name: "Royal Blue" },
+  { r: 211, g: 84, b: 0, name: "Burnt Orange" },
+  { r: 22, g: 160, b: 133, name: "Teal Green" },
+  { r: 194, g: 24, b: 91, name: "Raspberry" },
+  { r: 93, g: 64, b: 55, name: "Chocolate Brown" },
+  { r: 21, g: 101, b: 192, name: "Cobalt Blue" },
+  { r: 231, g: 76, b: 60, name: "Scarlet" },
+  { r: 46, g: 125, b: 50, name: "Forest Green" },
+  { r: 245, g: 124, b: 0, name: "Tangerine" },
+  { r: 123, g: 31, b: 162, name: "Violet" },
+  { r: 0, g: 131, b: 143, name: "Deep Cyan" },
+  { r: 173, g: 20, b: 87, name: "Magenta" },
+  { r: 51, g: 105, b: 30, name: "Olive Green" },
+  { r: 191, g: 54, b: 12, name: "Rust" },
+  { r: 74, g: 20, b: 140, name: "Indigo" },
+  { r: 0, g: 105, b: 92, name: "Dark Teal" },
+  { r: 255, g: 111, b: 0, name: "Warm Amber" },
+  { r: 26, g: 35, b: 126, name: "Dark Navy" },
+  { r: 183, g: 28, b: 28, name: "Deep Crimson" },
+  { r: 0, g: 77, b: 64, name: "Dark Emerald" },
+  { r: 230, g: 81, b: 0, name: "Burnt Sienna" },
+  { r: 106, g: 27, b: 154, name: "Plum" },
+  { r: 2, g: 119, b: 189, name: "Azure" },
+  { r: 85, g: 139, b: 47, name: "Sage Green" },
+  { r: 216, g: 67, b: 21, name: "Terra Cotta" },
+];
+
+// ── PEC/PES Color Table (from embroidery-viewer) ────────────────────────
+
+const PEC_COLORS: EmbroideryColor[] = [
+  { r: 0, g: 0, b: 0, name: "Unknown" },
+  { r: 14, g: 31, b: 124, name: "Prussian Blue" },
+  { r: 10, g: 85, b: 163, name: "Blue" },
+  { r: 0, g: 135, b: 119, name: "Teal Green" },
+  { r: 75, g: 107, b: 175, name: "Cornflower Blue" },
+  { r: 237, g: 23, b: 31, name: "Red" },
+  { r: 209, g: 92, b: 0, name: "Reddish Brown" },
+  { r: 145, g: 54, b: 151, name: "Magenta" },
+  { r: 228, g: 154, b: 203, name: "Light Lilac" },
+  { r: 145, g: 95, b: 172, name: "Lilac" },
+  { r: 158, g: 214, b: 125, name: "Mint Green" },
+  { r: 232, g: 169, b: 0, name: "Deep Gold" },
+  { r: 254, g: 186, b: 53, name: "Orange" },
+  { r: 255, g: 255, b: 0, name: "Yellow" },
+  { r: 112, g: 188, b: 31, name: "Lime Green" },
+  { r: 186, g: 152, b: 0, name: "Brass" },
+  { r: 168, g: 168, b: 168, name: "Silver" },
+  { r: 125, g: 111, b: 0, name: "Russet Brown" },
+  { r: 255, g: 255, b: 179, name: "Cream Brown" },
+  { r: 79, g: 85, b: 86, name: "Pewter" },
+  { r: 0, g: 0, b: 0, name: "Black" },
+  { r: 11, g: 61, b: 145, name: "Ultramarine" },
+  { r: 119, g: 1, b: 118, name: "Royal Purple" },
+  { r: 41, g: 49, b: 51, name: "Dark Gray" },
+  { r: 42, g: 19, b: 1, name: "Dark Brown" },
+  { r: 246, g: 74, b: 138, name: "Deep Rose" },
+  { r: 178, g: 118, b: 36, name: "Light Brown" },
+  { r: 252, g: 187, b: 197, name: "Salmon Pink" },
+  { r: 254, g: 55, b: 15, name: "Vermillion" },
+  { r: 240, g: 240, b: 240, name: "White" },
+  { r: 106, g: 28, b: 138, name: "Violet" },
+  { r: 168, g: 221, b: 196, name: "Seacrest" },
+  { r: 37, g: 132, b: 187, name: "Sky Blue" },
+  { r: 254, g: 179, b: 67, name: "Pumpkin" },
+  { r: 255, g: 243, b: 107, name: "Cream Yellow" },
+  { r: 208, g: 166, b: 96, name: "Khaki" },
+  { r: 209, g: 84, b: 0, name: "Clay Brown" },
+  { r: 102, g: 186, b: 73, name: "Leaf Green" },
+  { r: 19, g: 74, b: 70, name: "Peacock Blue" },
+  { r: 135, g: 135, b: 135, name: "Gray" },
+  { r: 216, g: 204, b: 198, name: "Warm Gray" },
+  { r: 67, g: 86, b: 7, name: "Dark Olive" },
+  { r: 253, g: 217, b: 222, name: "Flesh Pink" },
+  { r: 249, g: 147, b: 188, name: "Pink" },
+  { r: 0, g: 56, b: 34, name: "Deep Green" },
+  { r: 178, g: 175, b: 212, name: "Lavender" },
+  { r: 104, g: 106, b: 176, name: "Wisteria Violet" },
+  { r: 239, g: 227, b: 185, name: "Beige" },
+  { r: 247, g: 56, b: 102, name: "Carmine" },
+  { r: 181, g: 75, b: 100, name: "Amber Red" },
+  { r: 19, g: 43, b: 26, name: "Olive Green" },
+  { r: 199, g: 1, b: 86, name: "Dark Fuschia" },
+  { r: 254, g: 158, b: 50, name: "Tangerine" },
+  { r: 168, g: 222, b: 235, name: "Light Blue" },
+  { r: 0, g: 103, b: 62, name: "Emerald Green" },
+  { r: 78, g: 41, b: 144, name: "Purple" },
+  { r: 47, g: 126, b: 32, name: "Moss Green" },
+  { r: 255, g: 204, b: 204, name: "Flesh Pink" },
+  { r: 255, g: 217, b: 17, name: "Harvest Gold" },
+  { r: 9, g: 91, b: 166, name: "Electric Blue" },
+  { r: 240, g: 249, b: 112, name: "Lemon Yellow" },
+  { r: 227, g: 243, b: 91, name: "Fresh Green" },
+  { r: 255, g: 153, b: 0, name: "Orange" },
+  { r: 255, g: 240, b: 141, name: "Cream Yellow" },
+  { r: 255, g: 200, b: 200, name: "Applique" },
+];
+
+// ── JEF Color Table (from embroidery-viewer) ────────────────────────────
+
+const JEF_COLORS: EmbroideryColor[] = [
+  { r: 0, g: 0, b: 0, name: "Black" },
+  { r: 0, g: 0, b: 0, name: "Black" },
+  { r: 255, g: 255, b: 255, name: "White" },
+  { r: 255, g: 255, b: 23, name: "Yellow" },
+  { r: 250, g: 160, b: 96, name: "Orange" },
+  { r: 92, g: 118, b: 73, name: "Olive Green" },
+  { r: 64, g: 192, b: 48, name: "Green" },
+  { r: 101, g: 194, b: 200, name: "Sky" },
+  { r: 172, g: 128, b: 190, name: "Purple" },
+  { r: 245, g: 188, b: 203, name: "Pink" },
+  { r: 255, g: 0, b: 0, name: "Red" },
+  { r: 192, g: 128, b: 0, name: "Brown" },
+  { r: 0, g: 0, b: 240, name: "Blue" },
+  { r: 228, g: 195, b: 93, name: "Gold" },
+  { r: 165, g: 42, b: 42, name: "Dark Brown" },
+  { r: 213, g: 176, b: 212, name: "Pale Violet" },
+  { r: 252, g: 242, b: 148, name: "Pale Yellow" },
+  { r: 240, g: 208, b: 192, name: "Pale Pink" },
+  { r: 255, g: 192, b: 0, name: "Peach" },
+  { r: 201, g: 164, b: 128, name: "Beige" },
+  { r: 155, g: 61, b: 75, name: "Wine Red" },
+  { r: 160, g: 184, b: 204, name: "Pale Sky" },
+  { r: 127, g: 194, b: 28, name: "Yellow Green" },
+  { r: 185, g: 185, b: 185, name: "Silver Grey" },
+  { r: 160, g: 160, b: 160, name: "Grey" },
+  { r: 152, g: 214, b: 189, name: "Pale Aqua" },
+  { r: 184, g: 240, b: 240, name: "Baby Blue" },
+  { r: 54, g: 139, b: 160, name: "Powder Blue" },
+  { r: 79, g: 131, b: 171, name: "Bright Blue" },
+  { r: 56, g: 106, b: 145, name: "Slate Blue" },
+  { r: 0, g: 32, b: 107, name: "Navy Blue" },
+  { r: 229, g: 197, b: 202, name: "Salmon Pink" },
+  { r: 249, g: 103, b: 107, name: "Coral" },
+  { r: 227, g: 49, b: 31, name: "Burnt Orange" },
+  { r: 226, g: 161, b: 136, name: "Cinnamon" },
+  { r: 181, g: 148, b: 116, name: "Umber" },
+  { r: 228, g: 207, b: 153, name: "Blonde" },
+  { r: 225, g: 203, b: 0, name: "Sunflower" },
+  { r: 225, g: 173, b: 212, name: "Orchid Pink" },
+  { r: 195, g: 0, b: 126, name: "Peony Purple" },
+  { r: 128, g: 0, b: 75, name: "Burgundy" },
+  { r: 160, g: 96, b: 176, name: "Royal Purple" },
+  { r: 192, g: 64, b: 32, name: "Cardinal Red" },
+  { r: 202, g: 224, b: 192, name: "Opal Green" },
+  { r: 137, g: 152, b: 86, name: "Moss Green" },
+  { r: 0, g: 170, b: 0, name: "Meadow Green" },
+  { r: 33, g: 138, b: 33, name: "Dark Green" },
+  { r: 93, g: 174, b: 148, name: "Aquamarine" },
+  { r: 76, g: 191, b: 143, name: "Emerald Green" },
+  { r: 0, g: 119, b: 114, name: "Peacock Green" },
+  { r: 112, g: 112, b: 112, name: "Dark Grey" },
+  { r: 242, g: 255, b: 255, name: "Ivory White" },
+  { r: 177, g: 88, b: 24, name: "Hazel" },
+  { r: 203, g: 138, b: 7, name: "Toast" },
+  { r: 247, g: 146, b: 123, name: "Salmon" },
+  { r: 152, g: 105, b: 45, name: "Cocoa Brown" },
+  { r: 162, g: 113, b: 72, name: "Sienna" },
+  { r: 123, g: 85, b: 74, name: "Sepia" },
+  { r: 79, g: 57, b: 70, name: "Dark Sepia" },
+  { r: 82, g: 58, b: 151, name: "Violet Blue" },
+  { r: 0, g: 0, b: 160, name: "Blue Ink" },
+  { r: 0, g: 150, b: 222, name: "Solar Blue" },
+  { r: 178, g: 221, b: 83, name: "Green Dust" },
+  { r: 250, g: 143, b: 187, name: "Crimson" },
+  { r: 222, g: 100, b: 158, name: "Floral Pink" },
+  { r: 181, g: 80, b: 102, name: "Wine" },
+  { r: 94, g: 87, b: 71, name: "Olive Drab" },
+  { r: 76, g: 136, b: 31, name: "Meadow" },
+  { r: 228, g: 220, b: 121, name: "Mustard" },
+  { r: 203, g: 138, b: 26, name: "Yellow Ochre" },
+  { r: 198, g: 170, b: 66, name: "Old Gold" },
+  { r: 236, g: 176, b: 44, name: "Honeydew" },
+  { r: 248, g: 128, b: 64, name: "Tangerine" },
+  { r: 255, g: 229, b: 5, name: "Canary Yellow" },
+  { r: 250, g: 122, b: 122, name: "Vermillion" },
+  { r: 107, g: 224, b: 0, name: "Bright Green" },
+  { r: 56, g: 108, b: 174, name: "Ocean Blue" },
+  { r: 227, g: 196, b: 180, name: "Beige Grey" },
+  { r: 227, g: 172, b: 129, name: "Bamboo" },
+];
+
+// ── Utility ─────────────────────────────────────────────────────────────
+
+function rgbToHex(c: EmbroideryColor): string {
+  return `#${((1 << 24) + (c.r << 16) + (c.g << 8) + c.b).toString(16).slice(1)}`;
+}
+
+function shadeColor(hex: string, percent: number): string {
+  const num = parseInt(hex.slice(1), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
+}
+
+// ── DataView wrapper (matches embroidery-viewer's jDataView) ────────────
+
+class EmbroideryFileView {
+  private view: DataView;
+  private bytes: Uint8Array;
+  private pos: number;
+
+  constructor(buffer: ArrayBuffer) {
+    this.view = new DataView(buffer);
+    this.bytes = new Uint8Array(buffer);
+    this.pos = 0;
   }
 
-  const pecStart = pecOffset + 532;
-  if (pecStart >= buffer.byteLength) throw new Error("Invalid PES: PEC data out of bounds");
+  get byteLength() { return this.view.byteLength; }
 
-  const stitches: Stitch[] = [];
-  let x = 0, y = 0;
-  let i = pecStart;
-  let colorChanges = 0;
+  tell() { return this.pos; }
+  seek(p: number) { this.pos = p; }
 
-  while (i < buffer.byteLength - 1) {
-    const b1 = bytes[i];
-    const b2 = bytes[i + 1];
+  getUint8(): number {
+    const v = this.bytes[this.pos];
+    this.pos++;
+    return v;
+  }
 
-    if (b1 === 0xFF && b2 === 0x00) {
-      stitches.push({ x, y, flags: END });
+  getInt8(): number {
+    const v = this.view.getInt8(this.pos);
+    this.pos++;
+    return v;
+  }
+
+  getInt32(offset: number, littleEndian: boolean): number {
+    const v = this.view.getInt32(offset, littleEndian);
+    this.pos = offset + 4;
+    return v;
+  }
+
+  getUint32(offset: number, littleEndian: boolean): number {
+    const v = this.view.getUint32(offset, littleEndian);
+    this.pos = offset + 4;
+    return v;
+  }
+}
+
+// ── PES Parser (ported from embroidery-viewer) ──────────────────────────
+
+function parsePES(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  // Verify magic
+  const b0 = file.getUint8();
+  const b1 = file.getUint8();
+  const b2 = file.getUint8();
+  const b3 = file.getUint8();
+  if (String.fromCharCode(b0, b1, b2, b3) !== "#PES") {
+    throw new Error("Not a PES file");
+  }
+
+  const pecStart = file.getInt32(8, true);
+
+  // Read color table from PEC header
+  file.seek(pecStart + 48);
+  const numColors = file.getInt8() + 1;
+  for (let i = 0; i < numColors; i++) {
+    const colorIdx = file.getInt8();
+    const safeIdx = ((colorIdx % 65) + 65) % 65; // Handle negative
+    addColor(pattern, PEC_COLORS[safeIdx] || PEC_COLORS[0]);
+  }
+
+  // Read stitches from PEC data
+  file.seek(pecStart + 532);
+  readPecStitches(file, pattern);
+  addStitchRel(pattern, 0, 0, END);
+
+  moveToPositive(pattern);
+  return pattern;
+}
+
+function readPecStitches(file: EmbroideryFileView, pattern: EmbroideryPattern) {
+  while (file.tell() < file.byteLength) {
+    let xOffset = file.getUint8();
+    let yOffset = file.getUint8();
+
+    // End stitch
+    if (xOffset === 0xFF && yOffset === 0x00) {
+      addStitchRel(pattern, 0, 0, END, true);
       break;
     }
 
-    if (b1 === 0xFE && b2 === 0xB0) {
-      colorChanges++;
-      stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 3;
+    // Stop/color change stitch
+    if (xOffset === 0xFE && yOffset === 0xB0) {
+      file.getInt8(); // Skip extra byte
+      addStitchRel(pattern, 0, 0, STOP, true);
       continue;
     }
 
-    let dx = 0, dy = 0;
-    let commandBitsX = 0;
-    let commandBitsY = 0;
-
-    if (b1 & 0x80) {
-      if (i + 2 >= buffer.byteLength) break;
-      dx = ((b1 & 0x0F) << 8) | b2;
-      if (dx & 0x800) dx -= 0x1000;
-      commandBitsX = b1 & 0x30;
-      i += 2;
-
-      const b3 = bytes[i];
-      if (b3 & 0x80) {
-        if (i + 1 >= buffer.byteLength) break;
-        const b4 = bytes[i + 1];
-        dy = ((b3 & 0x0F) << 8) | b4;
-        if (dy & 0x800) dy -= 0x1000;
-        commandBitsY = b3 & 0x30;
-        i += 2;
-      } else {
-        dy = b3;
-        if (dy > 63) dy -= 128;
-        i += 1;
-      }
-    } else {
-      dx = b1;
-      if (dx > 63) dx -= 128;
-
-      if (b2 & 0x80) {
-        if (i + 2 >= buffer.byteLength) break;
-        const b3 = bytes[i + 2];
-        dy = ((b2 & 0x0F) << 8) | b3;
-        if (dy & 0x800) dy -= 0x1000;
-        commandBitsY = b2 & 0x30;
-        i += 3;
-      } else {
-        dy = b2;
-        if (dy > 63) dy -= 128;
-        i += 2;
-      }
+    // Determine stitch type from flags
+    let stitchType = NORMAL;
+    if (xOffset & 0x80) {
+      if (xOffset & 0x20) stitchType = TRIM;
+      else if (xOffset & 0x10) stitchType = JUMP;
+    }
+    if (yOffset & 0x80) {
+      if (yOffset & 0x20) stitchType = TRIM;
+      else if (yOffset & 0x10) stitchType = JUMP;
     }
 
+    // Decode coordinates (12-bit signed)
+    if (xOffset & 0x80) {
+      xOffset = ((xOffset & 0x0F) << 8) + yOffset;
+      if (xOffset & 0x800) xOffset -= 0x1000;
+      yOffset = file.getUint8();
+    } else if (xOffset >= 0x40) {
+      xOffset -= 0x80;
+    }
+
+    if (yOffset & 0x80) {
+      yOffset = ((yOffset & 0x0F) << 8) + file.getUint8();
+      if (yOffset & 0x800) yOffset -= 0x1000;
+    } else if (yOffset > 0x3F) {
+      yOffset -= 0x80;
+    }
+
+    addStitchRel(pattern, xOffset, yOffset, stitchType, true);
+  }
+}
+
+// ── DST Parser (ported from embroidery-viewer) ──────────────────────────
+
+function parseDST(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  file.seek(512); // Skip DST header
+  let prevJump = false;
+
+  while (file.tell() < file.byteLength - 3) {
+    const b = [file.getUint8(), file.getUint8(), file.getUint8()];
+
+    let x = 0, y = 0;
+
+    // Decode X movements (matching embroidery-viewer bit layout)
+    if (b[0] & 0x01) x += 1;
+    if (b[0] & 0x02) x -= 1;
+    if (b[0] & 0x04) x += 9;
+    if (b[0] & 0x08) x -= 9;
+    if (b[1] & 0x01) x += 3;
+    if (b[1] & 0x02) x -= 3;
+    if (b[1] & 0x04) x += 27;
+    if (b[1] & 0x08) x -= 27;
+    if (b[2] & 0x04) x += 81;
+    if (b[2] & 0x08) x -= 81;
+
+    // Decode Y movements (note: embroidery-viewer uses + for 0x80, - for 0x40)
+    if (b[0] & 0x80) y += 1;
+    if (b[0] & 0x40) y -= 1;
+    if (b[0] & 0x20) y += 9;
+    if (b[0] & 0x10) y -= 9;
+    if (b[1] & 0x80) y += 3;
+    if (b[1] & 0x40) y -= 3;
+    if (b[1] & 0x20) y += 27;
+    if (b[1] & 0x10) y -= 27;
+    if (b[2] & 0x20) y += 81;
+    if (b[2] & 0x10) y -= 81;
+
+    // Decode flags
     let flags = NORMAL;
-    if ((commandBitsX & 0x20) || (commandBitsY & 0x20)) {
-      flags = TRIM;
-    } else if ((commandBitsX & 0x10) || (commandBitsY & 0x10)) {
-      flags = JUMP;
-    }
-
-    x += dx;
-    y += dy;
-    stitches.push({ x, y, flags });
-  }
-
-  const result = buildResult(stitches, colorChanges);
-  if (threadColors.length > 0) {
-    result.threadColors = threadColors;
-  }
-  return result;
-}
-
-// ── DST Parser (Tajima) ─────────────────────────────────────────────────
-
-function parseDST(buffer: ArrayBuffer): EmbroideryData {
-  const bytes = new Uint8Array(buffer);
-  const headerEnd = 512;
-  if (buffer.byteLength < headerEnd + 3) throw new Error("Invalid DST file");
-
-  const stitches: Stitch[] = [];
-  let x = 0, y = 0;
-  let colorChanges = 0;
-
-  for (let i = headerEnd; i + 2 < buffer.byteLength; i += 3) {
-    const b0 = bytes[i];
-    const b1 = bytes[i + 1];
-    const b2 = bytes[i + 2];
-    const command = b2 & 0xC3;
-
-    if (b0 === 0x00 && b1 === 0x00 && command === 0xF3) {
-      stitches.push({ x, y, flags: END });
-      break;
-    }
-
-    let dx = 0, dy = 0;
-
-    // Decode X using DST bit layout
-    if (b0 & 0x01) dx += 1;
-    if (b0 & 0x02) dx -= 1;
-    if (b0 & 0x04) dx += 9;
-    if (b0 & 0x08) dx -= 9;
-    if (b1 & 0x01) dx += 3;
-    if (b1 & 0x02) dx -= 3;
-    if (b1 & 0x04) dx += 27;
-    if (b1 & 0x08) dx -= 27;
-    if (b2 & 0x01) dx += 81;
-    if (b2 & 0x02) dx -= 81;
-
-    // Decode Y using DST bit layout
-    if (b0 & 0x80) dy -= 1;
-    if (b0 & 0x40) dy += 1;
-    if (b0 & 0x20) dy -= 9;
-    if (b0 & 0x10) dy += 9;
-    if (b1 & 0x80) dy -= 3;
-    if (b1 & 0x40) dy += 3;
-    if (b1 & 0x20) dy -= 27;
-    if (b1 & 0x10) dy += 27;
-    if (b2 & 0x20) dy -= 81;
-    if (b2 & 0x10) dy += 81;
-
-    let flags = NORMAL;
-    if (command === 0xC3) {
-      flags = COLOR_CHANGE;
-      colorChanges++;
-    } else if (command === 0x83) {
-      flags = (dx === 0 && dy === 0) ? TRIM : JUMP;
-    } else if (command === 0x43) {
-      flags = STOP;
-    }
-
-    x += dx;
-    y += dy;
-    stitches.push({ x, y, flags });
-  }
-
-  return buildResult(stitches, colorChanges);
-}
-
-// ── EXP Parser (Melco/Bernina) ──────────────────────────────────────────
-
-function parseEXP(buffer: ArrayBuffer): EmbroideryData {
-  const bytes = new Uint8Array(buffer);
-  const stitches: Stitch[] = [];
-  let x = 0, y = 0;
-  let colorChanges = 0;
-
-  for (let i = 0; i + 1 < buffer.byteLength; i += 2) {
-    const b0 = bytes[i];
-    const b1 = bytes[i + 1];
-
-    if (b0 === 0x80 && b1 === 0x01) {
-      colorChanges++;
-      stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 2;
-      continue;
-    }
-
-    if (b0 === 0x80 && b1 === 0x04) {
-      i += 2;
-      if (i + 1 >= buffer.byteLength) break;
-      const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
-      const dy = bytes[i + 1] > 127 ? -(bytes[i + 1] - 256) : -bytes[i + 1];
-      x += dx;
-      y += dy;
-      stitches.push({ x, y, flags: JUMP });
-      continue;
-    }
-
-    if (b0 === 0x80 && b1 === 0x02) {
-      stitches.push({ x, y, flags: STOP });
-      continue;
-    }
-
-    if (b0 === 0x80 && b1 === 0x80) {
-      stitches.push({ x, y, flags: END });
-      break;
-    }
-
-    if (b0 === 0x80) {
-      continue;
-    }
-
-    const dx = b0 > 127 ? b0 - 256 : b0;
-    const dy = b1 > 127 ? -(b1 - 256) : -b1;
-    x += dx;
-    y += dy;
-    stitches.push({ x, y, flags: NORMAL });
-  }
-
-  return buildResult(stitches, colorChanges);
-}
-
-// ── JEF Parser (Janome) ─────────────────────────────────────────────────
-
-function parseJEF(buffer: ArrayBuffer): EmbroideryData {
-  const view = new DataView(buffer);
-  if (buffer.byteLength < 116) throw new Error("Invalid JEF file");
-
-  const stitchOffset = view.getInt32(0, true);
-  if (stitchOffset <= 0 || stitchOffset >= buffer.byteLength) {
-    throw new Error("Invalid JEF stitch offset");
-  }
-
-  const colorCount = Math.max(0, view.getInt32(24, true));
-  const threadColors: string[] = [];
-  const colorTableOffset = 116;
-
-  for (let c = 0; c < colorCount; c++) {
-    const offset = colorTableOffset + c * 4;
-    if (offset + 4 > stitchOffset || offset + 4 > buffer.byteLength) break;
-
-    const colorIndex = view.getInt32(offset, true);
-    if (colorIndex >= 0 && colorIndex < JANOME_THREAD_COLORS.length) {
-      threadColors.push(JANOME_THREAD_COLORS[colorIndex]);
+    if (b[2] === 0xF3) {
+      flags = END;
+    } else if ((b[2] & 0xC3) === 0xC3) {
+      flags = TRIM | STOP;
     } else {
-      threadColors.push(CATALOG_PALETTE[Math.abs(colorIndex) % CATALOG_PALETTE.length]);
+      if (b[2] & 0x80) flags |= TRIM;
+      if (b[2] & 0x40) flags |= STOP;
     }
+
+    const thisJump = (flags & JUMP) !== 0;
+    if (prevJump) flags |= JUMP;
+
+    addStitchRel(pattern, x, y, flags, true);
+    prevJump = thisJump;
+
+    if (flags === END) break;
   }
 
-  const bytes = new Uint8Array(buffer);
-  const stitches: Stitch[] = [];
-  let x = 0, y = 0;
-  let colorChanges = 0;
+  addStitchRel(pattern, 0, 0, END, true);
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
+}
 
-  for (let i = stitchOffset; i + 1 < buffer.byteLength; i += 2) {
-    const b0 = bytes[i];
-    const b1 = bytes[i + 1];
+// ── EXP Parser (ported from embroidery-viewer) ──────────────────────────
 
-    if (b0 === 0x80 && b1 === 0x01) {
-      stitches.push({ x, y, flags: END });
-      break;
+function expDecode(input: number): number {
+  return input > 128 ? -(~input & 0xFF) - 1 : input;
+}
+
+function parseEXP(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+  let index = 0;
+
+  while (index < file.byteLength) {
+    let flags = NORMAL;
+    let b0 = file.getInt8();
+    let b1 = file.getInt8();
+    index += 2;
+
+    if (b0 === -128) {
+      if (b1 & 1) {
+        b0 = file.getInt8();
+        b1 = file.getInt8();
+        index += 2;
+        flags = STOP;
+      } else if (b1 === 2 || b1 === 4) {
+        b0 = file.getInt8();
+        b1 = file.getInt8();
+        index += 2;
+        flags = TRIM;
+      } else if (b1 === -128) {
+        b0 = file.getInt8();
+        b1 = file.getInt8();
+        index += 2;
+        b0 = 0;
+        b1 = 0;
+        flags = TRIM;
+      }
     }
 
-    if (b0 === 0x80 && b1 === 0x02) {
-      colorChanges++;
-      stitches.push({ x, y, flags: COLOR_CHANGE });
-      continue;
-    }
-
-    if (b0 === 0x80 && b1 === 0x04) {
-      stitches.push({ x, y, flags: STOP });
-      continue;
-    }
-
-    if (b0 === 0x80 && (b1 === 0x10 || b1 === 0x20)) {
-      i += 2;
-      if (i + 1 >= buffer.byteLength) break;
-      const dx = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
-      const dy = bytes[i + 1] > 127 ? bytes[i + 1] - 256 : bytes[i + 1];
-      x += dx;
-      y -= dy; // JEF Y is inverted
-      stitches.push({ x, y, flags: b1 === 0x20 ? TRIM : JUMP });
-      continue;
-    }
-
-    if (b0 === 0x80) {
-      continue;
-    }
-
-    const dx = b0 > 127 ? b0 - 256 : b0;
-    const dy = b1 > 127 ? b1 - 256 : b1;
-    x += dx;
-    y -= dy; // JEF Y is inverted
-    stitches.push({ x, y, flags: NORMAL });
+    addStitchRel(pattern, expDecode(b0), expDecode(b1), flags, true);
   }
 
-  const result = buildResult(stitches, colorChanges);
-  if (threadColors.length > 0) {
-    result.threadColors = threadColors;
+  addStitchRel(pattern, 0, 0, END);
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
+}
+
+// ── JEF Parser (ported from embroidery-viewer) ──────────────────────────
+
+function jefDecode(byte: number): number {
+  return byte >= 0x80 ? -(~byte & 0xFF) - 1 : byte;
+}
+
+function parseJEF(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  file.seek(24);
+  const colorCount = file.getInt32(file.tell(), true);
+  const stitchCount = file.getInt32(file.tell(), true);
+  file.seek(file.tell() + 84);
+
+  // Read colors
+  for (let i = 0; i < colorCount; i++) {
+    const colorIndex = file.getUint32(file.tell(), true) % JEF_COLORS.length;
+    addColor(pattern, JEF_COLORS[colorIndex]);
   }
-  return result;
+  // Skip padding to align to 6 colors minimum
+  file.seek(file.tell() + Math.max(0, (6 - colorCount)) * 4);
+
+  // Read stitches
+  let stitchesProcessed = 0;
+  while (stitchesProcessed < stitchCount + 100) {
+    const byte1 = file.getUint8();
+    const byte2 = file.getUint8();
+
+    let type = NORMAL;
+    let db1 = byte1;
+    let db2 = byte2;
+    let isEnd = false;
+
+    if (byte1 === 0x80) {
+      if ((byte2 & 0x01) !== 0 || byte2 === 0x02 || byte2 === 0x04) {
+        type = ((byte2 & 0x01) !== 0) ? STOP : TRIM;
+        db1 = file.getUint8();
+        db2 = file.getUint8();
+      } else if (byte2 === 0x10) {
+        type = END;
+        db1 = 0;
+        db2 = 0;
+        isEnd = true;
+      }
+    }
+
+    addStitchRel(pattern, jefDecode(db1), jefDecode(db2), type, true);
+    if (isEnd) break;
+    stitchesProcessed++;
+  }
+
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
 }
 
 // ── XXX Parser (Singer) ─────────────────────────────────────────────────
 
-function parseXXX(buffer: ArrayBuffer): EmbroideryData {
-  const view = new DataView(buffer);
-  const bytes = new Uint8Array(buffer);
-  if (buffer.byteLength < 0x100) throw new Error("Invalid XXX file");
+function parseXXX(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  if (file.byteLength < 0x100) throw new Error("Invalid XXX file");
 
   let stitchOffset = 0x100;
   try {
-    const offset = view.getUint32(0x20, true);
-    if (offset > 0 && offset < buffer.byteLength) stitchOffset = offset;
-  } catch {
-    // use default
-  }
+    const offset = file.getUint32(0x20, true);
+    if (offset > 0 && offset < file.byteLength) stitchOffset = offset;
+  } catch { /* use default */ }
 
-  const stitches: Stitch[] = [];
-  let x = 0, y = 0;
-  let colorChanges = 0;
+  file.seek(stitchOffset);
 
-  for (let i = stitchOffset; i + 1 < buffer.byteLength; i += 2) {
-    const b0 = bytes[i];
-    const b1 = bytes[i + 1];
+  while (file.tell() + 1 < file.byteLength) {
+    const b0 = file.getUint8();
+    const b1 = file.getUint8();
 
     if (b0 === 0x7F && b1 === 0x7F) {
-      colorChanges++;
-      stitches.push({ x, y, flags: COLOR_CHANGE });
-      i += 2;
+      addStitchRel(pattern, 0, 0, STOP, true);
+      // Skip 2 more bytes after color change
+      if (file.tell() + 1 < file.byteLength) {
+        file.getUint8();
+        file.getUint8();
+      }
       continue;
     }
 
     if (b0 === 0x7E && b1 === 0x7E) {
-      stitches.push({ x, y, flags: END });
+      addStitchRel(pattern, 0, 0, END);
       break;
     }
 
@@ -575,245 +683,133 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
     const dy = b1 > 127 ? b1 - 256 : b1;
 
     if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
-      x += dx;
-      y += dy;
-      stitches.push({ x, y, flags: JUMP });
+      addStitchRel(pattern, dx, dy, JUMP, true);
     } else {
-      x += dx;
-      y += dy;
-      stitches.push({ x, y, flags: NORMAL });
+      addStitchRel(pattern, dx, dy, NORMAL, true);
     }
   }
 
-  return buildResult(stitches, colorChanges);
+  addStitchRel(pattern, 0, 0, END);
+  moveToPositive(pattern);
+  return pattern;
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────
+// ── VP3 Parser ──────────────────────────────────────────────────────────
 
-function buildResult(stitches: Stitch[], colorChanges: number): EmbroideryData {
-  if (stitches.length === 0) throw new Error("No stitches found");
+function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
+  // VP3 is complex; use basic approach with fallback palette
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
 
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  let stitchCount = 0;
+  if (file.byteLength < 256) throw new Error("Invalid VP3 file");
 
-  for (const s of stitches) {
-    if (s.flags === NORMAL) stitchCount++;
-    if (s.x < minX) minX = s.x;
-    if (s.x > maxX) maxX = s.x;
-    if (s.y < minY) minY = s.y;
-    if (s.y > maxY) maxY = s.y;
-  }
-
-  // Normalize coordinates to start at 0,0
-  for (const s of stitches) {
-    s.x -= minX;
-    s.y -= minY;
-  }
-
-  return {
-    stitches,
-    width: maxX - minX,
-    height: maxY - minY,
-    stitchCount,
-    colorChanges,
-  };
+  // VP3 has a complex header structure; find stitch data by scanning
+  // For now, treat as unsupported and let quality gate handle it
+  throw new Error("VP3 format requires manual preview upload");
 }
 
-function suppressLikelyJumpLines(data: EmbroideryData): EmbroideryData {
-  const stepDistances: number[] = [];
-  let prevNormal: Stitch | null = null;
+// ── Renderer (with radial gradient for realistic thread look) ───────────
 
-  for (const stitch of data.stitches) {
-    if (stitch.flags !== NORMAL) {
-      prevNormal = null;
-      continue;
-    }
-
-    if (prevNormal) {
-      stepDistances.push(Math.hypot(stitch.x - prevNormal.x, stitch.y - prevNormal.y));
-    }
-
-    prevNormal = stitch;
-  }
-
-  if (stepDistances.length < 12) return data;
-
-  const sorted = [...stepDistances].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)] || 0;
-  const p90 = sorted[Math.floor(sorted.length * 0.9)] || median;
-  const diagonal = Math.hypot(data.width, data.height);
-  const jumpThreshold = Math.max(14, median * 5, p90 * 1.8, diagonal * 0.09);
-
-  let previousIndex = -1;
-  let normalCount = 0;
-
-  for (let i = 0; i < data.stitches.length; i++) {
-    const current = data.stitches[i];
-    if (current.flags !== NORMAL) {
-      previousIndex = -1;
-      continue;
-    }
-
-    if (previousIndex >= 0) {
-      const prev = data.stitches[previousIndex];
-      const distance = Math.hypot(current.x - prev.x, current.y - prev.y);
-
-      if (distance > jumpThreshold) {
-        current.flags = JUMP;
-        previousIndex = -1;
-        continue;
-      }
-    }
-
-    normalCount++;
-    previousIndex = i;
-  }
-
-  data.stitchCount = normalCount;
-  return data;
-}
-
-// ── Quality Validation ─────────────────────────────────────────────────
-
-function validatePreviewQuality(data: EmbroideryData): boolean {
-  // Must have a meaningful number of normal stitches
-  if (data.stitchCount < 20) return false;
-
-  // Design must have non-trivial dimensions
-  if (data.width < 5 || data.height < 5) return false;
-
-  // Calculate the ratio of normal stitches to total entries
-  const totalEntries = data.stitches.length;
-  const normalRatio = data.stitchCount / totalEntries;
-  
-  // If almost all stitches are jumps/moves, the preview will look broken
-  if (normalRatio < 0.15) return false;
-
-  // Check for degenerate aspect ratio (extremely thin lines)
-  const aspectRatio = Math.max(data.width, data.height) / Math.min(data.width, data.height);
-  if (aspectRatio > 50) return false;
-
-  // Check that stitches aren't all clustered in a tiny area with huge outliers
-  // by sampling variance
-  const normalStitches = data.stitches.filter(s => s.flags === NORMAL);
-  if (normalStitches.length > 10) {
-    const xs = normalStitches.map(s => s.x);
-    const ys = normalStitches.map(s => s.y);
-    xs.sort((a, b) => a - b);
-    ys.sort((a, b) => a - b);
-    // Check that the middle 80% of stitches cover a reasonable area
-    const p10 = Math.floor(xs.length * 0.1);
-    const p90 = Math.floor(xs.length * 0.9);
-    const innerWidth = xs[p90] - xs[p10];
-    const innerHeight = ys[p90] - ys[p10];
-    // If the inner 80% is <5% of total bounds, outliers are dominating
-    if (data.width > 0 && data.height > 0) {
-      const coverage = (innerWidth / data.width) * (innerHeight / data.height);
-      if (coverage < 0.01) return false;
-    }
-  }
-
-  return true;
-}
-
-// ── Color Selection ─────────────────────────────────────────────────────
-
-/**
- * Get the effective color palette for rendering.
- * Priority: embedded thread colors > curated catalog palette.
- * Ensures adjacent colors always have good contrast.
- */
-function getEffectivePalette(data: EmbroideryData): string[] {
-  if (data.threadColors && data.threadColors.length > 0) {
-    // Validate extracted colors — skip if they look broken (all same, all black/white)
-    const unique = new Set(data.threadColors);
-    const hasVariety = unique.size > 1;
-    const notAllDark = data.threadColors.some(c => {
-      const r = parseInt(c.slice(1, 3), 16);
-      const g = parseInt(c.slice(3, 5), 16);
-      const b = parseInt(c.slice(5, 7), 16);
-      return (r + g + b) > 100;
-    });
-    if (hasVariety && notAllDark) {
-      return data.threadColors;
-    }
-  }
-  return CATALOG_PALETTE;
-}
-
-// ── Renderer ────────────────────────────────────────────────────────────
-
-function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasElement {
+function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  const padding = size * 0.08;
   canvas.width = size;
   canvas.height = size;
-
   const ctx = canvas.getContext("2d")!;
 
   // White background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, size, size);
 
-  if (data.stitches.length < 2) return canvas;
+  if (pattern.stitches.length < 2) return canvas;
 
   // Calculate scale to fit in canvas with padding
+  const padding = size * 0.08;
   const drawArea = size - padding * 2;
-  const scaleX = data.width > 0 ? drawArea / data.width : 1;
-  const scaleY = data.height > 0 ? drawArea / data.height : 1;
+  const patternWidth = pattern.right - pattern.left;
+  const patternHeight = pattern.bottom - pattern.top;
+  const scaleX = patternWidth > 0 ? drawArea / patternWidth : 1;
+  const scaleY = patternHeight > 0 ? drawArea / patternHeight : 1;
   const scale = Math.min(scaleX, scaleY);
 
   // Center offset
-  const offsetX = padding + (drawArea - data.width * scale) / 2;
-  const offsetY = padding + (drawArea - data.height * scale) / 2;
+  const offsetX = padding + (drawArea - patternWidth * scale) / 2;
+  const offsetY = padding + (drawArea - patternHeight * scale) / 2;
 
-  const palette = getEffectivePalette(data);
-
-  // Draw stitches with thicker lines for polished catalog look
-  let colorIndex = 0;
-  const baseWidth = Math.max(1.8, size / 350);
-  ctx.lineCap = "round";
+  // Render with thread-like gradient (from embroidery-viewer)
+  ctx.lineWidth = Math.max(2.5, size / 280);
   ctx.lineJoin = "round";
+  ctx.lineCap = "round";
 
-  let i = 0;
-  while (i < data.stitches.length) {
-    const s = data.stitches[i];
-    if (s.flags === END) break;
+  let lastStitch = pattern.stitches[0];
+  let currentColor = pattern.colors[lastStitch.color] || CATALOG_PALETTE[0];
 
-    if (s.flags === COLOR_CHANGE) {
-      colorIndex++;
-      i++;
+  for (let i = 0; i < pattern.stitches.length; i++) {
+    const stitch = pattern.stitches[i];
+
+    if (i > 0) lastStitch = pattern.stitches[i - 1];
+
+    // Skip non-rendering stitches (jump, trim, stop, end)
+    if (stitch.flags === JUMP || stitch.flags === TRIM || stitch.flags === (TRIM | STOP) ||
+        (stitch.flags & STOP) === STOP || stitch.flags === END) {
+      currentColor = pattern.colors[stitch.color] || CATALOG_PALETTE[stitch.color % CATALOG_PALETTE.length];
+      // Move pen position without drawing
       continue;
     }
 
-    if (isNonRenderingStitch(s.flags)) {
-      i++;
-      continue;
+    currentColor = pattern.colors[stitch.color] || CATALOG_PALETTE[stitch.color % CATALOG_PALETTE.length];
+
+    const x1 = lastStitch.x * scale + offsetX;
+    const y1 = lastStitch.y * scale + offsetY;
+    const x2 = stitch.x * scale + offsetX;
+    const y2 = stitch.y * scale + offsetY;
+
+    const tx = x2 - x1;
+    const ty = y2 - y1;
+    const dist = Math.sqrt(tx * tx + ty * ty);
+
+    if (dist < 0.5) continue; // Skip zero-length stitches
+
+    // Create radial gradient for thread-like shading
+    const hex = rgbToHex(currentColor);
+    try {
+      const gWidth = Math.max(dist * 1.4, 3);
+      const gradient = ctx.createRadialGradient(x1, y1, 0, x1, y1, gWidth);
+      gradient.addColorStop(0, shadeColor(hex, -60));
+      gradient.addColorStop(0.05, hex);
+      gradient.addColorStop(0.5, shadeColor(hex, 60));
+      gradient.addColorStop(0.9, hex);
+      gradient.addColorStop(1.0, shadeColor(hex, -60));
+      ctx.strokeStyle = gradient;
+    } catch {
+      ctx.strokeStyle = hex;
     }
 
-    // Start a new path segment for consecutive normal stitches
     ctx.beginPath();
-    ctx.strokeStyle = palette[colorIndex % palette.length];
-    ctx.lineWidth = baseWidth;
-
-    // Move to current stitch position
-    const sx = s.x * scale + offsetX;
-    const sy = s.y * scale + offsetY;
-    ctx.moveTo(sx, sy);
-
-    i++;
-    // Continue drawing connected normal stitches
-    while (i < data.stitches.length) {
-      const next = data.stitches[i];
-      if (next.flags !== NORMAL) break;
-      ctx.lineTo(next.x * scale + offsetX, next.y * scale + offsetY);
-      i++;
-    }
-
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
   }
 
   return canvas;
+}
+
+// ── Quality Validation ─────────────────────────────────────────────────
+
+function validatePreviewQuality(pattern: EmbroideryPattern): boolean {
+  const normalStitches = pattern.stitches.filter(s => s.flags === NORMAL);
+  if (normalStitches.length < 20) return false;
+
+  const patternWidth = pattern.right - pattern.left;
+  const patternHeight = pattern.bottom - pattern.top;
+  if (patternWidth < 5 || patternHeight < 5) return false;
+
+  const normalRatio = normalStitches.length / pattern.stitches.length;
+  if (normalRatio < 0.15) return false;
+
+  const aspectRatio = Math.max(patternWidth, patternHeight) / Math.min(patternWidth, patternHeight);
+  if (aspectRatio > 50) return false;
+
+  return true;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────
@@ -830,7 +826,9 @@ export interface EmbroideryPreviewResult {
   metadata: EmbroideryMetadata;
 }
 
-const FORMAT_PARSERS: Record<string, (buf: ArrayBuffer) => EmbroideryData> = {
+type Parser = (buffer: ArrayBuffer) => EmbroideryPattern;
+
+const FORMAT_PARSERS: Record<string, Parser> = {
   pes: parsePES,
   dst: parseDST,
   jef: parseJEF,
@@ -853,21 +851,23 @@ export async function generateEmbroideryPreview(
 
   try {
     const buffer = await file.arrayBuffer();
-    const data = suppressLikelyJumpLines(parser(buffer));
+    const pattern = parser(buffer);
 
-    if (data.stitchCount < 5) return null;
-
-    // Quality gate: don't produce previews that look broken
-    if (!validatePreviewQuality(data)) {
+    if (!validatePreviewQuality(pattern)) {
       console.warn(`Embroidery preview quality check failed for ${format} — skipping auto-preview`);
       return null;
     }
 
-    const canvas = renderToCanvas(data, imageSize);
+    const canvas = renderToCanvas(pattern, imageSize);
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png")
     );
     if (!blob) return null;
+
+    const patternWidth = pattern.right - pattern.left;
+    const patternHeight = pattern.bottom - pattern.top;
+    const normalStitches = pattern.stitches.filter(s => s.flags === NORMAL).length;
+    const colorChanges = new Set(pattern.stitches.map(s => s.color)).size - 1;
 
     // Convert from stitch units to approximate mm (1 unit ≈ 0.1mm for most formats)
     const unitToMm = 0.1;
@@ -875,10 +875,10 @@ export async function generateEmbroideryPreview(
     return {
       blob,
       metadata: {
-        widthMm: Math.round(data.width * unitToMm * 10) / 10,
-        heightMm: Math.round(data.height * unitToMm * 10) / 10,
-        stitchCount: data.stitchCount,
-        colorChanges: data.colorChanges,
+        widthMm: Math.round(patternWidth * unitToMm * 10) / 10,
+        heightMm: Math.round(patternHeight * unitToMm * 10) / 10,
+        stitchCount: normalStitches,
+        colorChanges: Math.max(0, colorChanges),
       },
     };
   } catch (err) {
