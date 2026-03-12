@@ -75,6 +75,20 @@ function suggestCategory(name: string, categories: any[]): string | null {
   return null;
 }
 
+interface PipelineStep {
+  step: string;
+  detail?: string;
+  timestamp: Date;
+  level: "info" | "success" | "warn" | "error";
+}
+
+interface ImportResult {
+  previewStatus: "generated" | "failed" | "skipped" | null;
+  designRecord: "created" | "existing" | null;
+  filesUploaded: number;
+  filesSkipped: number;
+}
+
 interface DesignGroup {
   id: string;
   baseName: string;
@@ -88,10 +102,12 @@ interface DesignGroup {
   previewFile: { name: string; blob: Blob } | null;
   autoPreview: boolean;
   isZip: boolean;
-  status: "pending" | "editing" | "uploading" | "done" | "error";
+  status: "pending" | "editing" | "uploading" | "done" | "duplicate" | "error";
   error?: string;
   metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
   generatingTitle: boolean;
+  pipelineLog: PipelineStep[];
+  importResult: ImportResult | null;
 }
 
 export const AdminSmartUpload = () => {
