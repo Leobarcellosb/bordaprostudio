@@ -303,10 +303,7 @@ const MockupSimulator = () => {
               <CardContent className="p-0">
                 <div
                   className="aspect-square flex items-center justify-center relative"
-                  style={{
-                    backgroundImage: "repeating-conic-gradient(hsl(var(--muted)) 0% 25%, transparent 0% 50%)",
-                    backgroundSize: "20px 20px",
-                  }}
+                  style={{ backgroundColor: "#F3F4F6" }}
                 >
                   {!selectedKit ? (
                     <div className="text-center space-y-3 p-8">
