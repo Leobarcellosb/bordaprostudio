@@ -1,0 +1,1 @@
+ALTER TABLE public.kit_arquivos ADD COLUMN file_hash text DEFAULT NULL;

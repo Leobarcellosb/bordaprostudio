@@ -533,18 +533,29 @@ export const AdminSmartUpload = () => {
             continue;
           }
 
-          // Check duplicate
+          // Compute SHA-256 hash for content-based duplicate detection
+          const fileBuffer = await file.blob.arrayBuffer();
+          const hashBuffer = await crypto.subtle.digest("SHA-256", fileBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const fileHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+          // Check duplicate by content hash
           const { data: existingFile } = await db
             .from("kit_arquivos")
-            .select("id")
+            .select("id, file_name")
             .eq("design_id", designId)
-            .eq("format", fileFormat)
+            .eq("file_hash", fileHash)
             .maybeSingle();
 
           if (existingFile) {
-            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} (${fileFormat})`);
+            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} — conteúdo idêntico a "${existingFile.file_name}" (hash: ${fileHash.slice(0, 12)}…)`);
             filesSkipped++;
             continue;
+          }
+
+          // If design exists but file is different, allow upload
+          if (!isNewDesign) {
+            plog("FILE_NEW_FOR_EXISTING_DESIGN", "info", `Design existente encontrado. Arquivo diferente, upload permitido: ${file.name}`);
           }
 
           await delay(1000);
@@ -573,6 +584,7 @@ export const AdminSmartUpload = () => {
             file_name: file.name,
             file_url: urlData.publicUrl,
             format: fileFormat,
+            file_hash: fileHash,
           });
 
           if (fileRecordError) {
@@ -590,7 +602,7 @@ export const AdminSmartUpload = () => {
         const result: ImportResult = { previewStatus, designRecord, filesUploaded, filesSkipped };
 
         if (filesUploaded === 0 && filesSkipped > 0 && !isNewDesign) {
-          updateGroup(group.id, { status: "duplicate", error: "Design já existente, arquivos duplicados ignorados", importResult: result });
+          updateGroup(group.id, { status: "duplicate", error: "Design existente encontrado. Todos os arquivos são idênticos (mesmo hash), duplicados ignorados.", importResult: result });
           skippedCount++;
         } else {
           updateGroup(group.id, { status: "done", importResult: result });
