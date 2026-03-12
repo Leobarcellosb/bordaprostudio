@@ -287,6 +287,48 @@ export const AdminSmartUpload = () => {
     [categories]
   );
 
+  const generateAITitle = useCallback(async (group: DesignGroup) => {
+    setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: true } : g));
+
+    try {
+      let imageUrl: string | null = null;
+      if (group.previewFile) {
+        imageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(group.previewFile!.blob);
+        });
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-design-title", {
+        body: {
+          image_url: imageUrl,
+          tags: group.tags,
+          metadata: group.metadata,
+          raw_filename: group.rawFilename,
+        },
+      });
+
+      if (error) throw error;
+
+      const aiTitle = data?.title;
+      if (aiTitle && typeof aiTitle === "string" && aiTitle.length > 0) {
+        setGroups((prev) =>
+          prev.map((g) =>
+            g.id === group.id
+              ? { ...g, title: aiTitle, generatedTitle: aiTitle, titleSource: "ai" as const, generatingTitle: false }
+              : g
+          )
+        );
+      } else {
+        setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+      }
+    } catch (err) {
+      console.warn("AI title generation failed for", group.baseName, err);
+      setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+    }
+  }, []);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
