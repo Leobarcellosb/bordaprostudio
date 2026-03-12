@@ -692,7 +692,22 @@ function DesignGroupCard({
                     className="h-8 text-sm font-medium"
                   />
                 ) : (
-                  <p className="font-medium text-sm truncate">{group.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    {group.generatingTitle ? (
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Gerando título...
+                      </span>
+                    ) : (
+                      <>
+                        <p className="font-medium text-sm truncate">{group.title}</p>
+                        {group.titleSource === "ai" && (
+                          <Badge variant="secondary" className="text-[9px] gap-0.5 shrink-0">
+                            <Sparkles className="h-2.5 w-2.5" /> IA
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
