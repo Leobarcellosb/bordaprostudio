@@ -74,16 +74,20 @@ function suggestCategory(name: string, categories: any[]): string | null {
 interface DesignGroup {
   id: string;
   baseName: string;
+  rawFilename: string;
   title: string;
+  generatedTitle: string | null;
+  titleSource: "ai" | "filename";
   tags: string;
   categoryId: string;
   files: { name: string; blob: Blob; format: string }[];
   previewFile: { name: string; blob: Blob } | null;
-  autoPreview: boolean; // true if preview was auto-generated from embroidery file
+  autoPreview: boolean;
   isZip: boolean;
   status: "pending" | "editing" | "uploading" | "done" | "error";
   error?: string;
   metadata?: { widthMm: number; heightMm: number; stitchCount: number; colorChanges: number };
+  generatingTitle: boolean;
 }
 
 export const AdminSmartUpload = () => {
