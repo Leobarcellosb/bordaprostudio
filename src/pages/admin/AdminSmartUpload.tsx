@@ -216,6 +216,8 @@ export const AdminSmartUpload = () => {
 
       // Third pass: auto-generate previews from embroidery files for groups without images
       const entries = Array.from(newGroups.values());
+      let previewFailures = 0;
+
       for (const group of entries) {
         if (!group.previewFile && group.files.length > 0) {
           // Find a supported embroidery file to generate preview
@@ -228,11 +230,11 @@ export const AdminSmartUpload = () => {
                 group.autoPreview = true;
                 group.metadata = result.metadata;
               } else {
-                toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
+                previewFailures++;
               }
             } catch (err) {
               console.warn(`Auto-preview failed for ${group.baseName}:`, err);
-              toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
+              previewFailures++;
             }
           }
         }
@@ -241,6 +243,10 @@ export const AdminSmartUpload = () => {
       if (entries.length === 0) {
         toast.error("Nenhum arquivo de bordado reconhecido. Formatos suportados: PES, EXP, JEF, DST, XXX, VP3");
         return;
+      }
+
+      if (previewFailures > 0) {
+        toast.info("Não foi possível gerar uma visualização legível desta matriz. Envie uma imagem manualmente.");
       }
 
       setGroups((prev) => [...prev, ...entries]);
