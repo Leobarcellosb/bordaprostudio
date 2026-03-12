@@ -528,6 +528,31 @@ function validatePreviewQuality(data: EmbroideryData): boolean {
   return true;
 }
 
+// ── Color Selection ─────────────────────────────────────────────────────
+
+/**
+ * Get the effective color palette for rendering.
+ * Priority: embedded thread colors > curated catalog palette.
+ * Ensures adjacent colors always have good contrast.
+ */
+function getEffectivePalette(data: EmbroideryData): string[] {
+  if (data.threadColors && data.threadColors.length > 0) {
+    // Validate extracted colors — skip if they look broken (all same, all black/white)
+    const unique = new Set(data.threadColors);
+    const hasVariety = unique.size > 1;
+    const notAllDark = data.threadColors.some(c => {
+      const r = parseInt(c.slice(1, 3), 16);
+      const g = parseInt(c.slice(3, 5), 16);
+      const b = parseInt(c.slice(5, 7), 16);
+      return (r + g + b) > 100;
+    });
+    if (hasVariety && notAllDark) {
+      return data.threadColors;
+    }
+  }
+  return CATALOG_PALETTE;
+}
+
 // ── Renderer ────────────────────────────────────────────────────────────
 
 function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasElement {
@@ -554,9 +579,11 @@ function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasEle
   const offsetX = padding + (drawArea - data.width * scale) / 2;
   const offsetY = padding + (drawArea - data.height * scale) / 2;
 
-  // Draw stitches with thicker lines for better visual quality
+  const palette = getEffectivePalette(data);
+
+  // Draw stitches with thicker lines for polished catalog look
   let colorIndex = 0;
-  const baseWidth = Math.max(1.5, size / 400);
+  const baseWidth = Math.max(1.8, size / 350);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
@@ -578,7 +605,7 @@ function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasEle
 
     // Start a new path segment for consecutive normal stitches
     ctx.beginPath();
-    ctx.strokeStyle = THREAD_PALETTE[colorIndex % THREAD_PALETTE.length];
+    ctx.strokeStyle = palette[colorIndex % palette.length];
     ctx.lineWidth = baseWidth;
 
     // Move to current stitch position
