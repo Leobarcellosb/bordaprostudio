@@ -252,6 +252,7 @@ export type Database = {
         Row: {
           created_at: string | null
           design_id: string
+          file_hash: string | null
           file_name: string
           file_url: string
           format: string
@@ -260,6 +261,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           design_id: string
+          file_hash?: string | null
           file_name: string
           file_url: string
           format: string
@@ -268,6 +270,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           design_id?: string
+          file_hash?: string | null
           file_name?: string
           file_url?: string
           format?: string
