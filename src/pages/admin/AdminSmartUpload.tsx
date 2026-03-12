@@ -490,6 +490,7 @@ export const AdminSmartUpload = () => {
         } else {
           plog("DB_INSERT_START", "info");
           const meta = group.metadata;
+          const hoopSize = meta ? classifyHoopSize(meta.widthMm, meta.heightMm) : null;
           const { data: designData, error: designError } = await db
             .from("designs")
             .insert({
@@ -500,6 +501,7 @@ export const AdminSmartUpload = () => {
               category_id: group.categoryId || null,
               tags_text: group.tags,
               is_published: true,
+              hoop_size: hoopSize,
               ...(meta ? {
                 width_mm: meta.widthMm,
                 height_mm: meta.heightMm,
