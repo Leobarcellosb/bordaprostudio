@@ -197,6 +197,8 @@ export const AdminSmartUpload = () => {
                 isZip: true,
                 status: "pending",
                 generatingTitle: false,
+                pipelineLog: [],
+                importResult: null,
               });
             }
           } catch {
