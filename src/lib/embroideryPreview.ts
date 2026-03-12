@@ -708,7 +708,7 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
   throw new Error("VP3 format requires manual preview upload");
 }
 
-// ── Renderer (with radial gradient for realistic thread look) ───────────
+// ── Renderer (thick thread simulation for realistic embroidery look) ────
 
 function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -735,59 +735,115 @@ function renderToCanvas(pattern: EmbroideryPattern, size: number = 800): HTMLCan
   const offsetX = padding + (drawArea - patternWidth * scale) / 2;
   const offsetY = padding + (drawArea - patternHeight * scale) / 2;
 
-  // Render with thread-like gradient (from embroidery-viewer)
-  ctx.lineWidth = Math.max(2.5, size / 280);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
+  // Thread thickness: scale proportionally so fills look dense
+  // Typical embroidery thread is ~0.4mm; at common stitch densities this
+  // produces a filled appearance when strokes overlap.
+  const baseThickness = Math.max(2.0, size / 200);
 
-  let lastStitch = pattern.stitches[0];
-  let currentColor = pattern.colors[lastStitch.color] || CATALOG_PALETTE[0];
+  // Round caps and joins simulate thread shape
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  // Build color-block polylines for efficient batch rendering
+  interface Segment { x: number; y: number }
+  interface ColorBlock { color: EmbroideryColor; paths: Segment[][] }
+
+  const blocks: ColorBlock[] = [];
+  let curColor = pattern.colors[pattern.stitches[0].color] || CATALOG_PALETTE[0];
+  let curPaths: Segment[][] = [];
+  let curPath: Segment[] = [];
 
   for (let i = 0; i < pattern.stitches.length; i++) {
-    const stitch = pattern.stitches[i];
+    const s = pattern.stitches[i];
 
-    if (i > 0) lastStitch = pattern.stitches[i - 1];
+    // On color change, flush current block
+    const sColor = pattern.colors[s.color] || CATALOG_PALETTE[s.color % CATALOG_PALETTE.length];
+    if (i > 0 && (sColor.r !== curColor.r || sColor.g !== curColor.g || sColor.b !== curColor.b)) {
+      if (curPath.length > 0) { curPaths.push(curPath); curPath = []; }
+      if (curPaths.length > 0) { blocks.push({ color: curColor, paths: curPaths }); curPaths = []; }
+      curColor = sColor;
+    }
 
-    // Skip non-rendering stitches (jump, trim, stop, end)
-    if (stitch.flags === JUMP || stitch.flags === TRIM || stitch.flags === (TRIM | STOP) ||
-        (stitch.flags & STOP) === STOP || stitch.flags === END) {
-      currentColor = pattern.colors[stitch.color] || CATALOG_PALETTE[stitch.color % CATALOG_PALETTE.length];
-      // Move pen position without drawing
+    // Skip non-rendering stitches (jump, trim, stop, end) — break the path
+    if (s.flags === JUMP || s.flags === TRIM || s.flags === (TRIM | STOP) ||
+        (s.flags & STOP) === STOP || s.flags === END) {
+      if (curPath.length > 0) { curPaths.push(curPath); curPath = []; }
       continue;
     }
 
-    currentColor = pattern.colors[stitch.color] || CATALOG_PALETTE[stitch.color % CATALOG_PALETTE.length];
+    const sx = (s.x - pattern.left) * scale + offsetX;
+    const sy = (s.y - pattern.top) * scale + offsetY;
 
-    const x1 = lastStitch.x * scale + offsetX;
-    const y1 = lastStitch.y * scale + offsetY;
-    const x2 = stitch.x * scale + offsetX;
-    const y2 = stitch.y * scale + offsetY;
-
-    const tx = x2 - x1;
-    const ty = y2 - y1;
-    const dist = Math.sqrt(tx * tx + ty * ty);
-
-    if (dist < 0.5) continue; // Skip zero-length stitches
-
-    // Create radial gradient for thread-like shading
-    const hex = rgbToHex(currentColor);
-    try {
-      const gWidth = Math.max(dist * 1.4, 3);
-      const gradient = ctx.createRadialGradient(x1, y1, 0, x1, y1, gWidth);
-      gradient.addColorStop(0, shadeColor(hex, -60));
-      gradient.addColorStop(0.05, hex);
-      gradient.addColorStop(0.5, shadeColor(hex, 60));
-      gradient.addColorStop(0.9, hex);
-      gradient.addColorStop(1.0, shadeColor(hex, -60));
-      ctx.strokeStyle = gradient;
-    } catch {
-      ctx.strokeStyle = hex;
+    // If this is the first point after a break, just start a new path
+    if (curPath.length === 0) {
+      curPath.push({ x: sx, y: sy });
+      continue;
     }
 
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    // Skip zero-length segments
+    const prev = curPath[curPath.length - 1];
+    const dx = sx - prev.x;
+    const dy = sy - prev.y;
+    if (dx * dx + dy * dy < 0.25) continue;
+
+    curPath.push({ x: sx, y: sy });
+  }
+
+  // Flush remaining
+  if (curPath.length > 0) curPaths.push(curPath);
+  if (curPaths.length > 0) blocks.push({ color: curColor, paths: curPaths });
+
+  // Render each color block
+  for (const block of blocks) {
+    const hex = rgbToHex(block.color);
+    const darkerHex = shadeColor(hex, -25);
+
+    // Layer 1: slightly wider, darker stroke for thread shadow/depth
+    ctx.lineWidth = baseThickness * 1.3;
+    ctx.strokeStyle = darkerHex;
+    ctx.globalAlpha = 0.45;
+
+    for (const path of block.paths) {
+      if (path.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let j = 1; j < path.length; j++) {
+        ctx.lineTo(path[j].x, path[j].y);
+      }
+      ctx.stroke();
+    }
+
+    // Layer 2: main thread color at full opacity
+    ctx.lineWidth = baseThickness;
+    ctx.strokeStyle = hex;
+    ctx.globalAlpha = 1.0;
+
+    for (const path of block.paths) {
+      if (path.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let j = 1; j < path.length; j++) {
+        ctx.lineTo(path[j].x, path[j].y);
+      }
+      ctx.stroke();
+    }
+
+    // Layer 3: thin highlight for thread sheen
+    ctx.lineWidth = baseThickness * 0.4;
+    ctx.strokeStyle = shadeColor(hex, 70);
+    ctx.globalAlpha = 0.3;
+
+    for (const path of block.paths) {
+      if (path.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let j = 1; j < path.length; j++) {
+        ctx.lineTo(path[j].x, path[j].y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1.0;
   }
 
   return canvas;
