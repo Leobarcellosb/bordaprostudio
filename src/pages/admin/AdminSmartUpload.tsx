@@ -533,18 +533,29 @@ export const AdminSmartUpload = () => {
             continue;
           }
 
-          // Check duplicate
+          // Compute SHA-256 hash for content-based duplicate detection
+          const fileBuffer = await file.blob.arrayBuffer();
+          const hashBuffer = await crypto.subtle.digest("SHA-256", fileBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const fileHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+          // Check duplicate by content hash
           const { data: existingFile } = await db
             .from("kit_arquivos")
-            .select("id")
+            .select("id, file_name")
             .eq("design_id", designId)
-            .eq("format", fileFormat)
+            .eq("file_hash", fileHash)
             .maybeSingle();
 
           if (existingFile) {
-            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} (${fileFormat})`);
+            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} — conteúdo idêntico a "${existingFile.file_name}" (hash: ${fileHash.slice(0, 12)}…)`);
             filesSkipped++;
             continue;
+          }
+
+          // If design exists but file is different, allow upload
+          if (!isNewDesign) {
+            plog("FILE_NEW_FOR_EXISTING_DESIGN", "info", `Design existente encontrado. Arquivo diferente, upload permitido: ${file.name}`);
           }
 
           await delay(1000);
