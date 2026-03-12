@@ -475,8 +475,8 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryData {
     if (offset + 4 > stitchOffset || offset + 4 > buffer.byteLength) break;
 
     const colorIndex = view.getInt32(offset, true);
-    if (colorIndex > 0 && colorIndex < PEC_THREAD_COLORS.length) {
-      threadColors.push(PEC_THREAD_COLORS[colorIndex]);
+    if (colorIndex >= 0 && colorIndex < JANOME_THREAD_COLORS.length) {
+      threadColors.push(JANOME_THREAD_COLORS[colorIndex]);
     } else {
       threadColors.push(CATALOG_PALETTE[Math.abs(colorIndex) % CATALOG_PALETTE.length]);
     }
