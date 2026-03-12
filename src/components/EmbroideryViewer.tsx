@@ -191,7 +191,7 @@ interface EmbroideryViewerProps {
   mode?: "commercial" | "technical";
 }
 
-export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerProps) {
+export function EmbroideryViewer({ pattern, className = "", mode = "technical" }: EmbroideryViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
@@ -223,8 +223,8 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y);
-  }, [pattern, zoom, pan]);
+    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, mode);
+  }, [pattern, zoom, pan, mode]);
 
   useEffect(() => {
     render();
