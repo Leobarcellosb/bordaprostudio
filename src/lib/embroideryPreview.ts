@@ -492,7 +492,7 @@ function parseXXX(buffer: ArrayBuffer): EmbroideryData {
     if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
       x += dx;
       y += dy;
-      stitches.push({ x, y, flags: MOVE });
+      stitches.push({ x, y, flags: JUMP });
     } else {
       x += dx;
       y += dy;
