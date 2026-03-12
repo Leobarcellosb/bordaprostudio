@@ -647,7 +647,7 @@ function renderToCanvas(data: EmbroideryData, size: number = 800): HTMLCanvasEle
       continue;
     }
 
-    if (s.flags === MOVE || s.flags === TRIM) {
+    if (isNonRenderingStitch(s.flags)) {
       i++;
       continue;
     }
