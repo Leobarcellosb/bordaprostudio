@@ -378,17 +378,21 @@ export const AdminSmartUpload = () => {
     let completed = 0;
     let successCount = 0;
     let failCount = 0;
+    let skippedCount = 0;
 
     for (const group of pending) {
       updateGroup(group.id, { status: "uploading" });
+      const log = (step: string, detail?: any) => console.log(`[UPLOAD] [${group.title}] ${step}`, detail ?? "");
 
       try {
-        // Longer delay between groups to let DB connections recover
         if (completed > 0) await delay(2000);
+
+        log("UPLOAD_START", { files: group.files.length, hasPreview: !!group.previewFile, rawFilename: group.rawFilename });
 
         // Step 1: Upload preview image if present
         let previewUrl: string | null = null;
         if (group.previewFile) {
+          log("PREVIEW_UPLOAD_START");
           const ext = getExtension(group.previewFile.name);
           const path = `smart/${crypto.randomUUID()}.${ext}`;
           const uploadResult = await uploadWithRetry(
@@ -399,31 +403,43 @@ export const AdminSmartUpload = () => {
           if (uploadResult) {
             const { data } = supabase.storage.from("design-covers").getPublicUrl(uploadResult.path);
             previewUrl = data.publicUrl;
+            log("PREVIEW_UPLOAD_COMPLETE", { url: previewUrl });
+          } else {
+            log("PREVIEW_UPLOAD_FAILED", "Storage upload returned null");
           }
           await delay(1000);
         }
 
         // Step 2: Find or create design
+        log("DB_LOOKUP_START", { title: group.title });
         const normalizedTitle = group.title.trim().toLowerCase();
-        const { data: existingDesigns } = await db
+        const { data: existingDesigns, error: lookupError } = await db
           .from("designs")
           .select("id, name")
           .ilike("name", normalizedTitle);
 
+        if (lookupError) {
+          log("DB_LOOKUP_ERROR", lookupError);
+          throw new Error(`Erro ao buscar designs: ${lookupError.message}`);
+        }
+
         await delay(500);
 
         let designId: string;
+        let isNewDesign = false;
         const existingDesign = existingDesigns?.find(
           (d: any) => d.name.trim().toLowerCase() === normalizedTitle
         );
 
         if (existingDesign) {
           designId = existingDesign.id;
+          log("DB_DESIGN_EXISTS", { designId, existingName: existingDesign.name });
           if (previewUrl) {
             await db.from("designs").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
             await delay(500);
           }
         } else {
+          log("DB_INSERT_START");
           const meta = group.metadata;
           const { data: designData, error: designError } = await db
             .from("designs")
@@ -445,17 +461,26 @@ export const AdminSmartUpload = () => {
             .select("id")
             .single();
 
-          if (designError) throw new Error(designError.message);
+          if (designError) {
+            log("DB_INSERT_ERROR", designError);
+            throw new Error(`Erro ao criar design: ${designError.message}`);
+          }
           designId = designData.id;
+          isNewDesign = true;
+          log("DB_INSERT_SUCCESS", { designId });
           await delay(1000);
         }
 
-        // Step 3: Upload files ONE BY ONE with generous delay between each
+        // Step 3: Upload files ONE BY ONE
+        let filesUploaded = 0;
+        let filesSkipped = 0;
+
         for (let fi = 0; fi < group.files.length; fi++) {
           const file = group.files[fi];
           const fileFormat = file.format.toUpperCase();
 
           if (fileFormat !== "ZIP" && !EMBROIDERY_EXTENSIONS.includes(fileFormat.toLowerCase())) {
+            log("FILE_SKIP_UNSUPPORTED", { fileName: file.name, format: fileFormat });
             continue;
           }
 
@@ -467,11 +492,15 @@ export const AdminSmartUpload = () => {
             .eq("format", fileFormat)
             .maybeSingle();
 
-          if (existingFile) continue;
+          if (existingFile) {
+            log("FILE_SKIP_DUPLICATE", { fileName: file.name, format: fileFormat, existingId: existingFile.id });
+            filesSkipped++;
+            continue;
+          }
 
           await delay(1000);
 
-          // Upload to storage with retry
+          log("FILE_UPLOAD_START", { fileName: file.name, format: fileFormat });
           const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
@@ -479,10 +508,13 @@ export const AdminSmartUpload = () => {
           const uploadResult = await uploadWithRetry(bucket, filePath, file.blob);
 
           if (!uploadResult) {
-            console.error(`Upload failed permanently for ${file.name}`);
+            log("FILE_UPLOAD_FAILED", { fileName: file.name });
+            updateGroup(group.id, { status: "error", error: `Falha ao enviar arquivo: ${file.name}` });
+            failCount++;
             continue;
           }
 
+          log("FILE_UPLOAD_COMPLETE", { path: uploadResult.path });
           await delay(1000);
 
           // Insert record
@@ -495,15 +527,27 @@ export const AdminSmartUpload = () => {
           });
 
           if (fileRecordError) {
-            console.error(`Record insert failed for ${file.name}:`, fileRecordError);
+            log("FILE_RECORD_ERROR", { fileName: file.name, error: fileRecordError });
             continue;
           }
 
+          log("FILE_RECORD_SUCCESS", { fileName: file.name, format: fileFormat });
+          filesUploaded++;
           await delay(500);
         }
-        updateGroup(group.id, { status: "done" });
-        successCount++;
+
+        log("UPLOAD_COMPLETE", { designId, isNewDesign, filesUploaded, filesSkipped });
+
+        if (filesUploaded === 0 && filesSkipped > 0 && !isNewDesign) {
+          // All files were duplicates on an existing design — not really a success
+          updateGroup(group.id, { status: "done", error: "Design já existente, arquivos duplicados ignorados" });
+          skippedCount++;
+        } else {
+          updateGroup(group.id, { status: "done" });
+          successCount++;
+        }
       } catch (err: any) {
+        log("PIPELINE_ERROR", err.message);
         console.error(`Import error for ${group.baseName}:`, err);
         updateGroup(group.id, { status: "error", error: err.message });
         failCount++;
@@ -514,7 +558,11 @@ export const AdminSmartUpload = () => {
     }
 
     setImporting(false);
-    toast.success(`Importação concluída: ${successCount} sucesso, ${failCount} erro${failCount !== 1 ? "s" : ""}`);
+    const parts = [];
+    if (successCount > 0) parts.push(`${successCount} importado${successCount !== 1 ? "s" : ""}`);
+    if (skippedCount > 0) parts.push(`${skippedCount} duplicado${skippedCount !== 1 ? "s" : ""}`);
+    if (failCount > 0) parts.push(`${failCount} erro${failCount !== 1 ? "s" : ""}`);
+    toast[failCount > 0 ? "warning" : "success"](`Importação concluída: ${parts.join(", ")}`);
   };
 
   const reset = () => {
