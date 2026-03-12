@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
+import { HOOP_SIZE_OPTIONS } from "@/lib/hoopSize";
 
 const formats = ["PES", "EXP", "DST", "JEF", "XXX"];
 
@@ -20,6 +21,7 @@ const LibraryPage = () => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [hoopFilter, setHoopFilter] = useState("all");
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const navigate = useNavigate();
@@ -67,10 +69,18 @@ const LibraryPage = () => {
       (d.tags_text || "").toLowerCase().includes(query);
     const matchCat = categoryFilter === "all" || d.category_id === categoryFilter;
     const matchFormat = formatFilter === "all" || (designFiles[d.id] || []).some((f: string) => f.toUpperCase() === formatFilter);
-    return matchSearch && matchCat && matchFormat;
+    const matchHoop = hoopFilter === "all" || d.hoop_size === hoopFilter;
+    return matchSearch && matchCat && matchFormat && matchHoop;
   });
 
-  const hasActiveFilters = search || categoryFilter !== "all" || formatFilter !== "all";
+  const hasActiveFilters = search || categoryFilter !== "all" || formatFilter !== "all" || hoopFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setCategoryFilter("all");
+    setFormatFilter("all");
+    setHoopFilter("all");
+  };
 
   return (
     <AppLayout>
@@ -135,6 +145,19 @@ const LibraryPage = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={hoopFilter} onValueChange={setHoopFilter}>
+              <SelectTrigger className="w-full sm:w-40 h-11 bg-muted/30 border-border/40 rounded-xl">
+                <SelectValue placeholder={t("library.allHoops")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("library.allHoops")}</SelectItem>
+                {HOOP_SIZE_OPTIONS.map((h) => (
+                  <SelectItem key={h} value={h}>
+                    {h}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -148,7 +171,7 @@ const LibraryPage = () => {
               variant="ghost"
               size="sm"
               className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
-              onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
+              onClick={clearFilters}
             >
               {t("library.clearFilters")}
             </Button>
@@ -170,7 +193,7 @@ const LibraryPage = () => {
                 <Button
                   variant="outline"
                   className="mt-5 rounded-xl"
-                  onClick={() => { setSearch(""); setCategoryFilter("all"); setFormatFilter("all"); }}
+                  onClick={clearFilters}
                 >
                   {t("library.clearAllFilters")}
                 </Button>

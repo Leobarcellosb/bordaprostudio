@@ -76,6 +76,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "library.noResults": { pt: "Nenhuma matriz encontrada", en: "No designs found", es: "Ninguna matriz encontrada" },
   "library.noResultsHint": { pt: "Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.", en: "Try using other keywords or adjusting filters to find what you're looking for.", es: "Intente usar otras palabras clave o ajustar los filtros para encontrar lo que busca." },
   "library.designs": { pt: "matrizes", en: "designs", es: "matrices" },
+  "library.allHoops": { pt: "Todos os bastidores", en: "All hoops", es: "Todos los bastidores" },
 
   // Favorites
   "favorites.title": { pt: "Meus Favoritos", en: "My Favorites", es: "Mis Favoritos" },
