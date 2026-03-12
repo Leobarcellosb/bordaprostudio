@@ -398,6 +398,17 @@ export const AdminSmartUpload = () => {
     return null;
   };
 
+  const addPipelineStep = (groupId: string, step: string, level: PipelineStep["level"] = "info", detail?: string) => {
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === groupId
+          ? { ...g, pipelineLog: [...g.pipelineLog, { step, detail, timestamp: new Date(), level }] }
+          : g
+      )
+    );
+    console.log(`[UPLOAD] [${groupId}] ${step}`, detail ?? "");
+  };
+
   const importAll = async () => {
     const pending = groups.filter((g) => g.status === "pending" || g.status === "editing");
     if (pending.length === 0) return;
@@ -409,18 +420,20 @@ export const AdminSmartUpload = () => {
     let skippedCount = 0;
 
     for (const group of pending) {
-      updateGroup(group.id, { status: "uploading" });
-      const log = (step: string, detail?: any) => console.log(`[UPLOAD] [${group.title}] ${step}`, detail ?? "");
+      updateGroup(group.id, { status: "uploading", pipelineLog: [], importResult: null });
+      const gid = group.id;
+      const plog = (step: string, level: PipelineStep["level"] = "info", detail?: string) => addPipelineStep(gid, step, level, detail);
 
       try {
         if (completed > 0) await delay(2000);
 
-        log("UPLOAD_START", { files: group.files.length, hasPreview: !!group.previewFile, rawFilename: group.rawFilename });
+        plog("UPLOAD_START", "info", `${group.files.length} arquivo(s), preview: ${group.previewFile ? "sim" : "não"}`);
 
         // Step 1: Upload preview image if present
         let previewUrl: string | null = null;
+        let previewStatus: ImportResult["previewStatus"] = null;
         if (group.previewFile) {
-          log("PREVIEW_UPLOAD_START");
+          plog("PREVIEW_UPLOAD_START", "info");
           const ext = getExtension(group.previewFile.name);
           const path = `smart/${crypto.randomUUID()}.${ext}`;
           const uploadResult = await uploadWithRetry(
@@ -431,15 +444,20 @@ export const AdminSmartUpload = () => {
           if (uploadResult) {
             const { data } = supabase.storage.from("design-covers").getPublicUrl(uploadResult.path);
             previewUrl = data.publicUrl;
-            log("PREVIEW_UPLOAD_COMPLETE", { url: previewUrl });
+            previewStatus = "generated";
+            plog("PREVIEW_UPLOAD_COMPLETE", "success");
           } else {
-            log("PREVIEW_UPLOAD_FAILED", "Storage upload returned null");
+            previewStatus = "failed";
+            plog("PREVIEW_UPLOAD_FAILED", "warn", "Storage upload retornou null");
           }
           await delay(1000);
+        } else {
+          previewStatus = "skipped";
+          plog("PREVIEW_SKIPPED", "warn", "Nenhuma imagem de preview disponível");
         }
 
         // Step 2: Find or create design
-        log("DB_LOOKUP_START", { title: group.title });
+        plog("DB_LOOKUP_START", "info", group.title);
         const normalizedTitle = group.title.trim().toLowerCase();
         const { data: existingDesigns, error: lookupError } = await db
           .from("designs")
@@ -447,7 +465,7 @@ export const AdminSmartUpload = () => {
           .ilike("name", normalizedTitle);
 
         if (lookupError) {
-          log("DB_LOOKUP_ERROR", lookupError);
+          plog("DB_LOOKUP_ERROR", "error", lookupError.message);
           throw new Error(`Erro ao buscar designs: ${lookupError.message}`);
         }
 
@@ -455,19 +473,21 @@ export const AdminSmartUpload = () => {
 
         let designId: string;
         let isNewDesign = false;
+        let designRecord: ImportResult["designRecord"] = null;
         const existingDesign = existingDesigns?.find(
           (d: any) => d.name.trim().toLowerCase() === normalizedTitle
         );
 
         if (existingDesign) {
           designId = existingDesign.id;
-          log("DB_DESIGN_EXISTS", { designId, existingName: existingDesign.name });
+          designRecord = "existing";
+          plog("DB_DESIGN_EXISTS", "warn", `ID: ${designId}`);
           if (previewUrl) {
             await db.from("designs").update({ cover_image: previewUrl }).eq("id", designId).is("cover_image", null);
             await delay(500);
           }
         } else {
-          log("DB_INSERT_START");
+          plog("DB_INSERT_START", "info");
           const meta = group.metadata;
           const { data: designData, error: designError } = await db
             .from("designs")
@@ -490,12 +510,13 @@ export const AdminSmartUpload = () => {
             .single();
 
           if (designError) {
-            log("DB_INSERT_ERROR", designError);
+            plog("DB_INSERT_ERROR", "error", designError.message);
             throw new Error(`Erro ao criar design: ${designError.message}`);
           }
           designId = designData.id;
           isNewDesign = true;
-          log("DB_INSERT_SUCCESS", { designId });
+          designRecord = "created";
+          plog("DB_INSERT_SUCCESS", "success", `ID: ${designId}`);
           await delay(1000);
         }
 
@@ -508,7 +529,7 @@ export const AdminSmartUpload = () => {
           const fileFormat = file.format.toUpperCase();
 
           if (fileFormat !== "ZIP" && !EMBROIDERY_EXTENSIONS.includes(fileFormat.toLowerCase())) {
-            log("FILE_SKIP_UNSUPPORTED", { fileName: file.name, format: fileFormat });
+            plog("FILE_SKIP_UNSUPPORTED", "warn", `${file.name} (${fileFormat})`);
             continue;
           }
 
@@ -521,14 +542,14 @@ export const AdminSmartUpload = () => {
             .maybeSingle();
 
           if (existingFile) {
-            log("FILE_SKIP_DUPLICATE", { fileName: file.name, format: fileFormat, existingId: existingFile.id });
+            plog("FILE_SKIP_DUPLICATE", "warn", `${file.name} (${fileFormat})`);
             filesSkipped++;
             continue;
           }
 
           await delay(1000);
 
-          log("FILE_UPLOAD_START", { fileName: file.name, format: fileFormat });
+          plog("FILE_UPLOAD_START", "info", `${file.name} (${fileFormat})`);
           const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
           const filePath = `${designId}/${crypto.randomUUID()}-${sanitizedFileName}`;
           const bucket = fileFormat === "ZIP" ? "kit-zips" : "kit-files";
@@ -536,13 +557,13 @@ export const AdminSmartUpload = () => {
           const uploadResult = await uploadWithRetry(bucket, filePath, file.blob);
 
           if (!uploadResult) {
-            log("FILE_UPLOAD_FAILED", { fileName: file.name });
+            plog("FILE_UPLOAD_FAILED", "error", file.name);
             updateGroup(group.id, { status: "error", error: `Falha ao enviar arquivo: ${file.name}` });
             failCount++;
             continue;
           }
 
-          log("FILE_UPLOAD_COMPLETE", { path: uploadResult.path });
+          plog("FILE_UPLOAD_COMPLETE", "success", file.name);
           await delay(1000);
 
           // Insert record
@@ -555,23 +576,24 @@ export const AdminSmartUpload = () => {
           });
 
           if (fileRecordError) {
-            log("FILE_RECORD_ERROR", { fileName: file.name, error: fileRecordError });
+            plog("FILE_RECORD_ERROR", "error", `${file.name}: ${fileRecordError.message}`);
             continue;
           }
 
-          log("FILE_RECORD_SUCCESS", { fileName: file.name, format: fileFormat });
+          plog("FILE_RECORD_SUCCESS", "success", `${file.name} (${fileFormat})`);
           filesUploaded++;
           await delay(500);
         }
 
-        log("UPLOAD_COMPLETE", { designId, isNewDesign, filesUploaded, filesSkipped });
+        plog("UPLOAD_COMPLETE", "success", `Novos: ${filesUploaded}, Ignorados: ${filesSkipped}`);
+
+        const result: ImportResult = { previewStatus, designRecord, filesUploaded, filesSkipped };
 
         if (filesUploaded === 0 && filesSkipped > 0 && !isNewDesign) {
-          // All files were duplicates on an existing design — not really a success
-          updateGroup(group.id, { status: "done", error: "Design já existente, arquivos duplicados ignorados" });
+          updateGroup(group.id, { status: "duplicate", error: "Design já existente, arquivos duplicados ignorados", importResult: result });
           skippedCount++;
         } else {
-          updateGroup(group.id, { status: "done" });
+          updateGroup(group.id, { status: "done", importResult: result });
           successCount++;
         }
       } catch (err: any) {
