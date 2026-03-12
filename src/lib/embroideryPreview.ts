@@ -155,7 +155,7 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     const numColors = bytes[pecOffset + 48] + 1; // stored as count-1
     for (let c = 0; c < numColors && c < 64; c++) {
       const colorIdx = bytes[pecOffset + 49 + c];
-      if (colorIdx < PEC_THREAD_COLORS.length) {
+      if (colorIdx > 0 && colorIdx < PEC_THREAD_COLORS.length) {
         threadColors.push(PEC_THREAD_COLORS[colorIdx]);
       } else {
         threadColors.push(CATALOG_PALETTE[c % CATALOG_PALETTE.length]);
@@ -190,21 +190,23 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     }
 
     let dx = 0, dy = 0;
-    let flags = NORMAL;
+    let commandBitsX = 0;
+    let commandBitsY = 0;
 
     if (b1 & 0x80) {
       if (i + 2 >= buffer.byteLength) break;
       dx = ((b1 & 0x0F) << 8) | b2;
       if (dx & 0x800) dx -= 0x1000;
-      if (b1 & 0x10) flags = MOVE;
+      commandBitsX = b1 & 0x30;
       i += 2;
+
       const b3 = bytes[i];
       if (b3 & 0x80) {
         if (i + 1 >= buffer.byteLength) break;
         const b4 = bytes[i + 1];
         dy = ((b3 & 0x0F) << 8) | b4;
         if (dy & 0x800) dy -= 0x1000;
-        if (b3 & 0x10) flags = MOVE;
+        commandBitsY = b3 & 0x30;
         i += 2;
       } else {
         dy = b3;
@@ -214,18 +216,26 @@ function parsePES(buffer: ArrayBuffer): EmbroideryData {
     } else {
       dx = b1;
       if (dx > 63) dx -= 128;
+
       if (b2 & 0x80) {
         if (i + 2 >= buffer.byteLength) break;
         const b3 = bytes[i + 2];
         dy = ((b2 & 0x0F) << 8) | b3;
         if (dy & 0x800) dy -= 0x1000;
-        if (b2 & 0x10) flags = MOVE;
+        commandBitsY = b2 & 0x30;
         i += 3;
       } else {
         dy = b2;
         if (dy > 63) dy -= 128;
         i += 2;
       }
+    }
+
+    let flags = NORMAL;
+    if ((commandBitsX & 0x20) || (commandBitsY & 0x20)) {
+      flags = TRIM;
+    } else if ((commandBitsX & 0x10) || (commandBitsY & 0x10)) {
+      flags = JUMP;
     }
 
     x += dx;
