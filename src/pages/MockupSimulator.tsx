@@ -7,43 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Download, Image as ImageIcon, Layers, RotateCcw, ZoomIn, Move, Palette } from "lucide-react";
-
-const COLOR_IDS = ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"] as const;
-type ColorId = typeof COLOR_IDS[number];
-
-const FABRIC_COLORS: { id: ColorId; label: string; hex: string }[] = [
-  { id: "branco", label: "Branco", hex: "#FFFFFF" },
-  { id: "preto", label: "Preto", hex: "#1A1A1A" },
-  { id: "bege", label: "Bege/Cru", hex: "#E8DCC8" },
-  { id: "rosa", label: "Rosa Claro", hex: "#F4C2C2" },
-  { id: "azul-bebe", label: "Azul Bebê", hex: "#B5D8F7" },
-  { id: "cinza", label: "Cinza Mescla", hex: "#B0B0B0" },
-  { id: "vermelho", label: "Vermelho", hex: "#C41E3A" },
-  { id: "marinho", label: "Azul Marinho", hex: "#1B2A4A" },
-];
-
-interface MockupProduct {
-  id: string;
-  label: string;
-  overlayArea: { x: number; y: number; w: number; h: number };
-}
-
-const MOCKUPS: MockupProduct[] = [
-  { id: "baby-towel", label: "Toalha de Bebê", overlayArea: { x: 0.25, y: 0.35, w: 0.5, h: 0.4 } },
-  { id: "dish-towel", label: "Pano de Prato", overlayArea: { x: 0.2, y: 0.3, w: 0.6, h: 0.4 } },
-  { id: "baby-bib", label: "Babador", overlayArea: { x: 0.3, y: 0.4, w: 0.4, h: 0.3 } },
-  { id: "baby-clothes", label: "Roupinha de Bebê", overlayArea: { x: 0.3, y: 0.25, w: 0.4, h: 0.4 } },
-  { id: "pillow-cover", label: "Capa de Almofada", overlayArea: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
-];
-
-/** Build asset path for product+color variant */
-const getMockupSrc = (productId: string, colorId: ColorId) =>
-  `/mockups/${productId}-${colorId}.png`;
+import {
+  MOCKUP_TEMPLATES,
+  FABRIC_COLORS,
+  CANVAS_SIZE,
+  CANVAS_BG,
+  getMockupSrc,
+  renderMockup,
+  type ColorId,
+} from "@/lib/mockupTemplates";
 
 const MockupSimulator = () => {
   const [kits, setKits] = useState<any[]>([]);
   const [selectedKit, setSelectedKit] = useState<any>(null);
-  const [selectedMockup, setSelectedMockup] = useState(MOCKUPS[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState(MOCKUP_TEMPLATES[0]);
   const [selectedColor, setSelectedColor] = useState(FABRIC_COLORS[0]);
   const [scale, setScale] = useState(100);
   const [offsetX, setOffsetX] = useState(0);
@@ -65,53 +42,32 @@ const MockupSimulator = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mockupSrc = getMockupSrc(selectedMockup.id, selectedColor.id);
+    const mockupSrc = getMockupSrc(selectedTemplate.id, selectedColor.id as ColorId);
     const mockupImg = new Image();
     mockupImg.crossOrigin = "anonymous";
     mockupImg.onload = () => {
-      canvas.width = mockupImg.width;
-      canvas.height = mockupImg.height;
-
-      // Transparent canvas — draw product PNG directly (already has correct color)
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(mockupImg, 0, 0);
-
-      // Overlay embroidery design
       if (selectedKit?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
         designImg.onload = () => {
-          const area = selectedMockup.overlayArea;
-          const scaleFactor = scale / 100;
-          const baseW = canvas.width * area.w * scaleFactor;
-          const baseH = canvas.height * area.h * scaleFactor;
-
-          const ratio = designImg.width / designImg.height;
-          let drawW = baseW;
-          let drawH = baseW / ratio;
-          if (drawH > baseH) {
-            drawH = baseH;
-            drawW = baseH * ratio;
-          }
-
-          const centerX = canvas.width * area.x + (canvas.width * area.w - drawW) / 2 + offsetX * canvas.width * 0.002;
-          const centerY = canvas.height * area.y + (canvas.height * area.h - drawH) / 2 + offsetY * canvas.height * 0.002;
-
-          ctx.globalAlpha = 0.9;
-          ctx.drawImage(designImg, centerX, centerY, drawW, drawH);
-          ctx.globalAlpha = 1;
+          renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY);
+        };
+        designImg.onerror = () => {
+          renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
         };
         designImg.src = selectedKit.cover_image;
+      } else {
+        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
       }
     };
     mockupImg.onerror = () => {
-      // Fallback: clear canvas on missing asset
-      canvas.width = 1024;
-      canvas.height = 1024;
-      ctx.clearRect(0, 0, 1024, 1024);
+      canvas.width = CANVAS_SIZE;
+      canvas.height = CANVAS_SIZE;
+      ctx.fillStyle = CANVAS_BG;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     };
     mockupImg.src = mockupSrc;
-  }, [selectedKit, selectedMockup, selectedColor, scale, offsetX, offsetY]);
+  }, [selectedKit, selectedTemplate, selectedColor, scale, offsetX, offsetY]);
 
   useEffect(() => {
     drawCanvas();
@@ -124,7 +80,7 @@ const MockupSimulator = () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
     try {
       const link = document.createElement("a");
-      link.download = `mockup-${selectedMockup.id}-${selectedColor.id}-${selectedKit?.name || "matriz"}.png`;
+      link.download = `mockup-${selectedTemplate.id}-${selectedColor.id}-${selectedKit?.name || "matriz"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Mockup baixado com sucesso!");
@@ -202,22 +158,22 @@ const MockupSimulator = () => {
                   <Layers className="h-4 w-4 text-primary" /> Selecione o Produto
                 </p>
                 <div className="grid grid-cols-1 gap-2">
-                  {MOCKUPS.map((mockup) => (
+                  {MOCKUP_TEMPLATES.map((tpl) => (
                     <button
-                      key={mockup.id}
-                      onClick={() => setSelectedMockup(mockup)}
+                      key={tpl.id}
+                      onClick={() => setSelectedTemplate(tpl)}
                       className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left ${
-                        selectedMockup.id === mockup.id
+                        selectedTemplate.id === tpl.id
                           ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                           : "border-border/40 hover:border-border hover:bg-muted/30"
                       }`}
                     >
                       <img
-                        src={getMockupSrc(mockup.id, "branco")}
-                        alt={mockup.label}
+                        src={getMockupSrc(tpl.id, "branco")}
+                        alt={tpl.label}
                         className="w-12 h-12 rounded-md object-cover bg-muted/50"
                       />
-                      <span className="text-sm font-medium">{mockup.label}</span>
+                      <span className="text-sm font-medium">{tpl.label}</span>
                     </button>
                   ))}
                 </div>
@@ -303,7 +259,7 @@ const MockupSimulator = () => {
               <CardContent className="p-0">
                 <div
                   className="aspect-square flex items-center justify-center relative"
-                  style={{ backgroundColor: "#F3F4F6" }}
+                  style={{ backgroundColor: CANVAS_BG }}
                 >
                   {!selectedKit ? (
                     <div className="text-center space-y-3 p-8">
@@ -325,9 +281,9 @@ const MockupSimulator = () => {
             {selectedKit && (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">{selectedKit.name} × {selectedMockup.label}</p>
+                  <p className="text-sm font-medium">{selectedKit.name} × {selectedTemplate.label}</p>
                   <p className="text-xs text-muted-foreground">
-                    Cor: {selectedColor.label} · Ajuste o tamanho e posição antes de baixar
+                    Cor: {selectedColor.label} · Canvas: {CANVAS_SIZE}×{CANVAS_SIZE}px
                   </p>
                 </div>
                 <Button onClick={handleDownload} disabled={rendering} className="gap-2">
