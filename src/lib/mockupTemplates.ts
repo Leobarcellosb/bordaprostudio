@@ -4,7 +4,7 @@
  */
 
 export const CANVAS_SIZE = 1400;
-export const CANVAS_BG = "#F3F4F6";
+export const CANVAS_BG = "#F4F4F4";
 
 export interface EmbroideryArea {
   /** Left edge in px */
