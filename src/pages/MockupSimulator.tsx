@@ -170,7 +170,7 @@ const MockupSimulator = () => {
                       }`}
                     >
                       <img
-                        src={getMockupSrc(tpl.id, "branco")}
+                        src={getMockupBaseSrc(tpl.id)}
                         alt={tpl.label}
                         className="w-12 h-12 rounded-md object-cover bg-muted/50"
                       />
