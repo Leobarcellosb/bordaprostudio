@@ -295,7 +295,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
 /* ── Main Canvas ── */
 
 export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
-  ({ title, subtitle, designs, layout: _layout, format, pageIndex = 0 }, ref) => {
+  ({ title, subtitle, designs, layout: _layout, format, pageIndex = 0, debug = false }, ref) => {
     const size = FORMAT_SIZE[format];
     const pad = SAFE_PAD[format];
     const headerH = HEADER_H[format];
