@@ -148,6 +148,8 @@ const LibraryPage = () => {
           )}
         </div>
 
+        <QuickHoopFilter value={hoopFilter} onChange={handleFilterChange(setHoopFilter)} />
+
         <LibraryFilters
           search={search}
           onSearchChange={handleFilterChange(setSearch)}
