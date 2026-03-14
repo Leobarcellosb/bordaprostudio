@@ -126,19 +126,27 @@ export function renderMockup(
   ctx.canvas.width = S;
   ctx.canvas.height = S;
 
-  // 1. Clear with standard background
+  // 1. Clear with constant neutral background
   ctx.fillStyle = CANVAS_BG;
   ctx.fillRect(0, 0, S, S);
 
   // 2. Draw base (white) product image centered (contain within canvas)
   const imgRatio = mockupImg.width / mockupImg.height;
-  let drawW = S, drawH = S;
-  if (imgRatio > 1) { drawH = S / imgRatio; } else { drawW = S * imgRatio; }
+  let drawW = S * 0.85, drawH = S * 0.85; // slight inset for breathing room
+  if (imgRatio > 1) { drawH = drawW / imgRatio; } else { drawW = drawH * imgRatio; }
   const imgX = (S - drawW) / 2;
   const imgY = (S - drawH) / 2;
-  ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
 
-  // 3. Tint the product to the selected color
+  // 3. Soft drop shadow for depth
+  ctx.save();
+  ctx.shadowColor = "rgba(0, 0, 0, 0.12)";
+  ctx.shadowBlur = 32;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 12;
+  ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
+  ctx.restore();
+
+  // 4. Tint the product to the selected color
   applyColorTint(ctx, imgX, imgY, drawW, drawH, colorHex);
 
   // 4. Overlay embroidery inside embroideryArea
