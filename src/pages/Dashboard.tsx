@@ -38,6 +38,7 @@ const Dashboard = () => {
         </div>
 
         {/* Each section loads independently */}
+        <SeasonalCalendarSection />
         <NewDesignsSection />
         <PopularDesignsSection />
         <HoopDesignsSection />
