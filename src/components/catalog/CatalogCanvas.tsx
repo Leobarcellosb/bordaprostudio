@@ -79,9 +79,9 @@ const ITEM_GAP: Record<ExportFormat, number> = {
 };
 
 const IMG_SIZE: Record<ExportFormat, number> = {
-  pdf: 60,
-  instagram: 120,
-  whatsapp: 60,
+  pdf: 48,
+  instagram: 90,
+  whatsapp: 48,
 };
 
 const TITLE_FONT: Record<ExportFormat, number> = {
