@@ -257,7 +257,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
             color: "#1a1a1a",
             fontWeight: 700,
             fontSize: nameFnt,
-            lineHeight: 1.25,
+            lineHeight: 1.35,
             overflow: "hidden",
             textOverflow: "ellipsis",
             display: "-webkit-box",
