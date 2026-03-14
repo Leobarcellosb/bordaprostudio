@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesigns";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
+import { QuickHoopFilter } from "@/components/library/QuickHoopFilter";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
