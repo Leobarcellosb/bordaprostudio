@@ -23,10 +23,9 @@ import jsPDF from "jspdf";
 
 type ExportFormat = "pdf" | "instagram" | "whatsapp";
 
+// Layout options temporarily reduced to one stable template
 const layoutOptions: { value: LayoutType; label: string; icon: React.ReactNode; desc: string }[] = [
-  { value: "clean-grid", label: "Grade Limpa", icon: <LayoutGrid className="h-5 w-5" />, desc: "2 colunas, visual organizado" },
-  { value: "elegant-minimal", label: "Elegante", icon: <List className="h-5 w-5" />, desc: "Uma matriz por linha, detalhado" },
-  { value: "whatsapp-practical", label: "WhatsApp", icon: <MessageCircle className="h-5 w-5" />, desc: "Compacto, prático para enviar" },
+  { value: "compact-list", label: "Lista Compacta", icon: <List className="h-5 w-5" />, desc: "Layout estável e alinhado" },
 ];
 
 const exportOptions: { value: ExportFormat; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -47,7 +46,7 @@ const CatalogGeneratorPage = () => {
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [layout, setLayout] = useState<LayoutType>("clean-grid");
+  const [layout, setLayout] = useState<LayoutType>("compact-list");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
 
   const canvasRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -281,28 +280,7 @@ const CatalogGeneratorPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60">
-              <CardContent className="p-5 space-y-3">
-                <Label className="text-sm font-medium">Estilo do layout</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {layoutOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setLayout(opt.value)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center ${
-                        layout === opt.value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border/60 hover:border-primary/30 text-muted-foreground"
-                      }`}
-                    >
-                      {opt.icon}
-                      <span className="text-xs font-semibold">{opt.label}</span>
-                      <span className="text-[10px] leading-tight opacity-70">{opt.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Layout selection temporarily hidden — using single stable template */}
 
             <Card className="border-border/60">
               <CardContent className="p-5 space-y-3">
