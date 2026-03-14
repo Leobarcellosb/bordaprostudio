@@ -90,7 +90,7 @@ const DesignDetail = () => {
   const [design, setDesign] = useState<any>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
-  const [relatedDesigns, setRelatedDesigns] = useState<any[]>([]);
+  
   const [downloadCount, setDownloadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generatingIdeas, setGeneratingIdeas] = useState(false);
