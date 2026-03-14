@@ -23,10 +23,9 @@ import jsPDF from "jspdf";
 
 type ExportFormat = "pdf" | "instagram" | "whatsapp";
 
+// Layout options temporarily reduced to one stable template
 const layoutOptions: { value: LayoutType; label: string; icon: React.ReactNode; desc: string }[] = [
-  { value: "clean-grid", label: "Grade Limpa", icon: <LayoutGrid className="h-5 w-5" />, desc: "2 colunas, visual organizado" },
-  { value: "elegant-minimal", label: "Elegante", icon: <List className="h-5 w-5" />, desc: "Uma matriz por linha, detalhado" },
-  { value: "whatsapp-practical", label: "WhatsApp", icon: <MessageCircle className="h-5 w-5" />, desc: "Compacto, prático para enviar" },
+  { value: "compact-list", label: "Lista Compacta", icon: <List className="h-5 w-5" />, desc: "Layout estável e alinhado" },
 ];
 
 const exportOptions: { value: ExportFormat; label: string; icon: React.ReactNode; desc: string }[] = [
