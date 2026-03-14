@@ -16,6 +16,7 @@ const PremiumKitDetail = () => {
   const navigate = useNavigate();
   const { user, subscription } = useAuth();
   const [kit, setKit] = useState<any>(null);
+  const [kitDesignIds, setKitDesignIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isAnnual = subscription?.plan_code === "anual" && subscription?.status === "active";
@@ -23,8 +24,12 @@ const PremiumKitDetail = () => {
   useEffect(() => {
     const fetchKit = async () => {
       if (!id) return;
-      const { data } = await db.from("premium_kits").select("*").eq("id", id).single();
-      setKit(data);
+      const [kitRes, designsRes] = await Promise.all([
+        db.from("premium_kits").select("*").eq("id", id).single(),
+        db.from("kit_designs").select("design_id").eq("kit_id", id),
+      ]);
+      setKit(kitRes.data);
+      setKitDesignIds((designsRes.data || []).map((d: any) => d.design_id));
       setLoading(false);
     };
     fetchKit();
