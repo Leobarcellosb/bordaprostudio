@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Eye, Download, Heart, BookOpen } from "lucide-react";
@@ -19,6 +20,12 @@ interface DesignCardProps {
 
 export const DesignCard = ({ id, name, coverImage, category, tags = [], downloadCount, isFavorite, onToggleFavorite, onClick, onQuickDownload }: DesignCardProps) => {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    e.stopPropagation();
+    navigate(`/library?tag=${encodeURIComponent(tag)}`);
+  };
 
   return (
     <>
@@ -113,7 +120,12 @@ export const DesignCard = ({ id, name, coverImage, category, tags = [], download
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tags.slice(0, 3).map(tag => (
-                <Badge key={tag} variant="outline" className="text-[10px] font-normal px-2 py-0 h-[18px] text-muted-foreground/80 border-border/40 bg-muted/40 rounded-full">
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="text-[10px] font-normal px-2 py-0 h-[18px] text-muted-foreground/80 border-border/40 bg-muted/40 rounded-full cursor-pointer hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+                  onClick={(e) => handleTagClick(e, tag)}
+                >
                   {tag}
                 </Badge>
               ))}

@@ -196,6 +196,32 @@ export const AdminDesigns = () => {
     else { toast.success("Ideia removida!"); if (editing?.id) fetchDesignDetails(editing.id); }
   };
 
+  const [regeneratingTags, setRegeneratingTags] = useState(false);
+
+  const bulkRegenerateTags = async () => {
+    setRegeneratingTags(true);
+    let updated = 0;
+    try {
+      for (const design of designs) {
+        const newTags = generateTagsFromName(design.name);
+        const existingTags = (design.tags_text || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+        const merged = Array.from(new Set([...existingTags, ...newTags]));
+        const tagsText = merged.join(", ");
+        if (tagsText !== (design.tags_text || "")) {
+          await db.from("designs").update({ tags_text: tagsText }).eq("id", design.id);
+          updated++;
+        }
+      }
+      toast.success(`Tags regeneradas para ${updated} matrizes!`);
+      fetchData();
+    } catch (err) {
+      console.error("Bulk tag regen error:", err);
+      toast.error("Erro ao regenerar tags.");
+    } finally {
+      setRegeneratingTags(false);
+    }
+  };
+
   const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
   const [classifying, setClassifying] = useState(false);
@@ -239,16 +265,20 @@ export const AdminDesigns = () => {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-between items-center gap-2">
+       <div className="flex justify-between items-center gap-2">
          <h3 className="font-semibold">Matrizes ({designs.length})</h3>
-         <div className="flex gap-2">
+         <div className="flex gap-2 flex-wrap">
+           <Button variant="outline" onClick={bulkRegenerateTags} disabled={regeneratingTags}>
+             {regeneratingTags ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
+             {regeneratingTags ? "Regenerando..." : "Regerar Tags"}
+           </Button>
            <Button variant="outline" onClick={bulkClassify} disabled={classifying}>
              {classifying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Tags className="h-4 w-4 mr-1" />}
              {classifying ? classifyProgress || "Classificando..." : `Auto-classificar (${designs.filter(d => !d.category_id).length})`}
            </Button>
            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
          </div>
-      </div>
+       </div>
 
       <div className="rounded-lg border overflow-hidden">
         <Table>

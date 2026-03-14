@@ -1,10 +1,12 @@
-import { Search } from "lucide-react";
+import { Search, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HOOP_SIZE_OPTIONS } from "@/lib/hoopSize";
 import { SortOption } from "@/hooks/useLibraryDesigns";
+import { usePopularTags } from "@/hooks/usePopularTags";
 
 const STITCH_RANGES = [
   { value: "all", label: "Todos os pontos" },
@@ -30,6 +32,8 @@ interface LibraryFiltersProps {
   onClearFilters: () => void;
   totalCount: number;
   filteredCount: number;
+  selectedTags?: string[];
+  onTagToggle?: (tag: string) => void;
 }
 
 export const LibraryFilters = ({
@@ -41,8 +45,11 @@ export const LibraryFilters = ({
   categories,
   hasActiveFilters, onClearFilters,
   totalCount, filteredCount,
+  selectedTags = [],
+  onTagToggle,
 }: LibraryFiltersProps) => {
   const { t } = useTranslation();
+  const { tags: popularTags } = usePopularTags(15);
 
   return (
     <div className="space-y-3">
@@ -101,6 +108,53 @@ export const LibraryFilters = ({
           </Select>
         </div>
       </div>
+
+      {/* Tag filter chips */}
+      {onTagToggle && popularTags.length > 0 && (
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Tag className="h-3 w-3" /> Tags populares
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {popularTags.map(({ tag, count }) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => onTagToggle(tag)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/50 text-muted-foreground border-border/40 hover:border-primary/30 hover:text-foreground"
+                  }`}
+                >
+                  {tag}
+                  <span className={`text-[10px] ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground/50"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Selected tags indicator */}
+      {selectedTags.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Filtrando por:</span>
+          {selectedTags.map(tag => (
+            <Badge
+              key={tag}
+              variant="default"
+              className="text-xs gap-1 cursor-pointer"
+              onClick={() => onTagToggle?.(tag)}
+            >
+              {tag} ×
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {hasActiveFilters && filteredCount > 0 && (
         <div className="flex items-center gap-2">
