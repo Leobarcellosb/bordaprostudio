@@ -60,6 +60,16 @@ const MockupValidation = () => {
           </p>
         </div>
 
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-amber-700 dark:text-amber-400">Nota para Admin</p>
+            <p className="text-muted-foreground mt-0.5">
+              Somente cores com mockup aprovado aparecem no simulador. Variantes sem asset estático aprovado são ocultadas automaticamente.
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {VALIDATION_COLORS.map((color, i) => (
             <Card key={color.id} className="border-border/60 overflow-hidden">
