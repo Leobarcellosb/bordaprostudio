@@ -347,6 +347,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
               paddingBottom: format === "instagram" ? 8 : 4,
               overflow: "hidden",
               boxSizing: "border-box",
+              outline: debug ? "2px dashed #ef4444" : undefined,
             }}
           >
             <div
