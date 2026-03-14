@@ -187,6 +187,14 @@ const PremiumKitDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Smart Download */}
+        {showDownload && kitDesignIds.length > 0 && (
+          <SmartDownloadPanel
+            designIds={kitDesignIds}
+            title="Download Inteligente do Kit"
+          />
+        )}
       </div>
     </AppLayout>
   );
