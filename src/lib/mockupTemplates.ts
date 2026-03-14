@@ -156,17 +156,17 @@ export function renderMockup(
   const imgX = (S - drawW) / 2;
   const imgY = (S - drawH) / 2;
 
-  // 3. Soft drop shadow for depth
+  // 3. Soft drop shadow for depth (professional studio look)
   ctx.save();
-  ctx.shadowColor = "rgba(0, 0, 0, 0.12)";
-  ctx.shadowBlur = 32;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.10)";
+  ctx.shadowBlur = 40;
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 12;
+  ctx.shadowOffsetY = 16;
   ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
   ctx.restore();
 
-  // 4. Tint the product to the selected color
-  applyColorTint(ctx, imgX, imgY, drawW, drawH, colorHex);
+  // 4. Tint the product to the selected color (offscreen to preserve background)
+  applyColorTint(ctx, mockupImg, imgX, imgY, drawW, drawH, colorHex);
 
   // 4. Overlay embroidery inside embroideryArea
   if (!designImg) return;
