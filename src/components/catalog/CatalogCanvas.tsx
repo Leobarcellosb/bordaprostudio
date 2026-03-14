@@ -172,14 +172,13 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
             </h1>
             {subtitle && (
               <p style={{
-                color: "#9ca3af",
-                marginTop: 4,
-                fontSize: 10,
-                lineHeight: 1.3,
-                wordWrap: "break-word",
-                overflowWrap: "break-word",
-                margin: 0,
-                marginTop: 4,
+              color: "#9ca3af",
+              fontSize: 10,
+              lineHeight: 1.3,
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              margin: 0,
+              marginTop: 4,
               }}>
                 {subtitle}
               </p>
