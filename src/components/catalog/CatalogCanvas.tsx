@@ -176,30 +176,32 @@ export function getCatalogHeaderDebug({
 
 const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: ExportFormat; index: number; debug?: boolean }) => {
   const imgSz = IMG_SIZE[format];
+  const imageColumnWidth = format === "instagram" ? 120 : imgSz;
   const itemH_px = ITEM_H[format];
   const nameFnt = NAME_FONT[format];
   const metaFnt = META_FONT[format];
   const catFnt = CAT_FONT[format];
-  const cardPad = 20;
+  const cardPad = format === "instagram" ? 16 : 10;
+  const innerGap = 16;
 
   const meta = [d.hoop_size, fmtDim(d.width_mm, d.height_mm), fmtStitch(d.stitch_count)]
     .filter(Boolean)
     .join(" · ");
 
-  const dbg = (color: string) => debug ? `2px dashed ${color}` : undefined;
+  const debugOutline = debug ? "2px solid hsl(0 84% 60%)" : undefined;
 
   return (
     <div
       data-export-check="item"
       style={{
         minHeight: itemH_px,
-        display: "flex",
-        flexDirection: "row",
+        display: "grid",
+        gridTemplateColumns: `${imageColumnWidth}px minmax(0, 1fr)`,
         alignItems: "center",
         padding: cardPad,
-        gap: cardPad,
+        columnGap: innerGap,
         borderRadius: 10,
-        border: debug ? "2px dashed #f97316" : "1px solid rgba(128,128,128,0.15)",
+        border: debug ? "2px solid hsl(0 84% 60%)" : "1px solid rgba(128,128,128,0.15)",
         background: "white",
         boxSizing: "border-box",
       }}
@@ -207,9 +209,9 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
       {/* Fixed image box */}
       <div
         style={{
-          width: imgSz,
-          minWidth: imgSz,
-          maxWidth: imgSz,
+          width: imageColumnWidth,
+          minWidth: imageColumnWidth,
+          maxWidth: imageColumnWidth,
           height: imgSz,
           minHeight: imgSz,
           maxHeight: imgSz,
@@ -219,8 +221,6 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          flexShrink: 0,
-          outline: dbg("#3b82f6"),
         }}
       >
         {d.cover_image ? (
@@ -238,14 +238,13 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
       {/* Text area */}
       <div
         style={{
-          flex: 1,
           minWidth: 0,
+          width: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          overflow: "hidden",
+          justifyContent: "flex-start",
           boxSizing: "border-box",
-          outline: dbg("#10b981"),
+          textAlign: "left",
         }}
       >
         <div
@@ -256,47 +255,51 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
             fontWeight: 700,
             fontSize: nameFnt,
             lineHeight: 1.35,
+            whiteSpace: "normal" as const,
             overflow: "hidden",
-            textOverflow: "ellipsis",
             display: "-webkit-box",
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical" as const,
-            wordBreak: "break-word" as const,
+            wordBreak: "normal" as const,
+            overflowWrap: "break-word" as const,
+            outline: debugOutline,
           }}
         >
           {String(index + 1).padStart(2, "0")}. {d.name}
         </div>
 
-        {d.category_name && (
+        <div style={{ outline: debugOutline }}>
+          {d.category_name && (
+            <div
+              style={{
+                margin: 0,
+                marginBottom: 6,
+                color: "#7c3aed",
+                fontWeight: 600,
+                fontSize: catFnt,
+                lineHeight: 1.2,
+                whiteSpace: "nowrap" as const,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {d.category_name}
+            </div>
+          )}
+
           <div
             style={{
               margin: 0,
-              marginBottom: 6,
-              color: "#7c3aed",
-              fontWeight: 600,
-              fontSize: catFnt,
-              lineHeight: 1.2,
+              color: "#888",
+              fontSize: metaFnt,
+              lineHeight: 1.3,
               whiteSpace: "nowrap" as const,
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}
           >
-            {d.category_name}
+            {meta || "—"}
           </div>
-        )}
-
-        <div
-          style={{
-            margin: 0,
-            color: "#888",
-            fontSize: metaFnt,
-            lineHeight: 1.3,
-            whiteSpace: "nowrap" as const,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {meta || "—"}
         </div>
       </div>
     </div>
