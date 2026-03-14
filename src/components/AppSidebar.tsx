@@ -60,7 +60,12 @@ export const AppSidebar = () => {
               )}
             >
               <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
-              {labelKey ? t(labelKey) : label}
+              <span className="flex-1 text-left">{labelKey ? t(labelKey) : label}</span>
+              {path === "/favorites" && favoriteIds.size > 0 && (
+                <span className="ml-auto text-[10px] font-semibold tabular-nums bg-sidebar-accent text-sidebar-foreground/60 px-1.5 py-0.5 rounded-md">
+                  {favoriteIds.size}
+                </span>
+              )}
             </button>
           );
         })}
