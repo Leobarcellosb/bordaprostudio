@@ -73,7 +73,7 @@ const SalesImageGenerator = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<MockupTemplate>(
     MOCKUP_TEMPLATES.find((t) => SALES_PRODUCTS.includes(t.id)) || MOCKUP_TEMPLATES[0]
   );
-  const [selectedColor, setSelectedColor] = useState(FABRIC_COLORS[0]);
+  const [selectedColor, setSelectedColor] = useState(getAvailableColors(MOCKUP_TEMPLATES.find((t) => SALES_PRODUCTS.includes(t.id)) || MOCKUP_TEMPLATES[0])[0]);
   const [scale, setScale] = useState(100);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
