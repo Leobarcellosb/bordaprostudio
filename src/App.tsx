@@ -17,6 +17,7 @@ import ProductIdeasPage from "./pages/ProductIdeasPage";
 
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
+import CatalogGeneratorPage from "./pages/CatalogGeneratorPage";
 
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
@@ -53,6 +54,7 @@ const App = () => (
             
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
+            <Route path="/catalogs/:id/generate" element={<ProtectedRoute><CatalogGeneratorPage /></ProtectedRoute>} />
             
             
             <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
