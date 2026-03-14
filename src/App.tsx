@@ -28,8 +28,6 @@ import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
-import KitsPage from "./pages/KitsPage";
-import KitCollectionDetail from "./pages/KitCollectionDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
