@@ -97,9 +97,9 @@ const SUBTITLE_FONT: Record<ExportFormat, number> = {
 };
 
 const NAME_FONT: Record<ExportFormat, number> = {
-  pdf: 10,
-  instagram: 22,
-  whatsapp: 12,
+  pdf: 11,
+  instagram: 24,
+  whatsapp: 13,
 };
 
 const META_FONT: Record<ExportFormat, number> = {
