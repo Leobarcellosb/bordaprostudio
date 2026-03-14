@@ -17,6 +17,7 @@ import ProductIdeasPage from "./pages/ProductIdeasPage";
 
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
+import CatalogGeneratorPage from "./pages/CatalogGeneratorPage";
 
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
