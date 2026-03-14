@@ -55,7 +55,7 @@ export function MeuAcervoSection() {
       <SectionHeader
         title="Meu Acervo"
         subtitle="Visão geral da sua biblioteca de matrizes"
-        icon={<BarChart3 className="h-5 w-5 text-primary" />}
+        icon={BarChart3}
       />
 
       {/* Total + stats cards row */}
