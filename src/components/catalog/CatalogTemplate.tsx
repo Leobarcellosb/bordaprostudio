@@ -1,10 +1,12 @@
-import { forwardRef } from "react";
+import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 
-/* ══════════════════════════════════════════════
-   CatalogTemplate — Single source of truth
-   Used identically for preview AND export.
-   Pure HTML/CSS, no canvas drawing.
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   CatalogTemplate — Deterministic Canvas Renderer
+   
+   Single source of truth for preview AND export.
+   Uses HTML5 Canvas with absolute positioning.
+   Text is measured before drawing — no CSS truncation.
+   ══════════════════════════════════════════════════════════════ */
 
 export type ExportFormat = "pdf" | "instagram" | "whatsapp";
 
@@ -29,79 +31,147 @@ export interface CatalogTemplateProps {
   debug?: boolean;
 }
 
-/* ── Format dimensions (px) ── */
+/* ── Format dimensions (px at 1x) ── */
 const FORMAT_SIZES: Record<ExportFormat, { width: number; height: number }> = {
-  pdf: { width: 595, height: 842 },
-  whatsapp: { width: 540, height: 960 },
-  instagram: { width: 1080, height: 1080 },
+  pdf: { width: 595, height: 842 },       // A4 at 72dpi
+  whatsapp: { width: 540, height: 960 },   // Portrait
+  instagram: { width: 1080, height: 1080 }, // Square
 };
 
-/* ── Responsive scale factors per format ── */
-const SCALE: Record<ExportFormat, {
+/* ── Layout constants per format ── */
+interface LayoutConfig {
   padding: number;
   titleFont: number;
   subtitleFont: number;
   nameFont: number;
   metaFont: number;
   catFont: number;
+  footerFont: number;
   imgSize: number;
+  itemHeight: number;
   itemGap: number;
-  cardPad: number;
-}> = {
+  textGap: number;       // gap between image and text in item row
+  headerBottomGap: number;
+  separatorY: number;     // will be calculated dynamically
+}
+
+const LAYOUTS: Record<ExportFormat, LayoutConfig> = {
   pdf: {
-    padding: 28,
-    titleFont: 18,
-    subtitleFont: 10,
-    nameFont: 11,
-    metaFont: 8,
-    catFont: 8,
-    imgSize: 50,
-    itemGap: 8,
-    cardPad: 8,
-  },
-  whatsapp: {
-    padding: 24,
-    titleFont: 18,
-    subtitleFont: 10,
-    nameFont: 12,
+    padding: 32,
+    titleFont: 22,
+    subtitleFont: 12,
+    nameFont: 13,
     metaFont: 9,
     catFont: 9,
-    imgSize: 50,
+    footerFont: 9,
+    imgSize: 56,
+    itemHeight: 72,
     itemGap: 8,
-    cardPad: 8,
+    textGap: 14,
+    headerBottomGap: 20,
+    separatorY: 0,
+  },
+  whatsapp: {
+    padding: 28,
+    titleFont: 22,
+    subtitleFont: 12,
+    nameFont: 14,
+    metaFont: 10,
+    catFont: 10,
+    footerFont: 9,
+    imgSize: 56,
+    itemHeight: 72,
+    itemGap: 8,
+    textGap: 14,
+    headerBottomGap: 20,
+    separatorY: 0,
   },
   instagram: {
     padding: 48,
-    titleFont: 36,
-    subtitleFont: 16,
-    nameFont: 20,
-    metaFont: 13,
-    catFont: 12,
+    titleFont: 38,
+    subtitleFont: 18,
+    nameFont: 22,
+    metaFont: 14,
+    catFont: 14,
+    footerFont: 13,
     imgSize: 80,
+    itemHeight: 96,
     itemGap: 12,
-    cardPad: 12,
+    textGap: 18,
+    headerBottomGap: 28,
+    separatorY: 0,
   },
 };
 
-/* ── Helpers ── */
+/* ── Text helpers ── */
+
+/** Wrap text to fit maxWidth, return array of lines (max maxLines). Last line gets ellipsis if truncated. */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number
+): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    const w = ctx.measureText(test).width;
+
+    if (w > maxWidth && current) {
+      lines.push(current);
+      current = word;
+
+      if (lines.length >= maxLines) break;
+    } else {
+      current = test;
+    }
+  }
+
+  if (current && lines.length < maxLines) {
+    lines.push(current);
+  }
+
+  // If we ran out of lines but still have words, add ellipsis to last line
+  if (lines.length >= maxLines) {
+    const lastLine = lines[maxLines - 1];
+    // Check if there's remaining text
+    const usedWords = lines.join(" ").split(/\s+/).length;
+    if (usedWords < words.length) {
+      // Trim last line to fit with ellipsis
+      let trimmed = lastLine;
+      while (ctx.measureText(trimmed + "…").width > maxWidth && trimmed.length > 1) {
+        trimmed = trimmed.slice(0, -1).trimEnd();
+      }
+      lines[maxLines - 1] = trimmed + "…";
+    }
+    lines.length = maxLines;
+  }
+
+  return lines;
+}
+
+/** Format dimensions */
 const fmtDim = (w: number | null, h: number | null) =>
   w && h ? `${w}×${h} mm` : null;
 
+/** Format stitch count */
 const fmtStitch = (c: number | null) => {
   if (!c) return null;
   return c >= 1000 ? `${(c / 1000).toFixed(1)}k pts` : `${c} pts`;
 };
 
-/* ── Pagination helpers ── */
+/* ── Pagination ── */
 export function getDesignsPerPage(format: ExportFormat): number {
   const size = FORMAT_SIZES[format];
-  const s = SCALE[format];
-  // Estimate available height: total - top padding - header (~60px) - header bottom margin (24) - footer (24) - bottom padding
-  const headerEstimate = s.titleFont + 20 + (s.subtitleFont + 8) + 24;
-  const footerH = 24;
-  const available = size.height - s.padding - headerEstimate - footerH - s.padding;
-  const itemH = s.imgSize + s.cardPad * 2; // approximate card height
-  const perItem = itemH + s.itemGap;
+  const L = LAYOUTS[format];
+  // Header area estimate
+  const headerH = L.titleFont + 8 + (L.subtitleFont + 6) + L.headerBottomGap + 2; // title + subtitle + gap + separator
+  const footerH = L.footerFont + 16;
+  const available = size.height - L.padding * 2 - headerH - footerH;
+  const perItem = L.itemHeight + L.itemGap;
   return Math.max(1, Math.floor(available / perItem));
 }
 
@@ -117,260 +187,256 @@ export function getCatalogFormatSize(format: ExportFormat) {
   return FORMAT_SIZES[format];
 }
 
-/* ── Item Row ── */
-const ItemRow = ({
-  d,
-  index,
-  format,
-  debug,
-}: {
-  d: CatalogDesign;
-  index: number;
-  format: ExportFormat;
-  debug?: boolean;
-}) => {
-  const s = SCALE[format];
-  const meta = [d.hoop_size, fmtDim(d.width_mm, d.height_mm), fmtStitch(d.stitch_count)]
-    .filter(Boolean)
-    .join(" · ");
+/* ── Image cache ── */
+const imageCache = new Map<string, HTMLImageElement>();
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: s.cardPad + 4,
-        padding: s.cardPad,
-        borderRadius: 8,
-        border: debug ? "2px solid red" : "1px solid #e8e8e8",
-        background: "#fff",
-        boxSizing: "border-box" as const,
-      }}
-    >
-      {/* Image */}
-      <div
-        style={{
-          width: s.imgSize,
-          height: s.imgSize,
-          minWidth: s.imgSize,
-          borderRadius: 6,
-          background: "#f5f5f5",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          outline: debug ? "2px solid blue" : undefined,
-        }}
-      >
-        {d.cover_image ? (
-          <img
-            src={d.cover_image}
-            alt={d.name}
-            crossOrigin="anonymous"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain" as const,
-              objectPosition: "center",
-            }}
-          />
-        ) : (
-          <span style={{ fontSize: s.imgSize * 0.4, opacity: 0.25 }}>🧵</span>
-        )}
-      </div>
+function loadImage(src: string): Promise<HTMLImageElement> {
+  if (imageCache.has(src)) return Promise.resolve(imageCache.get(src)!);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      imageCache.set(src, img);
+      resolve(img);
+    };
+    img.onerror = () => resolve(img); // still resolve, we'll draw placeholder
+    img.src = src;
+  });
+}
 
-      {/* Text content — takes remaining width */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0, // critical for text wrapping in flex
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          outline: debug ? "2px solid green" : undefined,
-        }}
-      >
-        {/* Title — wraps to 2 lines, then ellipsis */}
-        <div
-          style={{
-            fontSize: s.nameFont,
-            fontWeight: 700,
-            color: "#1a1a1a",
-            lineHeight: 1.35,
-            /* Multi-line clamp */
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical" as const,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            /* Allow wrapping */
-            whiteSpace: "normal" as const,
-            wordBreak: "break-word" as const,
-            overflowWrap: "break-word" as const,
-            textAlign: "left" as const,
-            outline: debug ? "1px dashed orange" : undefined,
-          }}
-        >
-          {String(index + 1).padStart(2, "0")}. {d.name}
-        </div>
+/* ── Main draw function ── */
+async function drawCatalog(
+  canvas: HTMLCanvasElement,
+  props: CatalogTemplateProps
+) {
+  const { title, subtitle, designs, format, pageIndex = 0, totalPages } = props;
+  const size = FORMAT_SIZES[format];
+  const L = LAYOUTS[format];
+  const scale = format === "instagram" ? 1 : 2; // render at 2x for sharpness (1x for instagram which is already 1080)
 
-        {/* Category badge */}
-        {d.category_name && (
-          <div
-            style={{
-              fontSize: s.catFont,
-              fontWeight: 600,
-              color: "#7c3aed",
-              lineHeight: 1.2,
-              whiteSpace: "nowrap" as const,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {d.category_name}
-          </div>
-        )}
+  canvas.width = size.width * scale;
+  canvas.height = size.height * scale;
+  canvas.style.width = `${size.width}px`;
+  canvas.style.height = `${size.height}px`;
 
-        {/* Metadata */}
-        {meta && (
-          <div
-            style={{
-              fontSize: s.metaFont,
-              color: "#999",
-              lineHeight: 1.3,
-              whiteSpace: "nowrap" as const,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {meta}
-          </div>
-        )}
-      </div>
-    </div>
+  const ctx = canvas.getContext("2d")!;
+  ctx.scale(scale, scale);
+
+  // Background
+  ctx.fillStyle = "#f8f7f4";
+  ctx.fillRect(0, 0, size.width, size.height);
+
+  const pad = L.padding;
+  const contentW = size.width - pad * 2;
+  let cursorY = pad;
+  const isFirstPage = pageIndex === 0;
+
+  /* ── Header (first page only) ── */
+  if (isFirstPage) {
+    // Title
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = `800 ${L.titleFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+    const titleLines = wrapText(ctx, title || "Catálogo", contentW, 2);
+    for (const line of titleLines) {
+      cursorY += L.titleFont;
+      ctx.fillText(line, pad, cursorY);
+      cursorY += 4; // line gap
+    }
+    cursorY += 4;
+
+    // Subtitle
+    if (subtitle) {
+      ctx.fillStyle = "#888888";
+      ctx.font = `400 ${L.subtitleFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+      const subLines = wrapText(ctx, subtitle, contentW, 1);
+      for (const line of subLines) {
+        cursorY += L.subtitleFont;
+        ctx.fillText(line, pad, cursorY);
+        cursorY += 2;
+      }
+      cursorY += 6;
+    }
+
+    // Separator
+    cursorY += 4;
+    ctx.strokeStyle = "#e5e5e5";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(pad, cursorY);
+    ctx.lineTo(size.width - pad, cursorY);
+    ctx.stroke();
+    cursorY += L.headerBottomGap;
+  }
+
+  /* ── Item rows ── */
+  const textX = pad + L.imgSize + L.textGap;
+  const textMaxW = contentW - L.imgSize - L.textGap;
+
+  // Preload images
+  const imagePromises = designs.map((d) =>
+    d.cover_image ? loadImage(d.cover_image) : Promise.resolve(null)
   );
-};
+  const images = await Promise.all(imagePromises);
 
-/* ── Main Template ── */
-export const CatalogTemplate = forwardRef<HTMLDivElement, CatalogTemplateProps>(
-  ({ title, subtitle, designs, format, pageIndex = 0, totalPages, debug = false }, ref) => {
-    const size = FORMAT_SIZES[format];
-    const s = SCALE[format];
-    const isFirstPage = pageIndex === 0;
+  for (let i = 0; i < designs.length; i++) {
+    const d = designs[i];
+    const globalIndex = i + pageIndex * designs.length;
+    const rowY = cursorY;
+
+    // Check if row would exceed page
+    if (rowY + L.itemHeight > size.height - pad - L.footerFont - 16) break;
+
+    // Card background
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#e8e8e8";
+    ctx.lineWidth = 1;
+    roundRect(ctx, pad, rowY, contentW, L.itemHeight, 8);
+
+    // Image box
+    const imgX = pad + 8;
+    const imgY = rowY + (L.itemHeight - L.imgSize) / 2;
+    ctx.fillStyle = "#f5f5f5";
+    roundRect(ctx, imgX, imgY, L.imgSize, L.imgSize, 6);
+
+    // Draw image
+    const img = images[i];
+    if (img && img.naturalWidth > 0) {
+      // Contain fit
+      const aspect = img.naturalWidth / img.naturalHeight;
+      let drawW = L.imgSize - 4;
+      let drawH = L.imgSize - 4;
+      if (aspect > 1) {
+        drawH = drawW / aspect;
+      } else {
+        drawW = drawH * aspect;
+      }
+      const dx = imgX + (L.imgSize - drawW) / 2;
+      const dy = imgY + (L.imgSize - drawH) / 2;
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+    } else {
+      // Placeholder emoji
+      ctx.fillStyle = "#cccccc";
+      ctx.font = `${L.imgSize * 0.35}px Arial`;
+      ctx.textAlign = "center";
+      ctx.fillText("🧵", imgX + L.imgSize / 2, imgY + L.imgSize / 2 + L.imgSize * 0.12);
+      ctx.textAlign = "left";
+    }
+
+    // Title (2-line wrap)
+    let textCursorY = rowY + 8 + L.nameFont;
+    ctx.fillStyle = "#1a1a1a";
+    ctx.font = `700 ${L.nameFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+    const prefix = `${String(globalIndex + 1).padStart(2, "0")}. `;
+    const fullTitle = prefix + d.name;
+    const nameLines = wrapText(ctx, fullTitle, textMaxW - 16, 2);
+    for (const line of nameLines) {
+      ctx.fillText(line, textX, textCursorY);
+      textCursorY += L.nameFont + 3;
+    }
+
+    // Category
+    if (d.category_name) {
+      ctx.fillStyle = "#7c3aed";
+      ctx.font = `600 ${L.catFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+      ctx.fillText(d.category_name, textX, textCursorY);
+      textCursorY += L.catFont + 3;
+    }
+
+    // Metadata
+    const meta = [d.hoop_size, fmtDim(d.width_mm, d.height_mm), fmtStitch(d.stitch_count)]
+      .filter(Boolean)
+      .join(" · ");
+    if (meta) {
+      ctx.fillStyle = "#999999";
+      ctx.font = `400 ${L.metaFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+      ctx.fillText(meta, textX, textCursorY);
+    }
+
+    cursorY += L.itemHeight + L.itemGap;
+  }
+
+  /* ── Footer ── */
+  const footerY = size.height - pad;
+  ctx.strokeStyle = "#e5e5e5";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, footerY - L.footerFont - 8);
+  ctx.lineTo(size.width - pad, footerY - L.footerFont - 8);
+  ctx.stroke();
+
+  ctx.fillStyle = "#aaaaaa";
+  ctx.font = `400 ${L.footerFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+  const countText = `${designs.length} ${designs.length !== 1 ? "matrizes" : "matriz"}${
+    totalPages && totalPages > 1 ? ` · Página ${pageIndex + 1} de ${totalPages}` : ""
+  }`;
+  ctx.fillText(countText, pad, footerY - 2);
+
+  ctx.font = `600 ${L.footerFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
+  const brandText = "Borda Pro";
+  const brandW = ctx.measureText(brandText).width;
+  ctx.fillText(brandText, size.width - pad - brandW, footerY - 2);
+}
+
+/* ── Rounded rect helper ── */
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+/* ══════════════════════════════════════════════════
+   React Component — wraps canvas, re-draws on prop change
+   ══════════════════════════════════════════════════ */
+
+export interface CatalogTemplateHandle {
+  getCanvas: () => HTMLCanvasElement | null;
+}
+
+export const CatalogTemplate = forwardRef<CatalogTemplateHandle, CatalogTemplateProps>(
+  (props, ref) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useImperativeHandle(ref, () => ({
+      getCanvas: () => canvasRef.current,
+    }));
+
+    const draw = useCallback(async () => {
+      if (!canvasRef.current) return;
+      await drawCatalog(canvasRef.current, props);
+    }, [props]);
+
+    useEffect(() => {
+      draw();
+    }, [draw]);
+
+    const size = FORMAT_SIZES[props.format];
 
     return (
-      <div
-        ref={ref}
+      <canvas
+        ref={canvasRef}
         style={{
           width: size.width,
           height: size.height,
-          padding: s.padding,
-          fontFamily: "'DM Sans', 'Segoe UI', Arial, sans-serif",
-          background: "linear-gradient(160deg, #f8f7f4 0%, #ffffff 100%)",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box" as const,
-          overflow: "hidden",
-          position: "relative" as const,
-          outline: debug ? "3px solid magenta" : undefined,
+          display: "block",
         }}
-      >
-        {/* ── Header (first page only) ── */}
-        {isFirstPage && (
-          <div
-            style={{
-              marginBottom: 16,
-              flexShrink: 0,
-              outline: debug ? "2px dashed red" : undefined,
-            }}
-          >
-            <div
-              style={{
-                fontSize: title.length > 40 ? s.titleFont * 0.72 : title.length > 28 ? s.titleFont * 0.85 : s.titleFont,
-                fontWeight: 800,
-                color: "#1a1a1a",
-                lineHeight: 1.2,
-                letterSpacing: "-0.01em",
-                /* Title can wrap to 2 lines */
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "normal" as const,
-                wordBreak: "break-word" as const,
-                textAlign: "left" as const,
-              }}
-            >
-              {title || "Catálogo"}
-            </div>
-
-            {subtitle && (
-              <div
-                style={{
-                  fontSize: s.subtitleFont,
-                  color: "#888",
-                  lineHeight: 1.3,
-                  marginTop: 4,
-                  whiteSpace: "nowrap" as const,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {subtitle}
-              </div>
-            )}
-
-            <div style={{ borderBottom: "2px solid #e5e5e5", marginTop: 10 }} />
-          </div>
-        )}
-
-        {/* ── Items ── */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: s.itemGap,
-            overflow: "hidden",
-          }}
-        >
-          {designs.map((d, i) => {
-            const globalIndex = i + pageIndex * designs.length;
-            return (
-              <ItemRow
-                key={d.id}
-                d={d}
-                index={globalIndex}
-                format={format}
-                debug={debug}
-              />
-            );
-          })}
-        </div>
-
-        {/* ── Footer ── */}
-        <div
-          style={{
-            flexShrink: 0,
-            marginTop: 8,
-            paddingTop: 4,
-            borderTop: "1px solid #e5e5e5",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            fontSize: format === "instagram" ? 12 : 8,
-            color: "#aaa",
-          }}
-        >
-          <span>
-            {designs.length} {designs.length !== 1 ? "matrizes" : "matriz"}
-            {totalPages && totalPages > 1 && ` · Página ${pageIndex + 1} de ${totalPages}`}
-          </span>
-          <span style={{ fontWeight: 600 }}>Borda Pro</span>
-        </div>
-      </div>
+      />
     );
   }
 );
