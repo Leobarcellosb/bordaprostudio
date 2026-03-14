@@ -26,6 +26,7 @@ export const AdminPremiumKits = () => {
   const [kits, setKits] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [smartBuilderOpen, setSmartBuilderOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", cover_image: "", designs_count: 0,
     zip_url: "", access_rule: "included_in_annual", price: "",
