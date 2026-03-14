@@ -13,7 +13,7 @@ interface ProductIdeaCardProps {
   onDelete?: () => void;
 }
 
-export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onMockup, onDelete }: ProductIdeaCardProps) => (
+export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onDelete }: ProductIdeaCardProps) => (
   <Card className="group overflow-hidden border-border/40 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 relative">
     {onDelete && (
       <button
