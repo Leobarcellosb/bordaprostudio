@@ -87,13 +87,13 @@ export function SmartSuggestionsSection({ suggestions }: Props) {
           <SuggestionSection
             title="Complete sua coleção"
             subtitle="Outras matrizes do mesmo grupo temático"
-            icon={<Layers className="h-5 w-5 text-violet-500" />}
+            icon={<Layers className="h-5 w-5 text-secondary" />}
             designs={completeSuaColecao}
           />
           <SuggestionSection
             title="Pode vender junto"
             subtitle="Matrizes complementares que fazem sentido comercial juntas"
-            icon={<ShoppingBag className="h-5 w-5 text-emerald-500" />}
+            icon={<ShoppingBag className="h-5 w-5 text-accent-foreground" />}
             designs={podeVenderJunto}
           />
         </>
