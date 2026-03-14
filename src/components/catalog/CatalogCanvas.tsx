@@ -37,9 +37,9 @@ const FORMAT_SIZE: Record<ExportFormat, { width: number; height: number }> = {
 const CONTENT_MAX_W = 900;
 
 const TOP_PAD: Record<ExportFormat, number> = {
-  pdf: 80,
-  instagram: 80,
-  whatsapp: 80,
+  pdf: 120,
+  instagram: 120,
+  whatsapp: 120,
 };
 
 const SIDE_PAD: Record<ExportFormat, number> = {
@@ -67,21 +67,21 @@ const FOOTER_H: Record<ExportFormat, number> = {
 };
 
 const ITEM_H: Record<ExportFormat, number> = {
-  pdf: 70,
-  instagram: 140,
-  whatsapp: 70,
+  pdf: 60,
+  instagram: 115,
+  whatsapp: 60,
 };
 
 const ITEM_GAP: Record<ExportFormat, number> = {
-  pdf: 20,
-  instagram: 20,
-  whatsapp: 20,
+  pdf: 16,
+  instagram: 18,
+  whatsapp: 16,
 };
 
 const IMG_SIZE: Record<ExportFormat, number> = {
-  pdf: 60,
-  instagram: 120,
-  whatsapp: 60,
+  pdf: 48,
+  instagram: 90,
+  whatsapp: 48,
 };
 
 const TITLE_FONT: Record<ExportFormat, number> = {
@@ -97,9 +97,9 @@ const SUBTITLE_FONT: Record<ExportFormat, number> = {
 };
 
 const NAME_FONT: Record<ExportFormat, number> = {
-  pdf: 10,
-  instagram: 22,
-  whatsapp: 12,
+  pdf: 11,
+  instagram: 24,
+  whatsapp: 13,
 };
 
 const META_FONT: Record<ExportFormat, number> = {
