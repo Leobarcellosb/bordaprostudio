@@ -288,7 +288,7 @@ const SalesImageGenerator = () => {
                     <Palette className="h-4 w-4 text-primary" /> Cor do Produto
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {FABRIC_COLORS.map((color) => (
+                    {getAvailableColors(selectedTemplate).map((color) => (
                       <button
                         key={color.id}
                         onClick={() => setSelectedColor(color)}
