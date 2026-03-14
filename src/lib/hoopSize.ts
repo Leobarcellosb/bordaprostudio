@@ -5,19 +5,19 @@
 export function classifyHoopSize(widthMm: number | null | undefined, heightMm: number | null | undefined): string | null {
   if (widthMm == null || heightMm == null) return null;
   const maxSide = Math.max(widthMm, heightMm);
-  if (maxSide <= 100) return "10x10 cm";
-  if (maxSide <= 140) return "14 cm";
-  if (maxSide <= 160) return "16 cm";
-  if (maxSide <= 180) return "13x18 cm";
-  if (maxSide <= 200) return "18 cm";
+  if (maxSide <= 100) return "10x10";
+  if (maxSide <= 140) return "14cm";
+  if (maxSide <= 160) return "16cm";
+  if (maxSide <= 180) return "13x18";
+  if (maxSide <= 200) return "18cm";
   return "large";
 }
 
 export const HOOP_SIZE_OPTIONS = [
-  "10x10 cm",
-  "14 cm",
-  "16 cm",
-  "13x18 cm",
-  "18 cm",
+  "10x10",
+  "13x18",
+  "14cm",
+  "16cm",
+  "18cm",
   "large",
 ] as const;
