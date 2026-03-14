@@ -37,9 +37,9 @@ const FORMAT_SIZE: Record<ExportFormat, { width: number; height: number }> = {
 const CONTENT_MAX_W = 900;
 
 const TOP_PAD: Record<ExportFormat, number> = {
-  pdf: 80,
-  instagram: 80,
-  whatsapp: 80,
+  pdf: 120,
+  instagram: 120,
+  whatsapp: 120,
 };
 
 const SIDE_PAD: Record<ExportFormat, number> = {
