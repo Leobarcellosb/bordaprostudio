@@ -115,7 +115,12 @@ export const AdminPremiumKits = () => {
         <h3 className="font-semibold flex items-center gap-2">
           <Package className="h-4 w-4 text-primary" /> Kits Premium ({kits.length})
         </h3>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo Kit</Button>
+        <div className="flex gap-2">
+          <Button variant="default" onClick={() => setSmartBuilderOpen(true)} className="gap-1.5">
+            <Wand2 className="h-4 w-4" /> Kit Inteligente
+          </Button>
+          <Button variant="outline" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Manual</Button>
+        </div>
       </div>
 
       <div className="rounded-lg border overflow-hidden">
