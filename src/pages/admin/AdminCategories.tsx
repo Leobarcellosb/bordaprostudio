@@ -15,6 +15,11 @@ export const AdminCategories = () => {
     setCategories(cats || []);
   };
 
+  const toggleActive = async (id: string, currentActive: boolean) => {
+    const { error } = await db.from("categories").update({ is_active: !currentActive }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success(currentActive ? "Categoria desativada!" : "Categoria ativada!"); fetchData(); }
+  };
+
   useEffect(() => { fetchData(); }, []);
 
   const addCategory = async () => {
