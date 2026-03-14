@@ -401,7 +401,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
           }}
         >
           {designs.map((d, i) => (
-            <ItemCard key={d.id} d={d} format={format} index={i + pageIndex * designs.length} />
+            <ItemCard key={d.id} d={d} format={format} index={i + pageIndex * designs.length} debug={debug} />
           ))}
         </div>
 
