@@ -216,7 +216,7 @@ export const AdminDesigns = () => {
       setClassifyProgress(`Processando... ${totalClassified} classificadas, ${remaining} restantes`);
       try {
         const { data, error } = await supabase.functions.invoke("bulk-classify-designs", {
-          body: { batch_size: 50 },
+          body: { batch_size: 10 },
         });
         if (error) throw error;
         totalClassified += data.classified || 0;
