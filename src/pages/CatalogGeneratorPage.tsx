@@ -95,7 +95,7 @@ const CatalogGeneratorPage = () => {
     }).eq("id", id);
   };
 
-  const perPage = getDesignsPerPage(layout, exportFormat);
+  const perPage = getDesignsPerPage(exportFormat);
   const pages = paginateDesigns(designs, perPage);
 
   const validateExportBounds = () => {
