@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import {
   MOCKUP_TEMPLATES,
-  FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
-  getMockupBaseSrc,
+  getMockupSrc,
   renderMockup,
+  getAvailableColors,
   type ColorId,
   type MockupTemplate,
 } from "@/lib/mockupEngine";
