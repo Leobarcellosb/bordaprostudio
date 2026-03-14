@@ -3,8 +3,10 @@
  * The real template lives in CatalogTemplate.tsx.
  * This file keeps existing imports working.
  */
-export type { CatalogDesign, ExportFormat as LayoutType } from "./CatalogTemplate";
+export type { CatalogDesign } from "./CatalogTemplate";
 export type { ExportFormat } from "./CatalogTemplate";
+/** @deprecated Layout is no longer configurable — kept for backward compat */
+export type LayoutType = "compact-list";
 export {
   CatalogTemplate as CatalogCanvas,
   getDesignsPerPage as getDesignsPerPageNew,

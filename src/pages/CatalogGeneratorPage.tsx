@@ -10,14 +10,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2, LayoutGrid, List, MessageCircle } from "lucide-react";
 import {
-  CatalogCanvas,
+  CatalogTemplate,
   getCatalogFormatSize,
-  getCatalogHeaderDebug,
   getDesignsPerPage,
   paginateDesigns,
-  type LayoutType,
   type CatalogDesign,
-} from "@/components/catalog/CatalogCanvas";
+  type ExportFormat as CatalogExportFormat,
+} from "@/components/catalog/CatalogTemplate";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
