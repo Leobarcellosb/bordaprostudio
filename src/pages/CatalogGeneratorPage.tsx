@@ -318,13 +318,13 @@ const CatalogGeneratorPage = () => {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pré-visualização</p>
             <div className="rounded-xl border border-border/60 bg-muted/30 p-3 overflow-auto max-h-[80vh]">
               <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: previewSize.width }}>
-                <CatalogCanvas
+                <CatalogTemplate
                   title={title}
                   subtitle={subtitle}
                   designs={previewDesigns}
-                  layout={layout}
                   format={exportFormat}
                   pageIndex={0}
+                  totalPages={pages.length}
                   debug
                 />
               </div>
