@@ -14,24 +14,14 @@ export const KitsSection = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const { data: kitRows } = await db
-          .from("kits")
+        const { data } = await db
+          .from("premium_kits")
           .select("*")
+          .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(6);
 
-        if (kitRows && kitRows.length > 0) {
-          const { data: relations } = await db
-            .from("kit_designs")
-            .select("kit_id");
-
-          const countMap: Record<string, number> = {};
-          (relations || []).forEach((r: any) => {
-            countMap[r.kit_id] = (countMap[r.kit_id] || 0) + 1;
-          });
-
-          setKits(kitRows.map((k: any) => ({ ...k, designCount: countMap[k.id] || 0 })));
-        }
+        setKits(data || []);
       } catch (err) {
         console.error("KitsSection error:", err);
       } finally {
@@ -50,7 +40,7 @@ export const KitsSection = () => {
         iconClassName="bg-primary/10 text-primary"
         title="Kits de Matrizes"
         subtitle="Coleções prontas para baixar"
-        onViewAll={() => navigate("/collections")}
+        onViewAll={() => navigate("/kits")}
       />
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -63,10 +53,10 @@ export const KitsSection = () => {
           {kits.map((kit: any) => (
             <KitCard
               key={kit.id}
-              name={kit.name}
+              name={kit.title}
               coverImage={kit.cover_image}
-              designCount={kit.designCount}
-              onClick={() => navigate(`/collections/${kit.id}`)}
+              designCount={kit.designs_count}
+              onClick={() => navigate(`/kits/${kit.id}`)}
             />
           ))}
         </div>
