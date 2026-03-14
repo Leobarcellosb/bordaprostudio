@@ -82,27 +82,46 @@ export const getMockupSrc = (productId: string, colorId: ColorId) =>
   `/mockups/${productId}-${colorId}.png`;
 
 /**
- * Apply fabric color tint to the base (white) mockup image on canvas.
- * Uses multiply blend mode so shadows/folds/lighting are preserved.
+ * Apply fabric color tint to the base (white) mockup image.
+ * Uses a lighter multiply + screen blend to preserve brightness and detail.
  */
 function applyColorTint(
   ctx: CanvasRenderingContext2D,
+  mockupImg: HTMLImageElement,
   x: number, y: number, w: number, h: number,
   hex: string,
 ) {
   if (hex === "#FFFFFF") return; // white = no tint needed
 
-  ctx.save();
-  ctx.globalCompositeOperation = "multiply";
-  ctx.fillStyle = hex;
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
+  // Use an offscreen canvas to tint without affecting the background
+  const offscreen = document.createElement("canvas");
+  offscreen.width = ctx.canvas.width;
+  offscreen.height = ctx.canvas.height;
+  const oCtx = offscreen.getContext("2d")!;
 
-  // Restore original alpha channel (multiply can darken transparent areas)
-  ctx.save();
-  ctx.globalCompositeOperation = "destination-in";
-  ctx.drawImage(ctx.canvas, 0, 0);
-  ctx.restore();
+  // Draw the product on offscreen
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Apply multiply tint (preserves shadows/folds)
+  oCtx.globalCompositeOperation = "multiply";
+  oCtx.fillStyle = hex;
+  oCtx.fillRect(x, y, w, h);
+
+  // Clip to the product's alpha (don't tint transparent areas)
+  oCtx.globalCompositeOperation = "destination-in";
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Brighten slightly to avoid overly dark results
+  oCtx.globalCompositeOperation = "screen";
+  oCtx.globalAlpha = 0.15;
+  oCtx.fillStyle = "#ffffff";
+  oCtx.fillRect(x, y, w, h);
+  oCtx.globalAlpha = 1;
+  oCtx.globalCompositeOperation = "destination-in";
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Composite the tinted product back onto the main canvas
+  ctx.drawImage(offscreen, 0, 0);
 }
 
 /**
