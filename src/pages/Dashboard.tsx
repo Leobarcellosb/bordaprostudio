@@ -41,6 +41,7 @@ const Dashboard = () => {
 
         {/* Each section loads independently */}
         <MeuAcervoSection />
+        <RecentDownloadsSection />
         <SeasonalCalendarSection />
         <NewDesignsSection />
         <PopularDesignsSection />
