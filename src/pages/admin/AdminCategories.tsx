@@ -44,8 +44,8 @@ export const AdminCategories = () => {
         </div>
         <div className="flex flex-wrap gap-2">{categories.map((c: any) => (
           <Card key={c.id} className="inline-flex"><CardContent className="py-2 px-3 flex items-center gap-2">
-            <span className="text-sm">{c.name}</span>
-            
+            <span className={`text-sm ${!c.is_active ? 'line-through opacity-50' : ''}`}>{c.name}</span>
+            <button onClick={() => toggleActive(c.id, c.is_active)} className="text-xs text-muted-foreground hover:text-foreground">{c.is_active ? '✓' : '✗'}</button>
             <button onClick={() => deleteCategory(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></button>
           </CardContent></Card>
         ))}</div>
