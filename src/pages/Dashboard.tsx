@@ -8,6 +8,7 @@ import { PopularDesignsSection } from "@/components/home/PopularDesignsSection";
 import { HoopDesignsSection } from "@/components/home/HoopDesignsSection";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { RecommendedSection } from "@/components/home/RecommendedSection";
+import { KitsSection } from "@/components/home/KitsSection";
 
 const Dashboard = () => {
   const { profile } = useAuth();
