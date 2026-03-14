@@ -18,6 +18,7 @@ import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
 import MockupSimulator from "./pages/MockupSimulator";
+import SalesImageGenerator from "./pages/SalesImageGenerator";
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
 import FavoritesPage from "./pages/FavoritesPage";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
             <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
+            <Route path="/sales-image" element={<ProtectedRoute><SalesImageGenerator /></ProtectedRoute>} />
             <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
             <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />
