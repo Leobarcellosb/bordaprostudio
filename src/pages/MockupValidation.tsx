@@ -6,11 +6,12 @@ import {
   FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
-  getMockupBaseSrc,
+  getMockupSrc,
   loadImage,
   renderMockup,
   type FabricColor,
 } from "@/lib/mockupEngine";
+import { AlertTriangle } from "lucide-react";
 
 const PILLOW = MOCKUP_TEMPLATES.find((t) => t.id === "pillow-cover")!;
 
@@ -22,19 +23,26 @@ const MockupValidation = () => {
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   const renderAll = useCallback(async () => {
-    try {
-      const baseImg = await loadImage(getMockupBaseSrc(PILLOW.id));
+    for (let i = 0; i < VALIDATION_COLORS.length; i++) {
+      const canvas = canvasRefs.current[i];
+      if (!canvas) continue;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
 
-      for (let i = 0; i < VALIDATION_COLORS.length; i++) {
-        const canvas = canvasRefs.current[i];
-        if (!canvas) continue;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) continue;
-
-        renderMockup(ctx, baseImg, null, PILLOW, 100, 0, 0, VALIDATION_COLORS[i].hex);
+      try {
+        const productImg = await loadImage(getMockupSrc(PILLOW.id, VALIDATION_COLORS[i].id));
+        renderMockup(ctx, productImg, null, PILLOW, 100, 0, 0);
+      } catch {
+        // Asset not found — draw placeholder
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        ctx.fillStyle = "#999";
+        ctx.font = "28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Asset não encontrado", CANVAS_SIZE / 2, CANVAS_SIZE / 2);
       }
-    } catch (err) {
-      console.error("Mockup validation render failed:", err);
     }
   }, []);
 
@@ -50,6 +58,16 @@ const MockupValidation = () => {
           <p className="text-sm text-muted-foreground mt-1">
             Todas as 6 variantes devem ter a mesma pose, enquadramento, dobras e iluminação. Apenas a cor do tecido muda.
           </p>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-amber-700 dark:text-amber-400">Nota para Admin</p>
+            <p className="text-muted-foreground mt-0.5">
+              Somente cores com mockup aprovado aparecem no simulador. Variantes sem asset estático aprovado são ocultadas automaticamente.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
