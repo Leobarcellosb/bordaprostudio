@@ -91,7 +91,7 @@ const ProductIdeasPage = () => {
                 priceRange={idea.price_range}
                 profitExample={idea.profit_example}
                 
-                onGenerate={() => navigate(`/sales-generator?design=${idea.design_id}&product=${idea.id}`)}
+                
                 onDelete={() => setDeleteTarget(idea.id)}
               />
             ))}

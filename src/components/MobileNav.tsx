@@ -13,7 +13,7 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   { icon: Download, labelKey: "nav.mobile.downloads", path: "/downloads" },
   { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
   { icon: Lightbulb, labelKey: "nav.mobile.ideas", path: "/product-ideas" },
-  { icon: Sparkles, labelKey: "nav.mobile.sales", path: "/sales-generator" },
+  
   
   { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
