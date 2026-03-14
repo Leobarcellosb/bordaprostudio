@@ -291,19 +291,12 @@ const DesignDetail = () => {
               </p>
             )}
 
-            {/* Tags */}
-            {(() => {
-              const tags = (design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean);
-              return tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map((tag: string) => (
-                    <Badge key={tag} variant="outline" className="font-normal text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null;
-            })()}
+            {/* Editable Tags */}
+            <DesignTagsEditor
+              designId={id!}
+              designName={design.name}
+              initialTags={design.tags_text}
+            />
 
             {/* Available formats */}
             <Card className="border-border/60 bg-muted/30">
