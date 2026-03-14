@@ -27,6 +27,7 @@ const adminItems = [
 
 export const AppSidebar = () => {
   const { signOut, isAdmin, profile } = useAuth();
+  const { favoriteIds } = useFavorites();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
