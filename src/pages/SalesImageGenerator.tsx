@@ -16,11 +16,10 @@ import {
   CANVAS_SIZE,
   CANVAS_BG,
   getMockupBaseSrc,
-  getMockupSrc,
   renderMockup,
   type ColorId,
   type MockupTemplate,
-} from "@/lib/mockupTemplates";
+} from "@/lib/mockupEngine";
 import { useSearchParams } from "react-router-dom";
 
 // Only show products relevant for embroidery sales

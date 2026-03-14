@@ -4,71 +4,65 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Download, Image as ImageIcon, Layers, RotateCcw, ZoomIn, Move, Palette } from "lucide-react";
+import { Download, Image as ImageIcon, Layers, Palette } from "lucide-react";
 import {
   MOCKUP_TEMPLATES,
   FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
   getMockupBaseSrc,
-  getMockupSrc,
+  loadImage,
   renderMockup,
-  type ColorId,
-} from "@/lib/mockupTemplates";
+  type FabricColor,
+  type MockupTemplate,
+} from "@/lib/mockupEngine";
 
 const MockupSimulator = () => {
-  const [kits, setKits] = useState<any[]>([]);
-  const [selectedKit, setSelectedKit] = useState<any>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState(MOCKUP_TEMPLATES[0]);
-  const [selectedColor, setSelectedColor] = useState(FABRIC_COLORS[0]);
-  const [scale, setScale] = useState(100);
-  const [offsetX, setOffsetX] = useState(0);
-  const [offsetY, setOffsetY] = useState(0);
+  const [designs, setDesigns] = useState<any[]>([]);
+  const [selectedDesign, setSelectedDesign] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<MockupTemplate>(MOCKUP_TEMPLATES[0]);
+  const [selectedColor, setSelectedColor] = useState<FabricColor>(FABRIC_COLORS[0]);
   const [rendering, setRendering] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Load published designs
   useEffect(() => {
     db.from("designs")
       .select("id, name, cover_image, categories(name)")
       .eq("is_published", true)
       .order("name")
-      .then(({ data }: any) => setKits(data || []));
+      .then(({ data }: any) => setDesigns(data || []));
   }, []);
 
-  const drawCanvas = useCallback(() => {
+  // Render canvas whenever inputs change
+  const drawCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mockupSrc = getMockupBaseSrc(selectedTemplate.id);
-    const mockupImg = new Image();
-    mockupImg.crossOrigin = "anonymous";
-    mockupImg.onload = () => {
-      if (selectedKit?.cover_image) {
-        const designImg = new Image();
-        designImg.crossOrigin = "anonymous";
-        designImg.onload = () => {
-          renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
-        };
-        designImg.onerror = () => {
-          renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
-        };
-        designImg.src = selectedKit.cover_image;
-      } else {
-        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
+    try {
+      const baseImg = await loadImage(getMockupBaseSrc(selectedTemplate.id));
+      let designImg: HTMLImageElement | null = null;
+
+      if (selectedDesign?.cover_image) {
+        try {
+          designImg = await loadImage(selectedDesign.cover_image);
+        } catch {
+          // Design image failed to load — render without it
+        }
       }
-    };
-    mockupImg.onerror = () => {
+
+      renderMockup(ctx, baseImg, designImg, selectedTemplate, 100, 0, 0, selectedColor.hex);
+    } catch {
+      // Base mockup image failed — show blank canvas
       canvas.width = CANVAS_SIZE;
       canvas.height = CANVAS_SIZE;
       ctx.fillStyle = CANVAS_BG;
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    };
-    mockupImg.src = mockupSrc;
-  }, [selectedKit, selectedTemplate, selectedColor, scale, offsetX, offsetY]);
+    }
+  }, [selectedDesign, selectedTemplate, selectedColor]);
 
   useEffect(() => {
     drawCanvas();
@@ -78,10 +72,10 @@ const MockupSimulator = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     setRendering(true);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((r) => setTimeout(r, 100));
     try {
       const link = document.createElement("a");
-      link.download = `mockup-${selectedTemplate.id}-${selectedColor.id}-${selectedKit?.name || "matriz"}.png`;
+      link.download = `mockup-${selectedTemplate.id}-${selectedColor.id}-${selectedDesign?.name || "produto"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       toast.success("Mockup baixado com sucesso!");
@@ -91,15 +85,10 @@ const MockupSimulator = () => {
     setRendering(false);
   };
 
-  const resetPosition = () => {
-    setScale(100);
-    setOffsetX(0);
-    setOffsetY(0);
-  };
-
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10">
             <Layers className="h-5 w-5 text-primary" />
@@ -111,52 +100,58 @@ const MockupSimulator = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left panel - Controls */}
+          {/* ─── Left: Controls ─── */}
           <div className="space-y-5">
-            {/* Design selection */}
+            {/* Step 1: Select design */}
             <Card className="border-border/60">
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-primary" /> Selecione a Matriz
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                  1. Selecione o Bordado
                 </p>
                 <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-                  {kits.map((kit: any) => (
+                  {designs.map((d: any) => (
                     <button
-                      key={kit.id}
-                      onClick={() => setSelectedKit(kit)}
+                      key={d.id}
+                      onClick={() => setSelectedDesign(d)}
                       className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedKit?.id === kit.id
+                        selectedDesign?.id === d.id
                           ? "border-primary ring-2 ring-primary/20"
                           : "border-border/40 hover:border-border"
                       }`}
                     >
-                      {kit.cover_image ? (
-                        <img src={kit.cover_image} alt={kit.name} className="w-full h-full object-cover" />
+                      {d.cover_image ? (
+                        <img src={d.cover_image} alt={d.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🧵</div>
                       )}
                     </button>
                   ))}
-                  {kits.length === 0 && (
-                    <p className="col-span-3 text-sm text-muted-foreground text-center py-4">Nenhuma matriz disponível</p>
+                  {designs.length === 0 && (
+                    <p className="col-span-3 text-sm text-muted-foreground text-center py-4">
+                      Nenhuma matriz disponível
+                    </p>
                   )}
                 </div>
-                {selectedKit && (
+                {selectedDesign && (
                   <div className="pt-1">
-                    <p className="text-sm font-medium truncate">{selectedKit.name}</p>
-                    {selectedKit.categories?.name && (
-                      <Badge variant="secondary" className="text-[10px] mt-1">{selectedKit.categories.name}</Badge>
+                    <p className="text-sm font-medium truncate">{selectedDesign.name}</p>
+                    {selectedDesign.categories?.name && (
+                      <Badge variant="secondary" className="text-[10px] mt-1">
+                        {selectedDesign.categories.name}
+                      </Badge>
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Mockup selection */}
+            {/* Step 2: Select product */}
             <Card className="border-border/60">
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-primary" /> Selecione o Produto
+                  <Layers className="h-4 w-4 text-primary" />
+                  2. Selecione o Produto
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   {MOCKUP_TEMPLATES.map((tpl) => (
@@ -181,11 +176,12 @@ const MockupSimulator = () => {
               </CardContent>
             </Card>
 
-            {/* Color selection */}
+            {/* Step 3: Select color */}
             <Card className="border-border/60">
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-primary" /> Cor do Produto
+                  <Palette className="h-4 w-4 text-primary" />
+                  3. Cor do Produto
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {FABRIC_COLORS.map((color) => (
@@ -201,9 +197,15 @@ const MockupSimulator = () => {
                       style={{ backgroundColor: color.hex }}
                     >
                       {selectedColor.id === color.id && (
-                        <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${
-                          ["preto", "marinho", "vermelho"].includes(color.id) ? "text-white" : "text-foreground"
-                        }`}>✓</span>
+                        <span
+                          className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${
+                            ["preto", "marinho", "vermelho"].includes(color.id)
+                              ? "text-white"
+                              : "text-foreground"
+                          }`}
+                        >
+                          ✓
+                        </span>
                       )}
                     </button>
                   ))}
@@ -211,50 +213,9 @@ const MockupSimulator = () => {
                 <p className="text-xs text-muted-foreground">{selectedColor.label}</p>
               </CardContent>
             </Card>
-
-            {/* Position controls */}
-            {selectedKit && (
-              <Card className="border-border/60">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <Move className="h-4 w-4 text-primary" /> Ajustes
-                    </p>
-                    <Button variant="ghost" size="sm" onClick={resetPosition} className="h-7 text-xs gap-1">
-                      <RotateCcw className="h-3 w-3" /> Reset
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs text-muted-foreground flex items-center gap-1">
-                          <ZoomIn className="h-3 w-3" /> Tamanho
-                        </label>
-                        <span className="text-xs font-mono text-muted-foreground">{scale}%</span>
-                      </div>
-                      <Slider value={[scale]} onValueChange={([v]) => setScale(v)} min={30} max={200} step={5} />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs text-muted-foreground">Posição X</label>
-                        <span className="text-xs font-mono text-muted-foreground">{offsetX}</span>
-                      </div>
-                      <Slider value={[offsetX]} onValueChange={([v]) => setOffsetX(v)} min={-100} max={100} step={1} />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs text-muted-foreground">Posição Y</label>
-                        <span className="text-xs font-mono text-muted-foreground">{offsetY}</span>
-                      </div>
-                      <Slider value={[offsetY]} onValueChange={([v]) => setOffsetY(v)} min={-100} max={100} step={1} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Right panel - Preview + Download */}
+          {/* ─── Right: Preview + Download ─── */}
           <div className="lg:col-span-2 space-y-4">
             <Card className="border-border/60 overflow-hidden">
               <CardContent className="p-0">
@@ -262,14 +223,16 @@ const MockupSimulator = () => {
                   className="aspect-square flex items-center justify-center relative"
                   style={{ backgroundColor: CANVAS_BG }}
                 >
-                  {!selectedKit ? (
+                  {!selectedDesign ? (
                     <div className="text-center space-y-3 p-8">
                       <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
                         <Layers className="h-8 w-8 text-muted-foreground/40" />
                       </div>
                       <div>
-                        <p className="font-medium text-muted-foreground">Selecione um design</p>
-                        <p className="text-sm text-muted-foreground/60">Escolha um design e um produto para gerar o mockup</p>
+                        <p className="font-medium text-muted-foreground">Selecione um bordado</p>
+                        <p className="text-sm text-muted-foreground/60">
+                          Escolha um bordado e um produto para gerar o mockup
+                        </p>
                       </div>
                     </div>
                   ) : (
@@ -279,12 +242,14 @@ const MockupSimulator = () => {
               </CardContent>
             </Card>
 
-            {selectedKit && (
+            {selectedDesign && (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">{selectedKit.name} × {selectedTemplate.label}</p>
+                  <p className="text-sm font-medium">
+                    {selectedDesign.name} × {selectedTemplate.label}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Cor: {selectedColor.label} · Canvas: {CANVAS_SIZE}×{CANVAS_SIZE}px
+                    Cor: {selectedColor.label} · {CANVAS_SIZE}×{CANVAS_SIZE}px
                   </p>
                 </div>
                 <Button onClick={handleDownload} disabled={rendering} className="gap-2">
