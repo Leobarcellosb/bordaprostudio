@@ -1,5 +1,6 @@
 import { Home, Library, BookOpen, Settings, LogOut, Shield, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
