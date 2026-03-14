@@ -160,7 +160,7 @@ export function getCatalogHeaderDebug({
 
 /* ── Item Card (fixed geometry) ── */
 
-const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat; index: number }) => {
+const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: ExportFormat; index: number; debug?: boolean }) => {
   const imgSz = IMG_SIZE[format];
   const itemH_px = ITEM_H[format];
   const nameFnt = NAME_FONT[format];
@@ -174,6 +174,8 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
     .filter(Boolean)
     .join(" · ");
 
+  const dbg = (color: string) => debug ? `2px dashed ${color}` : undefined;
+
   return (
     <div
       data-export-check="item"
@@ -184,7 +186,7 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
         flexDirection: "row",
         alignItems: "stretch",
         borderRadius: format === "instagram" ? 16 : 10,
-        border: "1px solid rgba(128,128,128,0.15)",
+        border: debug ? "2px dashed #f97316" : "1px solid rgba(128,128,128,0.15)",
         background: "white",
         overflow: "hidden",
         boxSizing: "border-box",
