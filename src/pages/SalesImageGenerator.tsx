@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import {
   MOCKUP_TEMPLATES,
-  FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
-  getMockupBaseSrc,
+  getMockupSrc,
   renderMockup,
+  getAvailableColors,
   type ColorId,
   type MockupTemplate,
 } from "@/lib/mockupEngine";
@@ -73,7 +73,7 @@ const SalesImageGenerator = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<MockupTemplate>(
     MOCKUP_TEMPLATES.find((t) => SALES_PRODUCTS.includes(t.id)) || MOCKUP_TEMPLATES[0]
   );
-  const [selectedColor, setSelectedColor] = useState(FABRIC_COLORS[0]);
+  const [selectedColor, setSelectedColor] = useState(getAvailableColors(MOCKUP_TEMPLATES.find((t) => SALES_PRODUCTS.includes(t.id)) || MOCKUP_TEMPLATES[0])[0]);
   const [scale, setScale] = useState(100);
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
@@ -108,7 +108,7 @@ const SalesImageGenerator = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mockupSrc = getMockupBaseSrc(selectedTemplate.id);
+    const mockupSrc = getMockupSrc(selectedTemplate.id, selectedColor.id);
     const mockupImg = new Image();
     mockupImg.crossOrigin = "anonymous";
     mockupImg.onload = () => {
@@ -269,7 +269,7 @@ const SalesImageGenerator = () => {
                         }`}
                       >
                         <img
-                          src={getMockupBaseSrc(tpl.id)}
+                          src={getMockupSrc(tpl.id, "branco")}
                           alt={tpl.label}
                           className="w-10 h-10 rounded-md object-cover bg-muted/50"
                         />
@@ -288,7 +288,7 @@ const SalesImageGenerator = () => {
                     <Palette className="h-4 w-4 text-primary" /> Cor do Produto
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {FABRIC_COLORS.map((color) => (
+                    {getAvailableColors(selectedTemplate).map((color) => (
                       <button
                         key={color.id}
                         onClick={() => setSelectedColor(color)}

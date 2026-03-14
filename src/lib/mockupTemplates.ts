@@ -8,14 +8,12 @@ export {
   FABRIC_COLORS,
   COLOR_IDS,
   getMockupBaseSrc,
+  getMockupSrc,
   renderMockup,
   loadImage,
+  getAvailableColors,
   type EmbroideryArea,
   type MockupTemplate,
   type ColorId,
   type FabricColor,
 } from "./mockupEngine";
-
-/** @deprecated */
-export const getMockupSrc = (productId: string, colorId: string) =>
-  `/mockups/${productId}-${colorId}.png`;
