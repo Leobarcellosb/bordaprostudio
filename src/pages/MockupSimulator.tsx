@@ -51,7 +51,7 @@ const MockupSimulator = () => {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
         designImg.onload = () => {
-          renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY);
+          renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         };
         designImg.onerror = () => {
           renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
