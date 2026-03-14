@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2, LayoutGrid, List, MessageCircle } from "lucide-react";
+import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2 } from "lucide-react";
 import {
   CatalogTemplate,
   getCatalogFormatSize,
