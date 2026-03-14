@@ -58,47 +58,47 @@ interface LayoutConfig {
 const LAYOUTS: Record<ExportFormat, LayoutConfig> = {
   pdf: {
     padding: 32,
-    titleFont: 22,
-    subtitleFont: 12,
-    nameFont: 13,
-    metaFont: 9,
-    catFont: 9,
-    footerFont: 9,
-    imgSize: 56,
-    itemHeight: 72,
-    itemGap: 8,
-    textGap: 14,
-    headerBottomGap: 20,
+    titleFont: 20,
+    subtitleFont: 10,
+    nameFont: 11,
+    metaFont: 8,
+    catFont: 8,
+    footerFont: 8,
+    imgSize: 52,
+    itemHeight: 66,
+    itemGap: 6,
+    textGap: 12,
+    headerBottomGap: 16,
     separatorY: 0,
   },
   whatsapp: {
     padding: 28,
     titleFont: 22,
     subtitleFont: 12,
-    nameFont: 14,
-    metaFont: 10,
-    catFont: 10,
+    nameFont: 13,
+    metaFont: 9,
+    catFont: 9,
     footerFont: 9,
-    imgSize: 56,
-    itemHeight: 72,
-    itemGap: 8,
+    imgSize: 54,
+    itemHeight: 70,
+    itemGap: 7,
     textGap: 14,
-    headerBottomGap: 20,
+    headerBottomGap: 18,
     separatorY: 0,
   },
   instagram: {
     padding: 48,
     titleFont: 38,
-    subtitleFont: 18,
+    subtitleFont: 20,
     nameFont: 22,
-    metaFont: 14,
+    metaFont: 15,
     catFont: 14,
     footerFont: 13,
     imgSize: 80,
-    itemHeight: 96,
-    itemGap: 12,
+    itemHeight: 100,
+    itemGap: 10,
     textGap: 18,
-    headerBottomGap: 28,
+    headerBottomGap: 24,
     separatorY: 0,
   },
 };
@@ -323,7 +323,7 @@ async function drawCatalog(
     }
 
     // Title (2-line wrap)
-    let textCursorY = rowY + 8 + L.nameFont;
+    let textCursorY = rowY + 10 + L.nameFont;
     ctx.fillStyle = "#1a1a1a";
     ctx.font = `700 ${L.nameFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
     const prefix = `${String(globalIndex + 1).padStart(2, "0")}. `;
@@ -331,15 +331,16 @@ async function drawCatalog(
     const nameLines = wrapText(ctx, fullTitle, textMaxW - 16, 2);
     for (const line of nameLines) {
       ctx.fillText(line, textX, textCursorY);
-      textCursorY += L.nameFont + 3;
+      textCursorY += L.nameFont + 4;
     }
+    textCursorY += 2; // 6px gap after title
 
     // Category
     if (d.category_name) {
       ctx.fillStyle = "#7c3aed";
       ctx.font = `600 ${L.catFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
       ctx.fillText(d.category_name, textX, textCursorY);
-      textCursorY += L.catFont + 3;
+      textCursorY += L.catFont + 4; // 4px gap after category
     }
 
     // Metadata
@@ -347,7 +348,7 @@ async function drawCatalog(
       .filter(Boolean)
       .join(" · ");
     if (meta) {
-      ctx.fillStyle = "#999999";
+      ctx.fillStyle = "#aaaaaa";
       ctx.font = `400 ${L.metaFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
       ctx.fillText(meta, textX, textCursorY);
     }
