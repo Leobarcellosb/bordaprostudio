@@ -192,8 +192,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
     <div
       data-export-check="item"
       style={{
-        height: itemH_px,
-        maxHeight: itemH_px,
+        minHeight: itemH_px,
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
@@ -202,7 +201,6 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
         borderRadius: 10,
         border: debug ? "2px dashed #f97316" : "1px solid rgba(128,128,128,0.15)",
         background: "white",
-        overflow: "hidden",
         boxSizing: "border-box",
       }}
     >
