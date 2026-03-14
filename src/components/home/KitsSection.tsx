@@ -31,7 +31,7 @@ export const KitsSection = () => {
     fetch();
   }, []);
 
-  if (!loading && kits.length === 0) return null;
+  
 
   return (
     <section>
