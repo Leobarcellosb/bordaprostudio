@@ -90,7 +90,7 @@ const ProductIdeasPage = () => {
                 imageUrl={idea.image_url}
                 priceRange={idea.price_range}
                 profitExample={idea.profit_example}
-                onMockup={() => navigate(`/mockup-simulator?design=${idea.design_id}`)}
+                
                 onGenerate={() => navigate(`/sales-generator?design=${idea.design_id}&product=${idea.id}`)}
                 onDelete={() => setDeleteTarget(idea.id)}
               />

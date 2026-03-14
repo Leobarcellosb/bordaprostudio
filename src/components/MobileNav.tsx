@@ -14,7 +14,7 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
   { icon: Lightbulb, labelKey: "nav.mobile.ideas", path: "/product-ideas" },
   { icon: Sparkles, labelKey: "nav.mobile.sales", path: "/sales-generator" },
-  { icon: Layers, labelKey: "nav.mobile.mockups", path: "/mockup-simulator" },
+  
   { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
   { icon: Package, label: "Kits Premium", path: "/kits" },

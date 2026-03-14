@@ -414,7 +414,7 @@ const DesignDetail = () => {
                   imageUrl={idea.image_url}
                   priceRange={idea.price_range}
                   profitExample={idea.profit_example}
-                  onMockup={() => navigate(`/mockup-simulator?design=${id}`)}
+                  
                   onGenerate={!String(idea.id).startsWith("ai-") ? () => navigate(`/sales-generator?design=${id}&product=${idea.id}`) : undefined}
                 />
               ))}
