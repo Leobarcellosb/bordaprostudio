@@ -14,7 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import LibraryPage from "./pages/LibraryPage";
 import KitDetail from "./pages/KitDetail";
 import ProductIdeasPage from "./pages/ProductIdeasPage";
-import SalesGenerator from "./pages/SalesGenerator";
+
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
 
@@ -50,7 +50,7 @@ const App = () => (
             <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
             <Route path="/library/:id" element={<ProtectedRoute><KitDetail /></ProtectedRoute>} />
             <Route path="/product-ideas" element={<ProtectedRoute><ProductIdeasPage /></ProtectedRoute>} />
-            <Route path="/sales-generator" element={<ProtectedRoute><SalesGenerator /></ProtectedRoute>} />
+            
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
             

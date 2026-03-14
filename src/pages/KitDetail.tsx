@@ -415,7 +415,7 @@ const DesignDetail = () => {
                   priceRange={idea.price_range}
                   profitExample={idea.profit_example}
                   
-                  onGenerate={!String(idea.id).startsWith("ai-") ? () => navigate(`/sales-generator?design=${id}&product=${idea.id}`) : undefined}
+                  
                 />
               ))}
             </div>

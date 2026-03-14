@@ -1,4 +1,4 @@
-import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Eye } from "lucide-react";
+import { Home, Library, BookOpen, Settings, LogOut, Shield, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   { icon: Download, labelKey: "nav.downloads", path: "/downloads" },
   { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
   { icon: Lightbulb, labelKey: "nav.productIdeas", path: "/product-ideas" },
-  { icon: Sparkles, labelKey: "nav.salesGenerator", path: "/sales-generator" },
+  
   { icon: Eye, label: "Visualizar Matriz", path: "/embroidery-viewer" },
   { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
