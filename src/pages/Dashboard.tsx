@@ -11,6 +11,7 @@ import { RecommendedSection } from "@/components/home/RecommendedSection";
 import { KitsSection } from "@/components/home/KitsSection";
 import { KitSuggestionsSection } from "@/components/home/KitSuggestionsSection";
 import { CollectionSuggestionsSection } from "@/components/home/CollectionSuggestionsSection";
+import { SeasonalCalendarSection } from "@/components/home/SeasonalCalendarSection";
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -37,6 +38,7 @@ const Dashboard = () => {
         </div>
 
         {/* Each section loads independently */}
+        <SeasonalCalendarSection />
         <NewDesignsSection />
         <PopularDesignsSection />
         <HoopDesignsSection />
