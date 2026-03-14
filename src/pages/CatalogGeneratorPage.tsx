@@ -9,7 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2, LayoutGrid, List, MessageCircle } from "lucide-react";
-import { CatalogCanvas, getDesignsPerPage, paginateDesigns, type LayoutType, type CatalogDesign } from "@/components/catalog/CatalogCanvas";
+import {
+  CatalogCanvas,
+  getCatalogFormatSize,
+  getCatalogHeaderDebug,
+  getDesignsPerPage,
+  paginateDesigns,
+  type LayoutType,
+  type CatalogDesign,
+} from "@/components/catalog/CatalogCanvas";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -54,12 +62,14 @@ const CatalogGeneratorPage = () => {
         .eq("catalog_id", id)
         .order("order_index", { ascending: true }),
     ]);
+
     if (catData) {
       setCatalog(catData);
       setTitle(catData.name);
       setSubtitle(catData.subtitle || "");
       setLayout(catData.layout_type || "clean-grid");
     }
+
     const mapped: CatalogDesign[] = (itemsData || [])
       .filter((i: any) => i.designs)
       .map((i: any) => ({
@@ -72,13 +82,15 @@ const CatalogGeneratorPage = () => {
         stitch_count: i.designs.stitch_count,
         category_name: i.designs.categories?.name || null,
       }));
+
     setDesigns(mapped);
     setLoading(false);
   }, [id, user]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // Save settings back to catalog
   const saveSettings = async () => {
     if (!id) return;
     await db.from("catalogs").update({
@@ -91,19 +103,50 @@ const CatalogGeneratorPage = () => {
   const perPage = getDesignsPerPage(layout, exportFormat);
   const pages = paginateDesigns(designs, perPage);
 
+  const validateExportBounds = () => {
+    const tolerance = 2;
+    const issues: string[] = [];
+
+    canvasRefs.current.forEach((root, pageIndex) => {
+      if (!root) return;
+
+      const rootRect = root.getBoundingClientRect();
+      const checks = root.querySelectorAll<HTMLElement>("[data-export-check]");
+
+      checks.forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        const outside =
+          rect.left < rootRect.left - tolerance ||
+          rect.right > rootRect.right + tolerance ||
+          rect.top < rootRect.top - tolerance ||
+          rect.bottom > rootRect.bottom + tolerance;
+
+        if (outside) {
+          issues.push(`page:${pageIndex + 1} node:${node.dataset.exportCheck || "unknown"}`);
+        }
+      });
+    });
+
+    return { valid: issues.length === 0, issues };
+  };
+
   const capturePages = async (): Promise<HTMLCanvasElement[]> => {
     const canvases: HTMLCanvasElement[] = [];
+
     for (let i = 0; i < canvasRefs.current.length; i++) {
       const el = canvasRefs.current[i];
       if (!el) continue;
+
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: exportFormat === "instagram" ? 1 : 2,
         useCORS: true,
-        backgroundColor: "#f9fafb",
+        backgroundColor: null,
         logging: false,
       });
+
       canvases.push(canvas);
     }
+
     return canvases;
   };
 
@@ -117,8 +160,29 @@ const CatalogGeneratorPage = () => {
     await saveSettings();
 
     try {
-      // Small delay for render
-      await new Promise((r) => setTimeout(r, 300));
+      const headerDebug = getCatalogHeaderDebug({
+        title,
+        subtitle,
+        format: exportFormat,
+      });
+
+      console.info("[CatalogExport][HeaderValidation]", {
+        ...headerDebug,
+        format: exportFormat,
+        layout,
+        pageCount: pages.length,
+      });
+
+      await new Promise((r) => setTimeout(r, 320));
+
+      const boundsValidation = validateExportBounds();
+      console.info("[CatalogExport][BoundsValidation]", boundsValidation);
+
+      if (!boundsValidation.valid) {
+        toast.error("Layout fora da área segura. Ajuste título/layout antes de exportar.");
+        return;
+      }
+
       const canvases = await capturePages();
 
       if (exportFormat === "pdf") {
@@ -135,15 +199,20 @@ const CatalogGeneratorPage = () => {
         pdf.save(`${title || "catalogo"}.pdf`);
         toast.success("PDF gerado com sucesso!");
       } else {
-        // Single image export
-        const canvas = canvases[0];
-        if (canvas) {
+        if (!canvases.length) {
+          toast.error("Nenhuma página foi gerada para exportação.");
+          return;
+        }
+
+        canvases.forEach((canvas, index) => {
           const link = document.createElement("a");
-          link.download = `${title || "catalogo"}-${exportFormat}.png`;
+          const suffix = canvases.length > 1 ? `-${index + 1}` : "";
+          link.download = `${title || "catalogo"}-${exportFormat}${suffix}.png`;
           link.href = canvas.toDataURL("image/png");
           link.click();
-          toast.success("Imagem gerada com sucesso!");
-        }
+        });
+
+        toast.success(canvases.length > 1 ? `${canvases.length} imagens geradas com sucesso!` : "Imagem gerada com sucesso!");
       }
     } catch (err) {
       console.error("Export error:", err);
@@ -176,13 +245,13 @@ const CatalogGeneratorPage = () => {
     );
   }
 
-  // Preview: show first page only
   const previewDesigns = pages[0] || [];
+  const previewSize = getCatalogFormatSize(exportFormat);
+  const previewScale = exportFormat === "instagram" ? 0.3 : exportFormat === "whatsapp" ? 0.5 : 0.6;
 
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header */}
         <div>
           <button
             onClick={() => navigate(`/catalogs/${id}`)}
@@ -192,13 +261,13 @@ const CatalogGeneratorPage = () => {
             Voltar ao catálogo
           </button>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Gerar Catálogo</h1>
-          <p className="text-muted-foreground mt-1">{designs.length} {designs.length !== 1 ? "matrizes selecionadas" : "matriz selecionada"}</p>
+          <p className="text-muted-foreground mt-1">
+            {designs.length} {designs.length !== 1 ? "matrizes selecionadas" : "matriz selecionada"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
-          {/* Settings */}
           <div className="space-y-6">
-            {/* Title & Subtitle */}
             <Card className="border-border/60">
               <CardContent className="p-5 space-y-4">
                 <div className="space-y-2">
@@ -212,7 +281,6 @@ const CatalogGeneratorPage = () => {
               </CardContent>
             </Card>
 
-            {/* Layout Selection */}
             <Card className="border-border/60">
               <CardContent className="p-5 space-y-3">
                 <Label className="text-sm font-medium">Estilo do layout</Label>
@@ -236,7 +304,6 @@ const CatalogGeneratorPage = () => {
               </CardContent>
             </Card>
 
-            {/* Export Format */}
             <Card className="border-border/60">
               <CardContent className="p-5 space-y-3">
                 <Label className="text-sm font-medium">Formato de saída</Label>
@@ -260,7 +327,6 @@ const CatalogGeneratorPage = () => {
               </CardContent>
             </Card>
 
-            {/* Generate Button */}
             <Button
               onClick={handleExport}
               disabled={exporting || designs.length === 0}
@@ -281,11 +347,10 @@ const CatalogGeneratorPage = () => {
             </Button>
           </div>
 
-          {/* Preview */}
           <div className="lg:sticky lg:top-6 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pré-visualização</p>
             <div className="rounded-xl border border-border/60 bg-muted/30 p-3 overflow-auto max-h-[80vh]">
-              <div style={{ transform: "scale(0.6)", transformOrigin: "top left", width: exportFormat === "instagram" ? 540 : exportFormat === "whatsapp" ? 540 : 595 }}>
+              <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: previewSize.width }}>
                 <CatalogCanvas
                   title={title}
                   subtitle={subtitle}
@@ -304,12 +369,13 @@ const CatalogGeneratorPage = () => {
           </div>
         </div>
 
-        {/* Hidden render area for export */}
         <div ref={hiddenContainerRef} className="fixed -left-[9999px] top-0" aria-hidden="true">
           {pages.map((pageDesigns, i) => (
             <CatalogCanvas
               key={i}
-              ref={(el) => { canvasRefs.current[i] = el; }}
+              ref={(el) => {
+                canvasRefs.current[i] = el;
+              }}
               title={title}
               subtitle={subtitle}
               designs={pageDesigns}
