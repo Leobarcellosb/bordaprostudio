@@ -8,25 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2, LayoutGrid, List, MessageCircle } from "lucide-react";
+import { ArrowLeft, Download, FileText, MessageSquare, Instagram, Loader2 } from "lucide-react";
 import {
-  CatalogCanvas,
+  CatalogTemplate,
   getCatalogFormatSize,
-  getCatalogHeaderDebug,
   getDesignsPerPage,
   paginateDesigns,
-  type LayoutType,
   type CatalogDesign,
-} from "@/components/catalog/CatalogCanvas";
+  type ExportFormat as CatalogExportFormat,
+} from "@/components/catalog/CatalogTemplate";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 type ExportFormat = "pdf" | "instagram" | "whatsapp";
 
-// Layout options temporarily reduced to one stable template
-const layoutOptions: { value: LayoutType; label: string; icon: React.ReactNode; desc: string }[] = [
-  { value: "compact-list", label: "Lista Compacta", icon: <List className="h-5 w-5" />, desc: "Layout estável e alinhado" },
-];
+// Layout options removed — single template now
 
 const exportOptions: { value: ExportFormat; label: string; icon: React.ReactNode; desc: string }[] = [
   { value: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, desc: "Catálogo multipáginas" },
@@ -46,7 +42,7 @@ const CatalogGeneratorPage = () => {
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [layout, setLayout] = useState<LayoutType>("compact-list");
+  // layout removed — single template
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
 
   const canvasRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -66,7 +62,7 @@ const CatalogGeneratorPage = () => {
       setCatalog(catData);
       setTitle(catData.name);
       setSubtitle(catData.subtitle || "");
-      setLayout(catData.layout_type || "clean-grid");
+      // layout_type no longer used
     }
 
     const mapped: CatalogDesign[] = (itemsData || [])
@@ -95,11 +91,11 @@ const CatalogGeneratorPage = () => {
     await db.from("catalogs").update({
       name: title,
       subtitle: subtitle || null,
-      layout_type: layout,
+      layout_type: "compact-list",
     }).eq("id", id);
   };
 
-  const perPage = getDesignsPerPage(layout, exportFormat);
+  const perPage = getDesignsPerPage(exportFormat);
   const pages = paginateDesigns(designs, perPage);
 
   const validateExportBounds = () => {
@@ -159,17 +155,10 @@ const CatalogGeneratorPage = () => {
     await saveSettings();
 
     try {
-      const headerDebug = getCatalogHeaderDebug({
-        title,
-        subtitle,
+      console.info("[CatalogExport]", {
         format: exportFormat,
-      });
-
-      console.info("[CatalogExport][HeaderValidation]", {
-        ...headerDebug,
-        format: exportFormat,
-        layout,
         pageCount: pages.length,
+        titleLength: title.length,
       });
 
       await new Promise((r) => setTimeout(r, 320));
@@ -329,13 +318,13 @@ const CatalogGeneratorPage = () => {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pré-visualização</p>
             <div className="rounded-xl border border-border/60 bg-muted/30 p-3 overflow-auto max-h-[80vh]">
               <div style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: previewSize.width }}>
-                <CatalogCanvas
+                <CatalogTemplate
                   title={title}
                   subtitle={subtitle}
                   designs={previewDesigns}
-                  layout={layout}
                   format={exportFormat}
                   pageIndex={0}
+                  totalPages={pages.length}
                   debug
                 />
               </div>
@@ -350,7 +339,7 @@ const CatalogGeneratorPage = () => {
 
         <div ref={hiddenContainerRef} className="fixed -left-[9999px] top-0" aria-hidden="true">
           {pages.map((pageDesigns, i) => (
-            <CatalogCanvas
+            <CatalogTemplate
               key={i}
               ref={(el) => {
                 canvasRefs.current[i] = el;
@@ -358,9 +347,9 @@ const CatalogGeneratorPage = () => {
               title={title}
               subtitle={subtitle}
               designs={pageDesigns}
-              layout={layout}
               format={exportFormat}
               pageIndex={i}
+              totalPages={pages.length}
             />
           ))}
         </div>
