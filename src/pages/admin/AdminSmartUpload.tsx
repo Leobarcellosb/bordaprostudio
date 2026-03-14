@@ -306,10 +306,13 @@ export const AdminSmartUpload = () => {
       const msg = `${entries.length} design${entries.length !== 1 ? "s" : ""} detectado${entries.length !== 1 ? "s" : ""}!`;
       toast.success(autoCount > 0 ? `${msg} ${autoCount} preview${autoCount !== 1 ? "s" : ""} gerado${autoCount !== 1 ? "s" : ""} automaticamente.` : msg);
 
-      // Trigger AI title generation for entries with previews
+      // Trigger AI title generation + category classification for all entries
       for (const entry of entries) {
         if (entry.previewFile) {
           generateAITitle(entry);
+        } else {
+          // No preview — still classify category from filename/tags
+          classifyCategory(entry.id, entry.title, entry.rawFilename, entry.tags, null);
         }
       }
     },
