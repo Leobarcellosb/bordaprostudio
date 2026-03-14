@@ -91,7 +91,7 @@ const CatalogGeneratorPage = () => {
     await db.from("catalogs").update({
       name: title,
       subtitle: subtitle || null,
-      layout_type: layout,
+      layout_type: "compact-list",
     }).eq("id", id);
   };
 
