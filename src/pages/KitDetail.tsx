@@ -20,6 +20,67 @@ const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
 };
 
+function DesignTagsEditor({ designId, designName, initialTags }: { designId: string; designName: string; initialTags: string | null }) {
+  const parseTags = (text: string | null) => (text || "").split(",").map(t => t.trim()).filter(Boolean);
+  const [tags, setTags] = useState<string[]>(parseTags(initialTags));
+  const [newTag, setNewTag] = useState("");
+  const saveTags = useCallback(async (updatedTags: string[]) => {
+    const tagsText = updatedTags.join(", ");
+    const { error } = await db.from("designs").update({ tags_text: tagsText }).eq("id", designId);
+    if (error) toast.error("Erro ao salvar tags.");
+  }, [designId]);
+  const addTag = () => {
+    const tag = newTag.trim().toLowerCase();
+    if (!tag || tags.includes(tag)) { setNewTag(""); return; }
+    const updated = [...tags, tag];
+    setTags(updated);
+    setNewTag("");
+    saveTags(updated);
+  };
+  const removeTag = (tag: string) => {
+    const updated = tags.filter(t => t !== tag);
+    setTags(updated);
+    saveTags(updated);
+  };
+  const regenerateTags = () => {
+    const generated = generateTagsFromName(designName);
+    const merged = Array.from(new Set([...tags, ...generated]));
+    setTags(merged);
+    saveTags(merged);
+    toast.success(`${generated.length} tags geradas automaticamente!`);
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+          <Tag className="h-3 w-3" /> Tags
+        </span>
+        <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 text-primary" onClick={regenerateTags}>
+          <Sparkles className="h-3 w-3" /> Auto-gerar
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map(tag => (
+          <Badge key={tag} variant="outline" className="font-normal text-xs gap-1 pr-1">
+            {tag}
+            <button onClick={() => removeTag(tag)} className="ml-0.5 hover:text-destructive transition-colors">
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        ))}
+        <form onSubmit={(e) => { e.preventDefault(); addTag(); }} className="flex items-center">
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="+ tag"
+            className="h-6 w-20 text-xs px-2 border-dashed"
+          />
+        </form>
+      </div>
+    </div>
+  );
+}
+
 const DesignDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
