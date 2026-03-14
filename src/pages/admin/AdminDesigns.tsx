@@ -196,6 +196,32 @@ export const AdminDesigns = () => {
     else { toast.success("Ideia removida!"); if (editing?.id) fetchDesignDetails(editing.id); }
   };
 
+  const [regeneratingTags, setRegeneratingTags] = useState(false);
+
+  const bulkRegenerateTags = async () => {
+    setRegeneratingTags(true);
+    let updated = 0;
+    try {
+      for (const design of designs) {
+        const newTags = generateTagsFromName(design.name);
+        const existingTags = (design.tags_text || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+        const merged = Array.from(new Set([...existingTags, ...newTags]));
+        const tagsText = merged.join(", ");
+        if (tagsText !== (design.tags_text || "")) {
+          await db.from("designs").update({ tags_text: tagsText }).eq("id", design.id);
+          updated++;
+        }
+      }
+      toast.success(`Tags regeneradas para ${updated} matrizes!`);
+      fetchData();
+    } catch (err) {
+      console.error("Bulk tag regen error:", err);
+      toast.error("Erro ao regenerar tags.");
+    } finally {
+      setRegeneratingTags(false);
+    }
+  };
+
   const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
   const [classifying, setClassifying] = useState(false);
