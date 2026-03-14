@@ -155,17 +155,10 @@ const CatalogGeneratorPage = () => {
     await saveSettings();
 
     try {
-      const headerDebug = getCatalogHeaderDebug({
-        title,
-        subtitle,
+      console.info("[CatalogExport]", {
         format: exportFormat,
-      });
-
-      console.info("[CatalogExport][HeaderValidation]", {
-        ...headerDebug,
-        format: exportFormat,
-        layout,
         pageCount: pages.length,
+        titleLength: title.length,
       });
 
       await new Promise((r) => setTimeout(r, 320));
