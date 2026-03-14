@@ -9,7 +9,7 @@ interface ProductIdeaCardProps {
   priceRange?: string | null;
   profitExample?: string | null;
   onGenerate?: () => void;
-  onMockup?: () => void;
+  
   onDelete?: () => void;
 }
 
