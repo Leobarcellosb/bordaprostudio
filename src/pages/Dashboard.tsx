@@ -10,6 +10,7 @@ import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { RecommendedSection } from "@/components/home/RecommendedSection";
 import { KitsSection } from "@/components/home/KitsSection";
 import { KitSuggestionsSection } from "@/components/home/KitSuggestionsSection";
+import { CollectionSuggestionsSection } from "@/components/home/CollectionSuggestionsSection";
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -39,6 +40,7 @@ const Dashboard = () => {
         <NewDesignsSection />
         <PopularDesignsSection />
         <HoopDesignsSection />
+        <CollectionSuggestionsSection />
         <KitSuggestionsSection />
         <KitsSection />
         <CategoriesSection />
