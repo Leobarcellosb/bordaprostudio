@@ -22,6 +22,8 @@ interface CatalogCanvasProps {
   layout: LayoutType;
   format: ExportFormat;
   pageIndex?: number;
+  /** Show colored debug guides for alignment validation (preview only) */
+  debug?: boolean;
 }
 
 /* ── Geometry constants ── */
@@ -158,7 +160,7 @@ export function getCatalogHeaderDebug({
 
 /* ── Item Card (fixed geometry) ── */
 
-const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat; index: number }) => {
+const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: ExportFormat; index: number; debug?: boolean }) => {
   const imgSz = IMG_SIZE[format];
   const itemH_px = ITEM_H[format];
   const nameFnt = NAME_FONT[format];
@@ -172,6 +174,8 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
     .filter(Boolean)
     .join(" · ");
 
+  const dbg = (color: string) => debug ? `2px dashed ${color}` : undefined;
+
   return (
     <div
       data-export-check="item"
@@ -182,7 +186,7 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
         flexDirection: "row",
         alignItems: "stretch",
         borderRadius: format === "instagram" ? 16 : 10,
-        border: "1px solid rgba(128,128,128,0.15)",
+        border: debug ? "2px dashed #f97316" : "1px solid rgba(128,128,128,0.15)",
         background: "white",
         overflow: "hidden",
         boxSizing: "border-box",
@@ -201,6 +205,7 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
+          outline: dbg("#3b82f6"),
         }}
       >
         {d.cover_image ? (
@@ -228,6 +233,7 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
           gap: format === "instagram" ? 6 : 3,
           overflow: "hidden",
           boxSizing: "border-box",
+          outline: dbg("#10b981"),
         }}
       >
         {/* Design name: max 2 lines, ellipsis */}
@@ -289,7 +295,7 @@ const ItemCard = ({ d, format, index }: { d: CatalogDesign; format: ExportFormat
 /* ── Main Canvas ── */
 
 export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
-  ({ title, subtitle, designs, layout: _layout, format, pageIndex = 0 }, ref) => {
+  ({ title, subtitle, designs, layout: _layout, format, pageIndex = 0, debug = false }, ref) => {
     const size = FORMAT_SIZE[format];
     const pad = SAFE_PAD[format];
     const headerH = HEADER_H[format];
@@ -341,6 +347,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
               paddingBottom: format === "instagram" ? 8 : 4,
               overflow: "hidden",
               boxSizing: "border-box",
+              outline: debug ? "2px dashed #ef4444" : undefined,
             }}
           >
             <div
@@ -394,7 +401,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
           }}
         >
           {designs.map((d, i) => (
-            <ItemCard key={d.id} d={d} format={format} index={i + pageIndex * designs.length} />
+            <ItemCard key={d.id} d={d} format={format} index={i + pageIndex * designs.length} debug={debug} />
           ))}
         </div>
 
@@ -412,6 +419,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
             justifyContent: "space-between",
             overflow: "hidden",
             boxSizing: "border-box",
+            outline: debug ? "2px dashed #8b5cf6" : undefined,
           }}
         >
           <span style={{ fontSize: format === "instagram" ? 13 : 8, color: "#aaa" }}>

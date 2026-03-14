@@ -336,6 +336,7 @@ const CatalogGeneratorPage = () => {
                   layout={layout}
                   format={exportFormat}
                   pageIndex={0}
+                  debug
                 />
               </div>
             </div>
