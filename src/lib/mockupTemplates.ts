@@ -81,97 +81,65 @@ export const getMockupBaseSrc = (productId: string) =>
 export const getMockupSrc = (productId: string, colorId: ColorId) =>
   `/mockups/${productId}-${colorId}.png`;
 
-/** Detect if a color is "dark" (needs special rendering) */
-function isDarkColor(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance < 0.3;
-}
-
-/**
- * Apply fabric color tint to the base (white) mockup image.
- * Dark colors get extra brightness to preserve texture detail.
- */
-function applyColorTint(
-  ctx: CanvasRenderingContext2D,
+/** Create a mask canvas from the base mockup alpha (fabric area) */
+function createFabricMask(
   mockupImg: HTMLImageElement,
   x: number, y: number, w: number, h: number,
-  hex: string,
-) {
-  if (hex === "#FFFFFF") return;
+  canvasSize: number,
+): HTMLCanvasElement {
+  const mask = document.createElement("canvas");
+  mask.width = canvasSize;
+  mask.height = canvasSize;
+  const mCtx = mask.getContext("2d")!;
 
-  const dark = isDarkColor(hex);
-  const offscreen = document.createElement("canvas");
-  offscreen.width = ctx.canvas.width;
-  offscreen.height = ctx.canvas.height;
-  const oCtx = offscreen.getContext("2d")!;
+  // Start from base alpha
+  mCtx.drawImage(mockupImg, x, y, w, h);
+  // Convert to white solid while preserving alpha as mask
+  mCtx.globalCompositeOperation = "source-in";
+  mCtx.fillStyle = "#ffffff";
+  mCtx.fillRect(0, 0, canvasSize, canvasSize);
 
-  // Draw product
-  oCtx.drawImage(mockupImg, x, y, w, h);
-
-  // Multiply tint
-  oCtx.globalCompositeOperation = "multiply";
-  oCtx.fillStyle = hex;
-  oCtx.fillRect(x, y, w, h);
-
-  // Clip to product alpha
-  oCtx.globalCompositeOperation = "destination-in";
-  oCtx.drawImage(mockupImg, x, y, w, h);
-
-  // Brightness lift — stronger for dark fabrics
-  const screenAlpha = dark ? 0.30 : 0.15;
-  oCtx.globalCompositeOperation = "screen";
-  oCtx.globalAlpha = screenAlpha;
-  oCtx.fillStyle = "#ffffff";
-  oCtx.fillRect(x, y, w, h);
-  oCtx.globalAlpha = 1;
-  oCtx.globalCompositeOperation = "destination-in";
-  oCtx.drawImage(mockupImg, x, y, w, h);
-
-  // Composite tinted product onto main canvas
-  ctx.drawImage(offscreen, 0, 0);
-
-  // Rim light for dark products — subtle edge glow
-  if (dark) {
-    applyRimLight(ctx, mockupImg, x, y, w, h);
-  }
+  return mask;
 }
 
-/**
- * Subtle rim/edge light for dark products.
- * Creates a faint bright outline so the product separates from any background.
- */
-function applyRimLight(
-  ctx: CanvasRenderingContext2D,
+/** Create color layer constrained by fabric mask */
+function createFabricColorLayer(
+  fabricMask: HTMLCanvasElement,
+  colorHex: string,
+): HTMLCanvasElement {
+  const layer = document.createElement("canvas");
+  layer.width = fabricMask.width;
+  layer.height = fabricMask.height;
+  const lCtx = layer.getContext("2d")!;
+
+  lCtx.fillStyle = colorHex;
+  lCtx.fillRect(0, 0, layer.width, layer.height);
+
+  // Keep color only where mask exists
+  lCtx.globalCompositeOperation = "destination-in";
+  lCtx.drawImage(fabricMask, 0, 0);
+
+  return layer;
+}
+
+/** Create a shadow-detail layer from base mockup to preserve folds/lighting depth */
+function createShadowLayer(
   mockupImg: HTMLImageElement,
   x: number, y: number, w: number, h: number,
-) {
-  const rim = document.createElement("canvas");
-  rim.width = ctx.canvas.width;
-  rim.height = ctx.canvas.height;
-  const rCtx = rim.getContext("2d")!;
+  canvasSize: number,
+): HTMLCanvasElement {
+  const shadow = document.createElement("canvas");
+  shadow.width = canvasSize;
+  shadow.height = canvasSize;
+  const sCtx = shadow.getContext("2d")!;
 
-  // Draw product silhouette slightly expanded (2px blur spread)
-  rCtx.shadowColor = "rgba(255, 255, 255, 0.35)";
-  rCtx.shadowBlur = 6;
-  rCtx.drawImage(mockupImg, x, y, w, h);
-
-  // Subtract the original product shape → leaves only the edge glow
-  rCtx.globalCompositeOperation = "destination-out";
-  rCtx.shadowColor = "transparent";
-  rCtx.shadowBlur = 0;
-  rCtx.drawImage(mockupImg, x, y, w, h);
-
-  ctx.drawImage(rim, 0, 0);
+  sCtx.drawImage(mockupImg, x, y, w, h);
+  return shadow;
 }
 
 /**
- * Render mockup onto a canvas at standard CANVAS_SIZE.
- * Uses the WHITE base mockup and tints it to the selected color.
- * Dark fabrics get rim light + brightness boost.
- * Embroidery on dark fabrics gets contrast/brightness enhancement.
+ * Render mockup using strict layer architecture:
+ * base + masked fabric color (multiply) + shadow layer + embroidery.
  */
 export function renderMockup(
   ctx: CanvasRenderingContext2D,
@@ -187,33 +155,66 @@ export function renderMockup(
   ctx.canvas.width = S;
   ctx.canvas.height = S;
 
-  // 1. Neutral light background
+  // 1) Constant neutral studio background
   ctx.fillStyle = CANVAS_BG;
   ctx.fillRect(0, 0, S, S);
 
-  // 2. Product sizing (85% inset for breathing room)
+  // 2) Product placement (stable framing)
   const imgRatio = mockupImg.width / mockupImg.height;
-  let drawW = S * 0.85, drawH = S * 0.85;
-  if (imgRatio > 1) { drawH = drawW / imgRatio; } else { drawW = drawH * imgRatio; }
+  let drawW = S * 0.85;
+  let drawH = S * 0.85;
+  if (imgRatio > 1) {
+    drawH = drawW / imgRatio;
+  } else {
+    drawW = drawH * imgRatio;
+  }
   const imgX = (S - drawW) / 2;
   const imgY = (S - drawH) / 2;
 
-  // 3. Soft drop shadow
+  // 3) Soft ground shadow (depth on surface)
   ctx.save();
-  ctx.shadowColor = "rgba(0, 0, 0, 0.10)";
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 16;
-  ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.10)";
+  ctx.filter = "blur(18px)";
+  ctx.beginPath();
+  ctx.ellipse(
+    S / 2,
+    imgY + drawH * 0.93,
+    drawW * 0.36,
+    drawH * 0.06,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.filter = "none";
   ctx.restore();
 
-  // 4. Color tint (with dark-fabric enhancements)
-  applyColorTint(ctx, mockupImg, imgX, imgY, drawW, drawH, colorHex);
+  // 4) BASE IMAGE layer
+  ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
 
-  // 5. Embroidery overlay
+  // 5) FABRIC MASK + COLOR LAYER (multiply only on mask)
+  if (colorHex !== "#FFFFFF") {
+    const fabricMask = createFabricMask(mockupImg, imgX, imgY, drawW, drawH, S);
+    const fabricColorLayer = createFabricColorLayer(fabricMask, colorHex);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(fabricColorLayer, 0, 0);
+    ctx.restore();
+  }
+
+  // 6) SHADOW LAYER from base to preserve folds/lighting details
+  const shadowLayer = createShadowLayer(mockupImg, imgX, imgY, drawW, drawH, S);
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.globalAlpha = 0.24;
+  ctx.drawImage(shadowLayer, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // 7) EMBROIDERY LAYER
   if (!designImg) return;
 
-  const dark = isDarkColor(colorHex);
   const area = template.embroideryArea;
   const scaleFactor = (userScale / 100) * template.defaultScale;
 
@@ -235,40 +236,10 @@ export function renderMockup(
   ctx.rect(area.x, area.y, area.width, area.height);
   ctx.clip();
 
-  if (dark) {
-    // Draw embroidery with enhanced brightness on dark fabrics
-    const eOff = document.createElement("canvas");
-    eOff.width = S;
-    eOff.height = S;
-    const eCtx = eOff.getContext("2d")!;
-
-    eCtx.drawImage(designImg, eX, eY, eW, eH);
-
-    // Boost brightness +15%
-    eCtx.globalCompositeOperation = "screen";
-    eCtx.globalAlpha = 0.15;
-    eCtx.fillStyle = "#ffffff";
-    eCtx.fillRect(eX, eY, eW, eH);
-    eCtx.globalAlpha = 1;
-
-    // Boost contrast via overlay
-    eCtx.globalCompositeOperation = "overlay";
-    eCtx.globalAlpha = 0.12;
-    eCtx.drawImage(designImg, eX, eY, eW, eH);
-    eCtx.globalAlpha = 1;
-
-    // Clip to original design alpha
-    eCtx.globalCompositeOperation = "destination-in";
-    eCtx.drawImage(designImg, eX, eY, eW, eH);
-
-    ctx.globalAlpha = 0.95;
-    ctx.drawImage(eOff, 0, 0);
-    ctx.globalAlpha = 1;
-  } else {
-    ctx.globalAlpha = 0.92;
-    ctx.drawImage(designImg, eX, eY, eW, eH);
-    ctx.globalAlpha = 1;
-  }
+  ctx.globalAlpha = 0.94;
+  ctx.drawImage(designImg, eX, eY, eW, eH);
+  ctx.globalAlpha = 1;
 
   ctx.restore();
 }
+
