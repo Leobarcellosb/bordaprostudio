@@ -14,8 +14,6 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   { icon: Lightbulb, labelKey: "nav.productIdeas", path: "/product-ideas" },
   { icon: Sparkles, labelKey: "nav.salesGenerator", path: "/sales-generator" },
   { icon: Eye, label: "Visualizar Matriz", path: "/embroidery-viewer" },
-  
-  { icon: Camera, label: "Imagens para Venda", path: "/sales-image" },
   { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
   { icon: Package, label: "Kits Premium", path: "/kits" },
