@@ -54,7 +54,7 @@ const MockupSimulator = () => {
           renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         };
         designImg.onerror = () => {
-          renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
+          renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         };
         designImg.src = selectedKit.cover_image;
       } else {
