@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, BookOpen } from "lucide-react";
+import { ArrowLeft, Trash2, BookOpen, FileImage } from "lucide-react";
 
 const CatalogDetailPage = () => {
   const { id } = useParams();
