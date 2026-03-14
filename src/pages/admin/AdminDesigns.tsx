@@ -265,14 +265,20 @@ export const AdminDesigns = () => {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-between items-center gap-2">
+       <div className="flex justify-between items-center gap-2">
          <h3 className="font-semibold">Matrizes ({designs.length})</h3>
-         <div className="flex gap-2">
+         <div className="flex gap-2 flex-wrap">
+           <Button variant="outline" onClick={bulkRegenerateTags} disabled={regeneratingTags}>
+             {regeneratingTags ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
+             {regeneratingTags ? "Regenerando..." : "Regerar Tags"}
+           </Button>
            <Button variant="outline" onClick={bulkClassify} disabled={classifying}>
              {classifying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Tags className="h-4 w-4 mr-1" />}
              {classifying ? classifyProgress || "Classificando..." : `Auto-classificar (${designs.filter(d => !d.category_id).length})`}
            </Button>
            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
+         </div>
+       </div>
          </div>
       </div>
 
