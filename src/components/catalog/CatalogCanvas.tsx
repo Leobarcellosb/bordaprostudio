@@ -419,6 +419,7 @@ export const CatalogCanvas = forwardRef<HTMLDivElement, CatalogCanvasProps>(
             justifyContent: "space-between",
             overflow: "hidden",
             boxSizing: "border-box",
+            outline: debug ? "2px dashed #8b5cf6" : undefined,
           }}
         >
           <span style={{ fontSize: format === "instagram" ? 13 : 8, color: "#aaa" }}>
