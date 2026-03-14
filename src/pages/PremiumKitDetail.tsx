@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Download, Layers, ShoppingCart, Check, Lock, Package } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PremiumKitDetail = () => {
   const { id } = useParams();
@@ -17,7 +18,6 @@ const PremiumKitDetail = () => {
   const [loading, setLoading] = useState(true);
 
   const isAnnual = subscription?.plan_code === "anual" && subscription?.status === "active";
-  const hasActiveSubscription = subscription?.status === "active";
 
   useEffect(() => {
     const fetchKit = async () => {
@@ -33,7 +33,6 @@ const PremiumKitDetail = () => {
     if (!kit) return false;
     if (kit.access_rule === "included_in_annual" && isAnnual) return true;
     if (kit.access_rule === "both" && isAnnual) return true;
-    // For purchase_required, we'd check purchase records - simplified for now
     return false;
   };
 
@@ -56,16 +55,26 @@ const PremiumKitDetail = () => {
 
   if (loading) return (
     <AppLayout>
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="space-y-8 animate-fade-in">
+        <Skeleton className="h-6 w-24" />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          <Skeleton className="lg:col-span-3 aspect-[4/3] rounded-2xl" />
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
 
   if (!kit) return (
     <AppLayout>
-      <div className="text-center py-20 space-y-4">
-        <p className="text-6xl">📦</p>
+      <div className="text-center py-24 space-y-5">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+          <Package className="h-7 w-7 text-muted-foreground/40" />
+        </div>
         <p className="text-muted-foreground font-medium">Kit não encontrado.</p>
         <Button variant="outline" onClick={() => navigate("/kits")} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar aos Kits
@@ -78,8 +87,11 @@ const PremiumKitDetail = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-10 animate-fade-in">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+      <div className="space-y-8 animate-fade-in">
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+        >
           <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
           Voltar
         </button>
@@ -87,12 +99,12 @@ const PremiumKitDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10">
           {/* Cover */}
           <div className="lg:col-span-3">
-            <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden border border-border/60 shadow-sm">
+            <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden border border-border/40 shadow-sm">
               {kit.cover_image ? (
                 <img src={kit.cover_image} alt={kit.title} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-accent">
-                  <span className="text-8xl">📦</span>
+                <div className="w-full h-full bg-gradient-to-br from-primary/5 via-accent/20 to-secondary/10 flex items-center justify-center">
+                  <Package className="h-16 w-16 text-muted-foreground/20" />
                 </div>
               )}
             </div>
@@ -101,10 +113,10 @@ const PremiumKitDetail = () => {
           {/* Info */}
           <div className="lg:col-span-2 space-y-5">
             <div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 {(kit.access_rule === "included_in_annual" || kit.access_rule === "both") && (
                   <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs gap-1">
-                    <Check className="h-3 w-3" /> Incluso no Anual
+                    <Check className="h-3 w-3" /> Incluído no Plano Anual
                   </Badge>
                 )}
                 {(kit.access_rule === "purchase_required" || kit.access_rule === "both") && kit.price && (
@@ -126,7 +138,7 @@ const PremiumKitDetail = () => {
             </div>
 
             {/* Access card */}
-            <Card className="border-border/60 bg-muted/30">
+            <Card className="border-border/40 bg-muted/20 rounded-xl">
               <CardContent className="p-5 space-y-4">
                 {showDownload ? (
                   <>
