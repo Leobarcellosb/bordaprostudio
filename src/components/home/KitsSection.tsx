@@ -48,6 +48,11 @@ export const KitsSection = () => {
             <Skeleton key={i} className="aspect-video rounded-xl" />
           ))}
         </div>
+      ) : kits.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center">
+          <Package className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground font-medium">Nenhum kit publicado encontrado.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {kits.map((kit: any) => (
