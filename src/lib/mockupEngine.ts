@@ -1,20 +1,14 @@
 /**
- * Professional Layered Mockup Engine for Borda Pro.
+ * Static-Asset Mockup Engine for Borda Pro.
  *
- * Architecture per product:
- *   1. base_light  — white/neutral product with original lighting
- *   2. fabric_mask — alpha mask defining fabric-only area
- *   3. shadow_map  — fold/depth darkness from base (extracted automatically)
- *   4. highlight_map — specular/fold highlights (extracted automatically)
- *   5. embroidery_area — metadata rectangle
+ * Architecture: Each product × color has a pre-approved static image.
+ * No programmatic recoloring. Embroidery is composited on top.
  *
- * Color pipeline:
- *   final = background
- *         + base_light
- *         + fabric_color_layer (multiply, masked)
- *         + shadow_map (multiply, low alpha)
- *         + highlight_map (screen, low alpha)
- *         + embroidery_layer (clipped to area)
+ * Pipeline:
+ *   1. Load static product image for selected color
+ *   2. Draw on canvas with studio background
+ *   3. Composite embroidery design inside defined area
+ *   4. Export
  */
 
 // ─── Canvas constants ───────────────────────────────────────────────
@@ -34,6 +28,8 @@ export interface MockupTemplate {
   label: string;
   defaultScale: number;
   embroideryArea: EmbroideryArea;
+  /** Color IDs that have approved static assets */
+  availableColors: ColorId[];
 }
 
 // ─── Templates ──────────────────────────────────────────────────────
@@ -43,30 +39,35 @@ export const MOCKUP_TEMPLATES: MockupTemplate[] = [
     label: "Capa de Almofada",
     defaultScale: 0.75,
     embroideryArea: { x: 350, y: 300, width: 700, height: 700 },
+    availableColors: ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"],
   },
   {
     id: "baby-towel",
     label: "Toalha de Bebê",
     defaultScale: 0.75,
     embroideryArea: { x: 300, y: 350, width: 800, height: 500 },
+    availableColors: ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"],
   },
   {
     id: "dish-towel",
     label: "Pano de Prato",
     defaultScale: 0.75,
     embroideryArea: { x: 250, y: 350, width: 900, height: 500 },
+    availableColors: ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"],
   },
   {
     id: "baby-bib",
     label: "Babador",
     defaultScale: 0.70,
     embroideryArea: { x: 450, y: 550, width: 500, height: 400 },
+    availableColors: ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"],
   },
   {
     id: "baby-clothes",
     label: "Roupinha de Bebê",
     defaultScale: 0.70,
     embroideryArea: { x: 450, y: 380, width: 500, height: 500 },
+    availableColors: ["branco", "preto", "bege", "rosa", "azul-bebe", "cinza", "vermelho", "marinho"],
   },
 ];
 
@@ -94,12 +95,22 @@ export const FABRIC_COLORS: FabricColor[] = [
 ];
 
 // ─── Asset helpers ──────────────────────────────────────────────────
+
+/** Get the static mockup image path for a product + color */
+export const getMockupSrc = (productId: string, colorId: ColorId) =>
+  `/mockups/${productId}-${colorId}.png`;
+
+/** @deprecated Use getMockupSrc instead */
 export const getMockupBaseSrc = (productId: string) =>
   `/mockups/${productId}-branco.png`;
 
-// ─── Internal off-screen canvas helpers ─────────────────────────────
+/** Get available colors for a template (only those with approved assets) */
+export function getAvailableColors(template: MockupTemplate): FabricColor[] {
+  return FABRIC_COLORS.filter((c) => template.availableColors.includes(c.id));
+}
 
-/** Load an image as a promise */
+// ─── Image loading ──────────────────────────────────────────────────
+
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -109,6 +120,8 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     img.src = src;
   });
 }
+
+// ─── Draw helpers ───────────────────────────────────────────────────
 
 /** Compute draw rect to center-fit image at 85% of canvas */
 function computeDrawRect(img: HTMLImageElement, canvasSize: number) {
@@ -128,106 +141,21 @@ function computeDrawRect(img: HTMLImageElement, canvasSize: number) {
   };
 }
 
-/**
- * Create a fabric mask from the base image alpha channel.
- * Returns a canvas with white pixels wherever the base had non-transparent pixels.
- */
-function buildFabricMask(
-  baseImg: HTMLImageElement,
-  dx: number, dy: number, dw: number, dh: number,
-  size: number,
-): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = size;
-  c.height = size;
-  const ctx = c.getContext("2d")!;
-
-  // Draw base to get its alpha
-  ctx.drawImage(baseImg, dx, dy, dw, dh);
-
-  // Replace all visible pixels with solid white (keeps alpha intact)
-  ctx.globalCompositeOperation = "source-in";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, size, size);
-
-  return c;
-}
-
-/**
- * Create a color layer: solid color clipped to the fabric mask shape.
- */
-function buildColorLayer(
-  mask: HTMLCanvasElement,
-  colorHex: string,
-): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = mask.width;
-  c.height = mask.height;
-  const ctx = c.getContext("2d")!;
-
-  // Fill entire canvas with desired color
-  ctx.fillStyle = colorHex;
-  ctx.fillRect(0, 0, c.width, c.height);
-
-  // Keep color only inside the mask
-  ctx.globalCompositeOperation = "destination-in";
-  ctx.drawImage(mask, 0, 0);
-
-  return c;
-}
-
-/**
- * Extract shadow map from the base image.
- * We use the base image itself — its dark tones represent folds & shadows.
- */
-function buildShadowMap(
-  baseImg: HTMLImageElement,
-  dx: number, dy: number, dw: number, dh: number,
-  size: number,
-): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = size;
-  c.height = size;
-  const ctx = c.getContext("2d")!;
-  ctx.drawImage(baseImg, dx, dy, dw, dh);
-  return c;
-}
-
-/**
- * Extract highlight map from the base image.
- * We invert the base to get bright areas as highlights, then apply screen blend later.
- */
-function buildHighlightMap(
-  baseImg: HTMLImageElement,
-  dx: number, dy: number, dw: number, dh: number,
-  size: number,
-): HTMLCanvasElement {
-  const c = document.createElement("canvas");
-  c.width = size;
-  c.height = size;
-  const ctx = c.getContext("2d")!;
-
-  ctx.drawImage(baseImg, dx, dy, dw, dh);
-
-  // Invert: difference with white gives us highlights as bright values
-  ctx.globalCompositeOperation = "difference";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, size, size);
-
-  return c;
-}
-
 // ─── Main render function ───────────────────────────────────────────
 
+/**
+ * Render a mockup using a static pre-approved product image + embroidery overlay.
+ * No programmatic recoloring — the productImg already has the correct fabric color.
+ */
 export function renderMockup(
   ctx: CanvasRenderingContext2D,
-  baseImg: HTMLImageElement,
+  productImg: HTMLImageElement,
   designImg: HTMLImageElement | null,
   template: MockupTemplate,
   userScale: number,
   userOffsetX: number,
   userOffsetY: number,
-  colorHex: string = "#FFFFFF",
+  _colorHex?: string, // kept for backward compat, ignored
 ) {
   const S = CANVAS_SIZE;
   ctx.canvas.width = S;
@@ -238,7 +166,7 @@ export function renderMockup(
   ctx.fillRect(0, 0, S, S);
 
   // ── Compute product placement ──
-  const { x: dx, y: dy, w: dw, h: dh } = computeDrawRect(baseImg, S);
+  const { x: dx, y: dy, w: dw, h: dh } = computeDrawRect(productImg, S);
 
   // ── Layer 1: Ground shadow ──
   ctx.save();
@@ -250,39 +178,10 @@ export function renderMockup(
   ctx.filter = "none";
   ctx.restore();
 
-  // ── Layer 2: Base product image ──
-  ctx.drawImage(baseImg, dx, dy, dw, dh);
+  // ── Layer 2: Static product image (already the correct color) ──
+  ctx.drawImage(productImg, dx, dy, dw, dh);
 
-  // ── Layer 3: Fabric color (multiply blend, masked) ──
-  if (colorHex !== "#FFFFFF") {
-    const mask = buildFabricMask(baseImg, dx, dy, dw, dh, S);
-    const colorLayer = buildColorLayer(mask, colorHex);
-
-    ctx.save();
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(colorLayer, 0, 0);
-    ctx.restore();
-  }
-
-  // ── Layer 4: Shadow map (multiply, subtle) ──
-  // Re-applies fold/shadow depth on top of the tinted product
-  const shadowMap = buildShadowMap(baseImg, dx, dy, dw, dh, S);
-  ctx.save();
-  ctx.globalCompositeOperation = "multiply";
-  ctx.globalAlpha = 0.18;
-  ctx.drawImage(shadowMap, 0, 0);
-  ctx.restore();
-
-  // ── Layer 5: Highlight map (screen, subtle) ──
-  // Restores specular highlights and bright fold edges
-  const highlightMap = buildHighlightMap(baseImg, dx, dy, dw, dh, S);
-  ctx.save();
-  ctx.globalCompositeOperation = "screen";
-  ctx.globalAlpha = 0.10;
-  ctx.drawImage(highlightMap, 0, 0);
-  ctx.restore();
-
-  // ── Layer 6: Embroidery ──
+  // ── Layer 3: Embroidery ──
   if (!designImg) return;
 
   const area = template.embroideryArea;
