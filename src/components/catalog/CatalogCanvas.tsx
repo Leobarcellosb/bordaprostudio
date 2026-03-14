@@ -233,6 +233,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
           gap: format === "instagram" ? 6 : 3,
           overflow: "hidden",
           boxSizing: "border-box",
+          outline: dbg("#10b981"),
         }}
       >
         {/* Design name: max 2 lines, ellipsis */}
