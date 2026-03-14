@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { Badge } from "@/components/ui/badge";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { ProductIdeaCard } from "@/components/cards/ProductIdeaCard";
 import { AddToCatalogModal } from "@/components/AddToCatalogModal";
+import { generateTagsFromName } from "@/lib/generateTags";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Lightbulb, FileType, Layers, Loader2, Heart, BookOpen } from "lucide-react";
+import { ArrowLeft, Download, Lightbulb, FileType, Layers, Loader2, Heart, BookOpen, Plus, X, Sparkles, Tag } from "lucide-react";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
