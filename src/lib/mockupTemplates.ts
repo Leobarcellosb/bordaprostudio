@@ -4,7 +4,7 @@
  */
 
 export const CANVAS_SIZE = 1400;
-export const CANVAS_BG = "#f3f4f6";
+export const CANVAS_BG = "#f4f4f4";
 
 export interface EmbroideryArea {
   /** Left edge in px */
@@ -30,31 +30,31 @@ export const MOCKUP_TEMPLATES: MockupTemplate[] = [
   {
     id: "baby-towel",
     label: "Toalha de Bebê",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 300, y: 350, width: 800, height: 500 },
   },
   {
     id: "dish-towel",
     label: "Pano de Prato",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 250, y: 350, width: 900, height: 500 },
   },
   {
     id: "baby-bib",
     label: "Babador",
-    defaultScale: 0.5,
+    defaultScale: 0.7,
     embroideryArea: { x: 450, y: 550, width: 500, height: 400 },
   },
   {
     id: "baby-clothes",
     label: "Roupinha de Bebê",
-    defaultScale: 0.5,
+    defaultScale: 0.7,
     embroideryArea: { x: 450, y: 380, width: 500, height: 500 },
   },
   {
     id: "pillow-cover",
     label: "Capa de Almofada",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 350, y: 300, width: 700, height: 700 },
   },
 ];
@@ -82,27 +82,46 @@ export const getMockupSrc = (productId: string, colorId: ColorId) =>
   `/mockups/${productId}-${colorId}.png`;
 
 /**
- * Apply fabric color tint to the base (white) mockup image on canvas.
- * Uses multiply blend mode so shadows/folds/lighting are preserved.
+ * Apply fabric color tint to the base (white) mockup image.
+ * Uses a lighter multiply + screen blend to preserve brightness and detail.
  */
 function applyColorTint(
   ctx: CanvasRenderingContext2D,
+  mockupImg: HTMLImageElement,
   x: number, y: number, w: number, h: number,
   hex: string,
 ) {
   if (hex === "#FFFFFF") return; // white = no tint needed
 
-  ctx.save();
-  ctx.globalCompositeOperation = "multiply";
-  ctx.fillStyle = hex;
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
+  // Use an offscreen canvas to tint without affecting the background
+  const offscreen = document.createElement("canvas");
+  offscreen.width = ctx.canvas.width;
+  offscreen.height = ctx.canvas.height;
+  const oCtx = offscreen.getContext("2d")!;
 
-  // Restore original alpha channel (multiply can darken transparent areas)
-  ctx.save();
-  ctx.globalCompositeOperation = "destination-in";
-  ctx.drawImage(ctx.canvas, 0, 0);
-  ctx.restore();
+  // Draw the product on offscreen
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Apply multiply tint (preserves shadows/folds)
+  oCtx.globalCompositeOperation = "multiply";
+  oCtx.fillStyle = hex;
+  oCtx.fillRect(x, y, w, h);
+
+  // Clip to the product's alpha (don't tint transparent areas)
+  oCtx.globalCompositeOperation = "destination-in";
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Brighten slightly to avoid overly dark results
+  oCtx.globalCompositeOperation = "screen";
+  oCtx.globalAlpha = 0.15;
+  oCtx.fillStyle = "#ffffff";
+  oCtx.fillRect(x, y, w, h);
+  oCtx.globalAlpha = 1;
+  oCtx.globalCompositeOperation = "destination-in";
+  oCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Composite the tinted product back onto the main canvas
+  ctx.drawImage(offscreen, 0, 0);
 }
 
 /**
@@ -137,17 +156,17 @@ export function renderMockup(
   const imgX = (S - drawW) / 2;
   const imgY = (S - drawH) / 2;
 
-  // 3. Soft drop shadow for depth
+  // 3. Soft drop shadow for depth (professional studio look)
   ctx.save();
-  ctx.shadowColor = "rgba(0, 0, 0, 0.12)";
-  ctx.shadowBlur = 32;
+  ctx.shadowColor = "rgba(0, 0, 0, 0.10)";
+  ctx.shadowBlur = 40;
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 12;
+  ctx.shadowOffsetY = 16;
   ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
   ctx.restore();
 
-  // 4. Tint the product to the selected color
-  applyColorTint(ctx, imgX, imgY, drawW, drawH, colorHex);
+  // 4. Tint the product to the selected color (offscreen to preserve background)
+  applyColorTint(ctx, mockupImg, imgX, imgY, drawW, drawH, colorHex);
 
   // 4. Overlay embroidery inside embroideryArea
   if (!designImg) return;
