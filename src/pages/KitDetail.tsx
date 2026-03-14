@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { Badge } from "@/components/ui/badge";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { ProductIdeaCard } from "@/components/cards/ProductIdeaCard";
