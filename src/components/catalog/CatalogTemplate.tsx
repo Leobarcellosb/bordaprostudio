@@ -323,7 +323,7 @@ async function drawCatalog(
     }
 
     // Title (2-line wrap)
-    let textCursorY = rowY + 8 + L.nameFont;
+    let textCursorY = rowY + 10 + L.nameFont;
     ctx.fillStyle = "#1a1a1a";
     ctx.font = `700 ${L.nameFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
     const prefix = `${String(globalIndex + 1).padStart(2, "0")}. `;
@@ -331,15 +331,16 @@ async function drawCatalog(
     const nameLines = wrapText(ctx, fullTitle, textMaxW - 16, 2);
     for (const line of nameLines) {
       ctx.fillText(line, textX, textCursorY);
-      textCursorY += L.nameFont + 3;
+      textCursorY += L.nameFont + 4;
     }
+    textCursorY += 2; // 6px gap after title
 
     // Category
     if (d.category_name) {
       ctx.fillStyle = "#7c3aed";
       ctx.font = `600 ${L.catFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
       ctx.fillText(d.category_name, textX, textCursorY);
-      textCursorY += L.catFont + 3;
+      textCursorY += L.catFont + 4; // 4px gap after category
     }
 
     // Metadata
@@ -347,7 +348,7 @@ async function drawCatalog(
       .filter(Boolean)
       .join(" · ");
     if (meta) {
-      ctx.fillStyle = "#999999";
+      ctx.fillStyle = "#aaaaaa";
       ctx.font = `400 ${L.metaFont}px "DM Sans", "Segoe UI", Arial, sans-serif`;
       ctx.fillText(meta, textX, textCursorY);
     }
