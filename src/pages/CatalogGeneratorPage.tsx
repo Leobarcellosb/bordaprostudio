@@ -62,7 +62,7 @@ const CatalogGeneratorPage = () => {
       setCatalog(catData);
       setTitle(catData.name);
       setSubtitle(catData.subtitle || "");
-      setLayout(catData.layout_type || "clean-grid");
+      // layout_type no longer used
     }
 
     const mapped: CatalogDesign[] = (itemsData || [])
