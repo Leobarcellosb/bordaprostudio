@@ -269,7 +269,7 @@ const SalesImageGenerator = () => {
                         }`}
                       >
                         <img
-                          src={getMockupBaseSrc(tpl.id)}
+                          src={getMockupSrc(tpl.id, "branco")}
                           alt={tpl.label}
                           className="w-10 h-10 rounded-md object-cover bg-muted/50"
                         />
