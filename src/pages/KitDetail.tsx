@@ -418,9 +418,6 @@ const DesignDetail = () => {
                 />
               ))}
             </div>
-            )
-              ))}
-            </div>
             )}
           </div>
         )}
