@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Image, FileArchive, X, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Image, FileArchive, X, Package, Wand2 } from "lucide-react";
+import { SmartKitBuilder } from "@/components/admin/SmartKitBuilder";
 
 const ACCESS_RULES = [
   { value: "included_in_annual", label: "Incluso no Plano Anual" },
