@@ -116,7 +116,7 @@ const SalesImageGenerator = () => {
       if (selectedDesign?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
-        designImg.onload = () => renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY);
+        designImg.onload = () => renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         designImg.onerror = () => renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
         designImg.src = selectedDesign.cover_image;
       } else {
