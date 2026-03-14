@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AppLayout } from "@/components/AppLayout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Library } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -12,28 +12,54 @@ import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 
 const LibraryPage = () => {
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  const initialTag = searchParams.get("tag") || "";
+
+  const [search, setSearch] = useState(initialSearch);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [hoopFilter, setHoopFilter] = useState("all");
   const [stitchRange, setStitchRange] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [page, setPage] = useState(0);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : []);
   const navigate = useNavigate();
   const { favoriteIds, toggle: toggleFavorite } = useFavorites();
   const { t } = useTranslation();
 
+  // Build the effective search query including tags
+  const effectiveSearch = selectedTags.length > 0
+    ? [search, ...selectedTags].filter(Boolean).join(" ")
+    : search;
+
   const { designs, totalCount, isLoading, categories, downloadCounts } = useLibraryDesigns({
-    search, categoryFilter, hoopFilter, stitchRange, sortBy, page,
+    search: effectiveSearch, categoryFilter, hoopFilter, stitchRange, sortBy, page,
   });
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const hasActiveFilters = search !== "" || categoryFilter !== "all" || hoopFilter !== "all" || stitchRange !== "all";
+  const hasActiveFilters = search !== "" || categoryFilter !== "all" || hoopFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
+
+  // Sync URL params when tag changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (selectedTags.length === 1) params.set("tag", selectedTags[0]);
+    setSearchParams(params, { replace: true });
+  }, [search, selectedTags, setSearchParams]);
 
   const clearFilters = () => {
     setSearch("");
     setCategoryFilter("all");
     setHoopFilter("all");
     setStitchRange("all");
+    setSelectedTags([]);
+    setPage(0);
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
     setPage(0);
   };
 
@@ -84,6 +110,8 @@ const LibraryPage = () => {
           onClearFilters={clearFilters}
           totalCount={totalCount}
           filteredCount={totalCount}
+          selectedTags={selectedTags}
+          onTagToggle={handleTagToggle}
         />
 
         <LibraryGrid
