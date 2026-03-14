@@ -21,7 +21,7 @@ const plans = [
       "Biblioteca completa de designs",
       "Downloads ilimitados",
       "Gerador de vendas com IA",
-      "Simulador de mockup",
+      
       "Catálogos personalizados",
       "Calculadora de lucro",
       "Tendências de mercado",

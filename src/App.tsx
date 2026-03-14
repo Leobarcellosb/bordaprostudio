@@ -17,7 +17,6 @@ import ProductIdeasPage from "./pages/ProductIdeasPage";
 import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
-import MockupSimulator from "./pages/MockupSimulator";
 import SalesImageGenerator from "./pages/SalesImageGenerator";
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
@@ -29,7 +28,6 @@ import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
-import MockupValidation from "./pages/MockupValidation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,7 +53,7 @@ const App = () => (
             <Route path="/sales-generator" element={<ProtectedRoute><SalesGenerator /></ProtectedRoute>} />
             <Route path="/catalogs" element={<ProtectedRoute><CatalogsPage /></ProtectedRoute>} />
             <Route path="/catalogs/:id" element={<ProtectedRoute><CatalogDetailPage /></ProtectedRoute>} />
-            <Route path="/mockup-simulator" element={<ProtectedRoute><MockupSimulator /></ProtectedRoute>} />
+            
             <Route path="/sales-image" element={<ProtectedRoute><SalesImageGenerator /></ProtectedRoute>} />
             <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
@@ -66,7 +64,7 @@ const App = () => (
             <Route path="/kits" element={<ProtectedRoute><PremiumKitsPage /></ProtectedRoute>} />
             <Route path="/kits/:id" element={<ProtectedRoute><PremiumKitDetail /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
-            <Route path="/mockup-validation" element={<ProtectedRoute><MockupValidation /></ProtectedRoute>} />
+            
             <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
