@@ -9,6 +9,7 @@ import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesi
 import { LibraryFilters } from "@/components/library/LibraryFilters";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
+import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 
 const LibraryPage = () => {
   const [search, setSearch] = useState("");
