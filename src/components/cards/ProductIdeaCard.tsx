@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Layers, DollarSign, TrendingUp, X } from "lucide-react";
+import { Sparkles, DollarSign, TrendingUp, X } from "lucide-react";
 
 interface ProductIdeaCardProps {
   name: string;
