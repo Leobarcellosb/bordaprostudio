@@ -15,6 +15,8 @@ import { AddToCatalogModal } from "@/components/AddToCatalogModal";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Lightbulb, FileType, Layers, Loader2, Heart, BookOpen, Plus, X, Sparkles, Tag } from "lucide-react";
+import { useSmartSuggestions } from "@/hooks/useSmartSuggestions";
+import { SmartSuggestionsSection } from "@/components/SmartSuggestionsSection";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
