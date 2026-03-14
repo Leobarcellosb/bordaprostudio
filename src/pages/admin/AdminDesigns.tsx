@@ -199,6 +199,7 @@ export const AdminDesigns = () => {
   const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
   const [classifying, setClassifying] = useState(false);
+  const [classifyProgress, setClassifyProgress] = useState("");
 
   const bulkClassify = async () => {
     const uncategorized = designs.filter(d => !d.category_id);
@@ -207,33 +208,32 @@ export const AdminDesigns = () => {
       return;
     }
     setClassifying(true);
-    let success = 0;
-    let failed = 0;
-    for (const design of uncategorized) {
+    let totalClassified = 0;
+    let totalFailed = 0;
+    let remaining = uncategorized.length;
+
+    while (remaining > 0) {
+      setClassifyProgress(`Processando... ${totalClassified} classificadas, ${remaining} restantes`);
       try {
-        const { data, error } = await supabase.functions.invoke("classify-design-category", {
-          body: {
-            title: design.name,
-            raw_filename: design.raw_filename,
-            tags: design.tags_text,
-            image_url: design.cover_image,
-          },
+        const { data, error } = await supabase.functions.invoke("bulk-classify-designs", {
+          body: { batch_size: 50 },
         });
         if (error) throw error;
-        if (data?.category_id) {
-          await db.from("designs").update({ category_id: data.category_id }).eq("id", design.id);
-          success++;
-        } else {
-          failed++;
-        }
-        // Small delay to avoid rate limiting
-        await new Promise(r => setTimeout(r, 1500));
-      } catch {
-        failed++;
+        totalClassified += data.classified || 0;
+        totalFailed += data.failed || 0;
+        remaining = data.remaining || 0;
+
+        if ((data.classified || 0) === 0 && (data.failed || 0) === 0) break; // no more to process
+      } catch (err) {
+        console.error("Bulk classify error:", err);
+        toast.error("Erro na classificação em lote.");
+        break;
       }
     }
-    toast.success(`Classificação concluída: ${success} categorizadas, ${failed} falharam.`);
+
+    toast.success(`Classificação concluída: ${totalClassified} categorizadas, ${totalFailed} falharam.`);
     setClassifying(false);
+    setClassifyProgress("");
     fetchData();
   };
 
@@ -244,7 +244,7 @@ export const AdminDesigns = () => {
          <div className="flex gap-2">
            <Button variant="outline" onClick={bulkClassify} disabled={classifying}>
              {classifying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Tags className="h-4 w-4 mr-1" />}
-             {classifying ? "Classificando..." : "Auto-classificar"}
+             {classifying ? classifyProgress || "Classificando..." : `Auto-classificar (${designs.filter(d => !d.category_id).length})`}
            </Button>
            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
          </div>
