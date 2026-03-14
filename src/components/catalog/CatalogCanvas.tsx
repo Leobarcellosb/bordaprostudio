@@ -205,6 +205,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
           justifyContent: "center",
           overflow: "hidden",
           flexShrink: 0,
+          outline: dbg("#3b82f6"),
         }}
       >
         {d.cover_image ? (
