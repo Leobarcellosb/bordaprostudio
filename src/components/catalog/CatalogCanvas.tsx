@@ -67,15 +67,15 @@ const FOOTER_H: Record<ExportFormat, number> = {
 };
 
 const ITEM_H: Record<ExportFormat, number> = {
-  pdf: 70,
-  instagram: 140,
-  whatsapp: 70,
+  pdf: 60,
+  instagram: 115,
+  whatsapp: 60,
 };
 
 const ITEM_GAP: Record<ExportFormat, number> = {
-  pdf: 20,
-  instagram: 20,
-  whatsapp: 20,
+  pdf: 16,
+  instagram: 18,
+  whatsapp: 16,
 };
 
 const IMG_SIZE: Record<ExportFormat, number> = {
