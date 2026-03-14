@@ -81,9 +81,18 @@ export const getMockupBaseSrc = (productId: string) =>
 export const getMockupSrc = (productId: string, colorId: ColorId) =>
   `/mockups/${productId}-${colorId}.png`;
 
+/** Detect if a color is "dark" (needs special rendering) */
+function isDarkColor(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.3;
+}
+
 /**
  * Apply fabric color tint to the base (white) mockup image.
- * Uses a lighter multiply + screen blend to preserve brightness and detail.
+ * Dark colors get extra brightness to preserve texture detail.
  */
 function applyColorTint(
   ctx: CanvasRenderingContext2D,
@@ -91,72 +100,105 @@ function applyColorTint(
   x: number, y: number, w: number, h: number,
   hex: string,
 ) {
-  if (hex === "#FFFFFF") return; // white = no tint needed
+  if (hex === "#FFFFFF") return;
 
-  // Use an offscreen canvas to tint without affecting the background
+  const dark = isDarkColor(hex);
   const offscreen = document.createElement("canvas");
   offscreen.width = ctx.canvas.width;
   offscreen.height = ctx.canvas.height;
   const oCtx = offscreen.getContext("2d")!;
 
-  // Draw the product on offscreen
+  // Draw product
   oCtx.drawImage(mockupImg, x, y, w, h);
 
-  // Apply multiply tint (preserves shadows/folds)
+  // Multiply tint
   oCtx.globalCompositeOperation = "multiply";
   oCtx.fillStyle = hex;
   oCtx.fillRect(x, y, w, h);
 
-  // Clip to the product's alpha (don't tint transparent areas)
+  // Clip to product alpha
   oCtx.globalCompositeOperation = "destination-in";
   oCtx.drawImage(mockupImg, x, y, w, h);
 
-  // Brighten slightly to avoid overly dark results
+  // Brightness lift — stronger for dark fabrics
+  const screenAlpha = dark ? 0.30 : 0.15;
   oCtx.globalCompositeOperation = "screen";
-  oCtx.globalAlpha = 0.15;
+  oCtx.globalAlpha = screenAlpha;
   oCtx.fillStyle = "#ffffff";
   oCtx.fillRect(x, y, w, h);
   oCtx.globalAlpha = 1;
   oCtx.globalCompositeOperation = "destination-in";
   oCtx.drawImage(mockupImg, x, y, w, h);
 
-  // Composite the tinted product back onto the main canvas
+  // Composite tinted product onto main canvas
   ctx.drawImage(offscreen, 0, 0);
+
+  // Rim light for dark products — subtle edge glow
+  if (dark) {
+    applyRimLight(ctx, mockupImg, x, y, w, h);
+  }
+}
+
+/**
+ * Subtle rim/edge light for dark products.
+ * Creates a faint bright outline so the product separates from any background.
+ */
+function applyRimLight(
+  ctx: CanvasRenderingContext2D,
+  mockupImg: HTMLImageElement,
+  x: number, y: number, w: number, h: number,
+) {
+  const rim = document.createElement("canvas");
+  rim.width = ctx.canvas.width;
+  rim.height = ctx.canvas.height;
+  const rCtx = rim.getContext("2d")!;
+
+  // Draw product silhouette slightly expanded (2px blur spread)
+  rCtx.shadowColor = "rgba(255, 255, 255, 0.35)";
+  rCtx.shadowBlur = 6;
+  rCtx.drawImage(mockupImg, x, y, w, h);
+
+  // Subtract the original product shape → leaves only the edge glow
+  rCtx.globalCompositeOperation = "destination-out";
+  rCtx.shadowColor = "transparent";
+  rCtx.shadowBlur = 0;
+  rCtx.drawImage(mockupImg, x, y, w, h);
+
+  ctx.drawImage(rim, 0, 0);
 }
 
 /**
  * Render mockup onto a canvas at standard CANVAS_SIZE.
- * Uses the WHITE base mockup and tints it to the selected color,
- * ensuring uniform composition across all color variants.
- * Embroidery is placed inside the template's embroideryArea using contain logic,
- * offset and scaled by user adjustments.
+ * Uses the WHITE base mockup and tints it to the selected color.
+ * Dark fabrics get rim light + brightness boost.
+ * Embroidery on dark fabrics gets contrast/brightness enhancement.
  */
 export function renderMockup(
   ctx: CanvasRenderingContext2D,
   mockupImg: HTMLImageElement,
   designImg: HTMLImageElement | null,
   template: MockupTemplate,
-  userScale: number,   // 0-200, default 100
-  userOffsetX: number, // -100 to 100
-  userOffsetY: number, // -100 to 100
+  userScale: number,
+  userOffsetX: number,
+  userOffsetY: number,
   colorHex: string = "#FFFFFF",
 ) {
   const S = CANVAS_SIZE;
   ctx.canvas.width = S;
   ctx.canvas.height = S;
 
-  // 1. Clear with constant neutral background
+  // 1. Neutral light background
   ctx.fillStyle = CANVAS_BG;
   ctx.fillRect(0, 0, S, S);
 
-  // 2. Draw base (white) product image centered (contain within canvas)
+  // 2. Product sizing (85% inset for breathing room)
   const imgRatio = mockupImg.width / mockupImg.height;
-  let drawW = S * 0.85, drawH = S * 0.85; // slight inset for breathing room
+  let drawW = S * 0.85, drawH = S * 0.85;
   if (imgRatio > 1) { drawH = drawW / imgRatio; } else { drawW = drawH * imgRatio; }
   const imgX = (S - drawW) / 2;
   const imgY = (S - drawH) / 2;
 
-  // 3. Soft drop shadow for depth (professional studio look)
+  // 3. Soft drop shadow
   ctx.save();
   ctx.shadowColor = "rgba(0, 0, 0, 0.10)";
   ctx.shadowBlur = 40;
@@ -165,16 +207,16 @@ export function renderMockup(
   ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
   ctx.restore();
 
-  // 4. Tint the product to the selected color (offscreen to preserve background)
+  // 4. Color tint (with dark-fabric enhancements)
   applyColorTint(ctx, mockupImg, imgX, imgY, drawW, drawH, colorHex);
 
-  // 4. Overlay embroidery inside embroideryArea
+  // 5. Embroidery overlay
   if (!designImg) return;
 
+  const dark = isDarkColor(colorHex);
   const area = template.embroideryArea;
   const scaleFactor = (userScale / 100) * template.defaultScale;
 
-  // Contain the design within the area
   const designRatio = designImg.width / designImg.height;
   let eW = area.width * scaleFactor;
   let eH = eW / designRatio;
@@ -183,22 +225,50 @@ export function renderMockup(
     eW = eH * designRatio;
   }
 
-  // Center within area + user offset (offset range maps to ±15% of area dimension)
   const offsetPxX = (userOffsetX / 100) * area.width * 0.15;
   const offsetPxY = (userOffsetY / 100) * area.height * 0.15;
-
   const eX = area.x + (area.width - eW) / 2 + offsetPxX;
   const eY = area.y + (area.height - eH) / 2 + offsetPxY;
 
-  // Clip to embroidery area so design never bleeds outside
   ctx.save();
   ctx.beginPath();
   ctx.rect(area.x, area.y, area.width, area.height);
   ctx.clip();
 
-  ctx.globalAlpha = 0.92;
-  ctx.drawImage(designImg, eX, eY, eW, eH);
-  ctx.globalAlpha = 1;
+  if (dark) {
+    // Draw embroidery with enhanced brightness on dark fabrics
+    const eOff = document.createElement("canvas");
+    eOff.width = S;
+    eOff.height = S;
+    const eCtx = eOff.getContext("2d")!;
+
+    eCtx.drawImage(designImg, eX, eY, eW, eH);
+
+    // Boost brightness +15%
+    eCtx.globalCompositeOperation = "screen";
+    eCtx.globalAlpha = 0.15;
+    eCtx.fillStyle = "#ffffff";
+    eCtx.fillRect(eX, eY, eW, eH);
+    eCtx.globalAlpha = 1;
+
+    // Boost contrast via overlay
+    eCtx.globalCompositeOperation = "overlay";
+    eCtx.globalAlpha = 0.12;
+    eCtx.drawImage(designImg, eX, eY, eW, eH);
+    eCtx.globalAlpha = 1;
+
+    // Clip to original design alpha
+    eCtx.globalCompositeOperation = "destination-in";
+    eCtx.drawImage(designImg, eX, eY, eW, eH);
+
+    ctx.globalAlpha = 0.95;
+    ctx.drawImage(eOff, 0, 0);
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(designImg, eX, eY, eW, eH);
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 }
