@@ -14,11 +14,14 @@ interface LibraryGridProps {
   isLoading: boolean;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export const LibraryGrid = ({
   designs, downloadCounts, favoriteIds, onToggleFavorite, onDesignClick,
-  isLoading, hasActiveFilters, onClearFilters,
+  isLoading, hasActiveFilters, onClearFilters, selectionMode, selectedIds, onToggleSelect,
 }: LibraryGridProps) => {
   const { t } = useTranslation();
 
@@ -60,18 +63,35 @@ export const LibraryGrid = ({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
       {designs.map((design: any) => (
-        <DesignCard
-          key={design.id}
-          id={design.id}
-          name={design.name}
-          coverImage={design.cover_image}
-          category={design.categories?.name}
-          tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
-          downloadCount={downloadCounts[design.id]}
-          isFavorite={favoriteIds.has(design.id)}
-          onToggleFavorite={() => onToggleFavorite(design.id)}
-          onClick={() => onDesignClick(design.id)}
-        />
+        <div key={design.id} className="relative">
+          {selectionMode && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleSelect?.(design.id); }}
+              className={`absolute top-2 left-2 z-20 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 ${
+                selectedIds?.has(design.id)
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "bg-background/80 backdrop-blur-sm border-border/60 hover:border-primary/40"
+              }`}
+            >
+              {selectedIds?.has(design.id) && (
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          )}
+          <DesignCard
+            id={design.id}
+            name={design.name}
+            coverImage={design.cover_image}
+            category={design.categories?.name}
+            tags={(design.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
+            downloadCount={downloadCounts[design.id]}
+            isFavorite={favoriteIds.has(design.id)}
+            onToggleFavorite={() => onToggleFavorite(design.id)}
+            onClick={() => selectionMode ? onToggleSelect?.(design.id) : onDesignClick(design.id)}
+          />
+        </div>
       ))}
     </div>
   );

@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AppLayout } from "@/components/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Library } from "lucide-react";
+import { Library, MessageCircle, CheckSquare, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesigns";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
+import { WhatsAppListModal } from "@/components/WhatsAppListModal";
 
 const LibraryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +28,11 @@ const LibraryPage = () => {
   const navigate = useNavigate();
   const { favoriteIds, toggle: toggleFavorite } = useFavorites();
   const { t } = useTranslation();
+
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
 
   // Build the effective search query including tags
   const effectiveSearch = selectedTags.length > 0
@@ -69,6 +76,29 @@ const LibraryPage = () => {
     setPage(0);
   };
 
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const selectedDesigns = useMemo(() => {
+    return designs.filter((d: any) => selectedIds.has(d.id)).map((d: any) => ({
+      id: d.id,
+      name: d.name,
+      hoop_size: d.hoop_size,
+    }));
+  }, [designs, selectedIds]);
+
   return (
     <AppLayout>
       <div className="space-y-8 animate-fade-in">
@@ -92,6 +122,29 @@ const LibraryPage = () => {
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
           <div className="absolute bottom-0 left-1/2 w-48 h-48 opacity-8 blur-3xl bg-secondary rounded-full translate-y-1/2" />
+        </div>
+
+        {/* Selection mode toggle */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={selectionMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+            className="gap-2 rounded-xl"
+          >
+            {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+            {selectionMode ? "Cancelar seleção" : "Selecionar matrizes"}
+          </Button>
+          {selectionMode && selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              onClick={() => setWhatsappModalOpen(true)}
+              className="gap-2 rounded-xl"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Gerar lista para cliente ({selectedIds.size})
+            </Button>
+          )}
         </div>
 
         <LibraryFilters
@@ -123,14 +176,39 @@ const LibraryPage = () => {
           isLoading={isLoading}
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
         />
 
         {/* Smart Download */}
-        {designs.length > 0 && (
+        {designs.length > 0 && !selectionMode && (
           <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} />
         )}
 
         <LibraryPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+        {/* Floating selection bar */}
+        {selectionMode && selectedIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-border/60 shadow-xl rounded-2xl px-5 py-3 flex items-center gap-3 animate-fade-in">
+            <span className="text-sm font-medium">
+              {selectedIds.size} {selectedIds.size === 1 ? "matriz" : "matrizes"}
+            </span>
+            <Button size="sm" className="gap-2 rounded-xl" onClick={() => setWhatsappModalOpen(true)}>
+              <MessageCircle className="h-4 w-4" />
+              Gerar lista
+            </Button>
+            <Button variant="ghost" size="sm" onClick={exitSelectionMode}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        <WhatsAppListModal
+          open={whatsappModalOpen}
+          onOpenChange={setWhatsappModalOpen}
+          designs={selectedDesigns}
+        />
       </div>
     </AppLayout>
   );
