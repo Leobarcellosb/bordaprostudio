@@ -24,7 +24,8 @@ export const AdminCategories = () => {
 
   const addCategory = async () => {
     if (!newCat.trim()) return;
-    const { error } = await db.from("categories").insert({ name: newCat.trim() });
+    const slug = newCat.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const { error } = await db.from("categories").insert({ name: newCat.trim(), slug, is_active: true });
     if (error) toast.error(error.message); else { toast.success("Categoria adicionada!"); setNewCat(""); fetchData(); }
   };
 
