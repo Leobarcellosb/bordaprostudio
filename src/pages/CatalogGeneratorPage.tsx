@@ -280,28 +280,7 @@ const CatalogGeneratorPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60">
-              <CardContent className="p-5 space-y-3">
-                <Label className="text-sm font-medium">Estilo do layout</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {layoutOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setLayout(opt.value)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center ${
-                        layout === opt.value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border/60 hover:border-primary/30 text-muted-foreground"
-                      }`}
-                    >
-                      {opt.icon}
-                      <span className="text-xs font-semibold">{opt.label}</span>
-                      <span className="text-[10px] leading-tight opacity-70">{opt.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Layout selection temporarily hidden — using single stable template */}
 
             <Card className="border-border/60">
               <CardContent className="p-5 space-y-3">
