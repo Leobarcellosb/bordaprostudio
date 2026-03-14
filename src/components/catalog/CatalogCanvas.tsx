@@ -176,6 +176,7 @@ export function getCatalogHeaderDebug({
 
 const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: ExportFormat; index: number; debug?: boolean }) => {
   const imgSz = IMG_SIZE[format];
+  const imageColumnWidth = format === "instagram" ? 120 : imgSz;
   const itemH_px = ITEM_H[format];
   const nameFnt = NAME_FONT[format];
   const metaFnt = META_FONT[format];
@@ -195,7 +196,7 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
       style={{
         minHeight: itemH_px,
         display: "grid",
-        gridTemplateColumns: `${imgSz}px minmax(0, 1fr)`,
+        gridTemplateColumns: `${imageColumnWidth}px minmax(0, 1fr)`,
         alignItems: "center",
         padding: cardPad,
         columnGap: innerGap,
@@ -208,9 +209,9 @@ const ItemCard = ({ d, format, index, debug }: { d: CatalogDesign; format: Expor
       {/* Fixed image box */}
       <div
         style={{
-          width: imgSz,
-          minWidth: imgSz,
-          maxWidth: imgSz,
+          width: imageColumnWidth,
+          minWidth: imageColumnWidth,
+          maxWidth: imageColumnWidth,
           height: imgSz,
           minHeight: imgSz,
           maxHeight: imgSz,
