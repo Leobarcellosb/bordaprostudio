@@ -46,7 +46,7 @@ const CatalogGeneratorPage = () => {
 
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
-  const [layout, setLayout] = useState<LayoutType>("clean-grid");
+  const [layout, setLayout] = useState<LayoutType>("compact-list");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
 
   const canvasRefs = useRef<(HTMLDivElement | null)[]>([]);
