@@ -295,6 +295,69 @@ export type Database = {
           },
         ]
       }
+      kit_designs: {
+        Row: {
+          design_id: string
+          id: string
+          kit_id: string
+          order_index: number | null
+        }
+        Insert: {
+          design_id: string
+          id?: string
+          kit_id: string
+          order_index?: number | null
+        }
+        Update: {
+          design_id?: string
+          id?: string
+          kit_id?: string
+          order_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kit_designs_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kit_designs_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "kits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kits: {
+        Row: {
+          cover_image: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          slug: string | null
+        }
+        Insert: {
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          slug?: string | null
+        }
+        Update: {
+          cover_image?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string | null
+        }
+        Relationships: []
+      }
       premium_kits: {
         Row: {
           access_rule: string
