@@ -21,7 +21,7 @@ interface LibraryGridProps {
 
 export const LibraryGrid = ({
   designs, downloadCounts, favoriteIds, onToggleFavorite, onDesignClick,
-  isLoading, hasActiveFilters, onClearFilters,
+  isLoading, hasActiveFilters, onClearFilters, selectionMode, selectedIds, onToggleSelect,
 }: LibraryGridProps) => {
   const { t } = useTranslation();
 
