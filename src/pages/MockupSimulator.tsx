@@ -43,7 +43,7 @@ const MockupSimulator = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mockupSrc = getMockupSrc(selectedTemplate.id, selectedColor.id as ColorId);
+    const mockupSrc = getMockupBaseSrc(selectedTemplate.id);
     const mockupImg = new Image();
     mockupImg.crossOrigin = "anonymous";
     mockupImg.onload = () => {
