@@ -38,6 +38,7 @@ const Dashboard = () => {
         <NewDesignsSection />
         <PopularDesignsSection />
         <HoopDesignsSection />
+        <KitsSection />
         <CategoriesSection />
         <RecommendedSection />
       </div>
