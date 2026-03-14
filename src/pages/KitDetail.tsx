@@ -487,53 +487,8 @@ const DesignDetail = () => {
           </div>
         )}
 
-        {/* Related Designs by Tags */}
-        {relatedDesigns.length > 0 && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-violet-500/10">
-                <Tag className="h-5 w-5 text-violet-500" />
-              </div>
-              <div>
-                 <h2 className="text-xl font-display font-bold">Relacionados por Tags</h2>
-                 <p className="text-sm text-muted-foreground">
-                   Matrizes com tags semelhantes a esta
-                 </p>
-              </div>
-            </div>
-            {/* Shared tags */}
-            {(() => {
-              const designTags = (design.tags_text || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
-              if (designTags.length === 0) return null;
-              return (
-                <div className="flex flex-wrap gap-1.5">
-                  {designTags.slice(0, 8).map((tag: string) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="text-xs font-normal cursor-pointer hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
-                      onClick={() => navigate(`/library?tag=${encodeURIComponent(tag)}`)}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              );
-            })()}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {relatedDesigns.map((related: any) => (
-                <DesignCard
-                  key={related.id}
-                  name={related.name}
-                  coverImage={related.cover_image}
-                  category={related.categories?.name}
-                  tags={(related.tags_text || "").split(",").map((t: string) => t.trim()).filter(Boolean)}
-                  onClick={() => navigate(`/library/${related.id}`)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Smart Suggestions */}
+        <SmartSuggestionsSection suggestions={smartSuggestions} />
 
         {id && (
           <AddToCatalogModal
