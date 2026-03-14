@@ -198,11 +198,56 @@ export const AdminDesigns = () => {
 
   const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
+  const [classifying, setClassifying] = useState(false);
+
+  const bulkClassify = async () => {
+    const uncategorized = designs.filter(d => !d.category_id);
+    if (uncategorized.length === 0) {
+      toast.info("Todas as matrizes já possuem categoria.");
+      return;
+    }
+    setClassifying(true);
+    let success = 0;
+    let failed = 0;
+    for (const design of uncategorized) {
+      try {
+        const { data, error } = await supabase.functions.invoke("classify-design-category", {
+          body: {
+            title: design.name,
+            raw_filename: design.raw_filename,
+            tags: design.tags_text,
+            image_url: design.cover_image,
+          },
+        });
+        if (error) throw error;
+        if (data?.category_id) {
+          await db.from("designs").update({ category_id: data.category_id }).eq("id", design.id);
+          success++;
+        } else {
+          failed++;
+        }
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 1500));
+      } catch {
+        failed++;
+      }
+    }
+    toast.success(`Classificação concluída: ${success} categorizadas, ${failed} falharam.`);
+    setClassifying(false);
+    fetchData();
+  };
+
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2">
          <h3 className="font-semibold">Matrizes ({designs.length})</h3>
-         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
+         <div className="flex gap-2">
+           <Button variant="outline" onClick={bulkClassify} disabled={classifying}>
+             {classifying ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Tags className="h-4 w-4 mr-1" />}
+             {classifying ? "Classificando..." : "Auto-classificar"}
+           </Button>
+           <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
+         </div>
       </div>
 
       <div className="rounded-lg border overflow-hidden">
