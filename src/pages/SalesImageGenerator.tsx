@@ -15,6 +15,7 @@ import {
   FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
+  getMockupBaseSrc,
   getMockupSrc,
   renderMockup,
   type ColorId,
