@@ -316,6 +316,22 @@ export const AdminSmartUpload = () => {
     [categories]
   );
 
+  const classifyCategory = useCallback(async (groupId: string, title: string, rawFilename: string, tags: string, imageUrl: string | null) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("classify-design-category", {
+        body: { title, raw_filename: rawFilename, tags, image_url: imageUrl },
+      });
+      if (error) throw error;
+      const categoryId = data?.category_id;
+      if (categoryId) {
+        setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, categoryId } : g));
+        console.log(`[CLASSIFY] "${title}" → ${data.category_name} (${data.confidence})`);
+      }
+    } catch (err) {
+      console.warn("AI category classification failed for", title, err);
+    }
+  }, []);
+
   const generateAITitle = useCallback(async (group: DesignGroup) => {
     setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: true } : g));
 
@@ -349,14 +365,20 @@ export const AdminSmartUpload = () => {
               : g
           )
         );
+        // After getting AI title, classify category using the better title
+        classifyCategory(group.id, aiTitle, group.rawFilename, group.tags, imageUrl);
       } else {
         setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+        // Still try to classify with filename-based title
+        classifyCategory(group.id, group.title, group.rawFilename, group.tags, imageUrl);
       }
     } catch (err) {
       console.warn("AI title generation failed for", group.baseName, err);
       setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: false } : g));
+      // Still try to classify even if title generation failed
+      classifyCategory(group.id, group.title, group.rawFilename, group.tags, null);
     }
-  }, []);
+  }, [classifyCategory]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

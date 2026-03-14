@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.dispatch-webhook]
 verify_jwt = false
+
+[functions.classify-design-category]
+verify_jwt = true
+
+[functions.generate-design-title]
+verify_jwt = true
