@@ -57,11 +57,6 @@ export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profi
       )}
 
       <div className="flex flex-col gap-2 pt-1">
-        {onMockup && (
-          <Button onClick={onMockup} variant="outline" size="sm" className="w-full gap-1.5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all">
-            <Layers className="h-3.5 w-3.5" /> Gerar mockup deste produto
-          </Button>
-        )}
         {onGenerate && (
           <Button onClick={onGenerate} variant="outline" size="sm" className="w-full gap-1.5 border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-all">
             <Sparkles className="h-3.5 w-3.5" /> Gerar texto de venda

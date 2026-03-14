@@ -125,7 +125,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "nav.mobile.downloads": { pt: "Downloads", en: "Downloads", es: "Descargas" },
   "nav.mobile.ideas": { pt: "Ideias", en: "Ideas", es: "Ideas" },
   "nav.mobile.sales": { pt: "Vendas", en: "Sales", es: "Ventas" },
-  "nav.mobile.mockups": { pt: "Mockups", en: "Mockups", es: "Mockups" },
+  
   "nav.mobile.calculator": { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
 };
 
