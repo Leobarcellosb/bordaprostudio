@@ -97,6 +97,11 @@ const LibraryPage = () => {
           onClearFilters={clearFilters}
         />
 
+        {/* Smart Download */}
+        {designs.length > 0 && (
+          <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} />
+        )}
+
         <LibraryPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
     </AppLayout>

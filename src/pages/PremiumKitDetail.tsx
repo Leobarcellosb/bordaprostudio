@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Download, Layers, ShoppingCart, Check, Lock, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 
 const PremiumKitDetail = () => {
   const { id } = useParams();
