@@ -63,12 +63,15 @@ const FavoritesPage = () => {
           </div>
         ) : designs.length === 0 ? (
           <Card className="border-border/60 bg-muted/30">
-            <CardContent className="py-16 text-center space-y-3">
+            <CardContent className="py-16 text-center space-y-4">
               <Heart className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-              <p className="text-muted-foreground font-medium">{t("favorites.noFavorites")}</p>
+              <p className="text-muted-foreground font-medium">Você ainda não favoritou nenhuma matriz.</p>
               <p className="text-sm text-muted-foreground/60">
-                {t("favorites.noFavoritesHint")}
+                Toque no coração em qualquer matriz para salvar aqui.
               </p>
+              <Button onClick={() => navigate("/library")} className="mt-2 rounded-xl gap-2">
+                Explorar Biblioteca
+              </Button>
             </CardContent>
           </Card>
         ) : (
