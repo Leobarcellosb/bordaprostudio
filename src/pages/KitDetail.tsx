@@ -162,27 +162,6 @@ const DesignDetail = () => {
         setGeneratingIdeas(false);
       }
 
-      // Fetch related designs by same category or overlapping tags
-      if (designData) {
-        let query = db.from("designs").select("*, categories(name)").eq("is_published", true).neq("id", id).limit(6);
-        if (designData.category_id) {
-          query = query.eq("category_id", designData.category_id);
-        }
-        const { data: relatedData } = await query;
-        let related = relatedData || [];
-
-        // Sort by tag overlap
-        const parseTags = (text: string) => (text || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
-        const designTags = parseTags(designData.tags_text);
-        if (designTags.length > 0) {
-          related.sort((a: any, b: any) => {
-            const aOverlap = parseTags(a.tags_text).filter((t: string) => designTags.includes(t)).length;
-            const bOverlap = parseTags(b.tags_text).filter((t: string) => designTags.includes(t)).length;
-            return bOverlap - aOverlap;
-          });
-        }
-        setRelatedDesigns(related.slice(0, 6));
-      }
 
       // Track view
       if (user && id) {
