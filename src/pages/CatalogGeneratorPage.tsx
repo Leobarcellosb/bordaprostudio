@@ -339,7 +339,7 @@ const CatalogGeneratorPage = () => {
 
         <div ref={hiddenContainerRef} className="fixed -left-[9999px] top-0" aria-hidden="true">
           {pages.map((pageDesigns, i) => (
-            <CatalogCanvas
+            <CatalogTemplate
               key={i}
               ref={(el) => {
                 canvasRefs.current[i] = el;
@@ -347,9 +347,9 @@ const CatalogGeneratorPage = () => {
               title={title}
               subtitle={subtitle}
               designs={pageDesigns}
-              layout={layout}
               format={exportFormat}
               pageIndex={i}
+              totalPages={pages.length}
             />
           ))}
         </div>
