@@ -121,14 +121,15 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const { batch_size = 50 } = await req.json().catch(() => ({}));
+    const { batch_size = 10 } = await req.json().catch(() => ({}));
+    const limit = Math.min(batch_size, 20);
 
     // Fetch uncategorized designs
     const { data: designs, error: fetchErr } = await supabase
       .from("designs")
       .select("id, name, generated_title, raw_filename, tags_text, cover_image")
       .is("category_id", null)
-      .limit(Math.min(batch_size, 100));
+      .limit(limit);
 
     if (fetchErr) throw fetchErr;
     if (!designs || designs.length === 0) {
@@ -141,34 +142,42 @@ serve(async (req) => {
     let failed = 0;
     const results: { id: string; name: string; category: string | null }[] = [];
 
-    for (const design of designs) {
-      try {
-        const result = await classifyDesign(LOVABLE_API_KEY, design);
-        if (result) {
-          const { error: updateErr } = await supabase
-            .from("designs")
-            .update({ category_id: result.category_id })
-            .eq("id", design.id);
+    // Process in parallel batches of 5
+    const CONCURRENCY = 5;
+    for (let i = 0; i < designs.length; i += CONCURRENCY) {
+      const chunk = designs.slice(i, i + CONCURRENCY);
+      const promises = chunk.map(async (design) => {
+        try {
+          const result = await classifyDesign(LOVABLE_API_KEY, design);
+          if (result) {
+            const { error: updateErr } = await supabase
+              .from("designs")
+              .update({ category_id: result.category_id })
+              .eq("id", design.id);
 
-          if (updateErr) {
-            console.error(`Update failed for ${design.id}:`, updateErr.message);
+            if (updateErr) {
+              console.error(`Update failed for ${design.id}:`, updateErr.message);
+              failed++;
+              results.push({ id: design.id, name: design.name, category: null });
+            } else {
+              classified++;
+              results.push({ id: design.id, name: design.name, category: result.category_name });
+              console.log(`✓ "${design.name}" → ${result.category_name}`);
+            }
+          } else {
             failed++;
             results.push({ id: design.id, name: design.name, category: null });
-          } else {
-            classified++;
-            results.push({ id: design.id, name: design.name, category: result.category_name });
-            console.log(`✓ "${design.name}" → ${result.category_name}`);
           }
-        } else {
+        } catch (err) {
+          console.error(`Error classifying "${design.name}":`, err);
           failed++;
           results.push({ id: design.id, name: design.name, category: null });
         }
-        // Rate limit protection
-        await new Promise(r => setTimeout(r, 1200));
-      } catch (err) {
-        console.error(`Error classifying "${design.name}":`, err);
-        failed++;
-        results.push({ id: design.id, name: design.name, category: null });
+      });
+      await Promise.all(promises);
+      // Small delay between chunks
+      if (i + CONCURRENCY < designs.length) {
+        await new Promise(r => setTimeout(r, 500));
       }
     }
 
