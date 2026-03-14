@@ -18,6 +18,7 @@ import SalesGenerator from "./pages/SalesGenerator";
 import CatalogsPage from "./pages/CatalogsPage";
 import CatalogDetailPage from "./pages/CatalogDetailPage";
 import MockupSimulator from "./pages/MockupSimulator";
+import SalesImageGenerator from "./pages/SalesImageGenerator";
 import ProfitCalculator from "./pages/ProfitCalculator";
 import TrendInsights from "./pages/TrendInsights";
 import FavoritesPage from "./pages/FavoritesPage";
