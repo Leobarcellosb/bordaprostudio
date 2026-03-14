@@ -9,7 +9,7 @@ const dict: Record<string, Record<Lang, string>> = {
   "nav.trends": { pt: "Tendências", en: "Trends", es: "Tendencias" },
   "nav.productIdeas": { pt: "Ideias de Produto", en: "Product Ideas", es: "Ideas de Producto" },
   "nav.salesGenerator": { pt: "Gerador de Vendas", en: "Sales Generator", es: "Generador de Ventas" },
-  "nav.mockupSimulator": { pt: "Simulador de Mockup", en: "Mockup Simulator", es: "Simulador de Mockup" },
+  
   "nav.profitCalculator": { pt: "Calculadora de Lucro", en: "Profit Calculator", es: "Calculadora de Ganancia" },
   "nav.catalogs": { pt: "Catálogos", en: "Catalogs", es: "Catálogos" },
   "nav.plans": { pt: "Planos", en: "Plans", es: "Planes" },
