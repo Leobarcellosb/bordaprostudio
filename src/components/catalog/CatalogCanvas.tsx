@@ -202,18 +202,18 @@ const computeHeaderLayout = ({
   for (let fontSize = preferredTitleFont; fontSize >= minTitleFont; fontSize -= 2) {
     const titleLayout = buildWrappedTitleLines(title || "Catálogo", contentWidth, fontSize, maxTitleLines, ctx);
     const lineHeight = Math.round(fontSize * 1.15);
-    const titleHeight = titleLayout.titleLines.length * lineHeight;
+    const titleHeight = titleLayout.lines.length * lineHeight;
     const subtitleHeight = subtitle ? Math.round(subtitleFontSize * 1.25) : 0;
     const totalHeight = titleHeight + subtitleGap + subtitleHeight;
 
     if (totalHeight <= maxHeight) {
       const titleWidth = Math.max(
-        ...titleLayout.titleLines.map((line) => measureTextWidth(line, fontSize, 700, ctx)),
+        ...titleLayout.lines.map((line) => measureTextWidth(line, fontSize, 700, ctx)),
         0
       );
 
       return {
-        titleLines: titleLayout.titleLines,
+        titleLines: titleLayout.lines,
         wrapped: titleLayout.wrapped,
         truncated: titleLayout.truncated,
         titleFontSize: fontSize,
@@ -229,7 +229,7 @@ const computeHeaderLayout = ({
 
   const fallbackSize = minTitleFont;
   const fallbackLayout = buildWrappedTitleLines(title || "Catálogo", contentWidth, fallbackSize, maxTitleLines, ctx);
-  const fallbackLines = [...fallbackLayout.titleLines];
+  const fallbackLines = [...fallbackLayout.lines];
 
   if (fallbackLines.length === 0) fallbackLines.push("Catálogo");
   fallbackLines[fallbackLines.length - 1] = fitTextWithEllipsis(
