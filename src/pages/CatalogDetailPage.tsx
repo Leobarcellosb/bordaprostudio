@@ -66,8 +66,17 @@ const CatalogDetailPage = () => {
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
             Voltar aos catálogos
           </button>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">{catalog.name}</h1>
-          <p className="text-muted-foreground mt-1">{items.length} {items.length !== 1 ? "matrizes" : "matriz"}</p>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold">{catalog.name}</h1>
+              <p className="text-muted-foreground mt-1">{items.length} {items.length !== 1 ? "matrizes" : "matriz"}</p>
+            </div>
+            {items.length > 0 && (
+              <Button onClick={() => navigate(`/catalogs/${id}/generate`)} className="gap-2">
+                <FileImage className="h-4 w-4" /> Gerar Catálogo
+              </Button>
+            )}
+          </div>
         </div>
 
         {items.length === 0 ? (
