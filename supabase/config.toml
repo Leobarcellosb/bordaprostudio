@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.bulk-classify-designs]
 verify_jwt = false
+
+[functions.build-kit-draft]
+verify_jwt = true

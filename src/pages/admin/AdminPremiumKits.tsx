@@ -286,6 +286,11 @@ export const AdminPremiumKits = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <SmartKitBuilder
+        open={smartBuilderOpen}
+        onOpenChange={setSmartBuilderOpen}
+        onKitCreated={fetchKits}
+      />
     </div>
   );
 };
