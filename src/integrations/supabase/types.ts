@@ -20,18 +20,21 @@ export type Database = {
           created_at: string | null
           design_id: string
           id: string
+          order_index: number | null
         }
         Insert: {
           catalog_id: string
           created_at?: string | null
           design_id: string
           id?: string
+          order_index?: number | null
         }
         Update: {
           catalog_id?: string
           created_at?: string | null
           design_id?: string
           id?: string
+          order_index?: number | null
         }
         Relationships: [
           {
@@ -54,19 +57,25 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          layout_type: string
           name: string
+          subtitle: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          layout_type?: string
           name: string
+          subtitle?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          layout_type?: string
           name?: string
+          subtitle?: string | null
           user_id?: string
         }
         Relationships: []
