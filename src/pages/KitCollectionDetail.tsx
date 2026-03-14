@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { DesignCard } from "@/components/cards/DesignCard";
+import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -177,6 +178,11 @@ const KitDetailPage = () => {
               />
             ))}
           </div>
+        )}
+
+        {/* Smart Download for kit */}
+        {designs.length > 0 && (
+          <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} title="Download Inteligente do Kit" />
         )}
       </div>
     </AppLayout>
