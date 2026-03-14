@@ -9,6 +9,7 @@ import { HoopDesignsSection } from "@/components/home/HoopDesignsSection";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { RecommendedSection } from "@/components/home/RecommendedSection";
 import { KitsSection } from "@/components/home/KitsSection";
+import { KitSuggestionsSection } from "@/components/home/KitSuggestionsSection";
 
 const Dashboard = () => {
   const { profile } = useAuth();
