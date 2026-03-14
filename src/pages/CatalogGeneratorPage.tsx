@@ -22,10 +22,7 @@ import jsPDF from "jspdf";
 
 type ExportFormat = "pdf" | "instagram" | "whatsapp";
 
-// Layout options temporarily reduced to one stable template
-const layoutOptions: { value: LayoutType; label: string; icon: React.ReactNode; desc: string }[] = [
-  { value: "compact-list", label: "Lista Compacta", icon: <List className="h-5 w-5" />, desc: "Layout estável e alinhado" },
-];
+// Layout options removed — single template now
 
 const exportOptions: { value: ExportFormat; label: string; icon: React.ReactNode; desc: string }[] = [
   { value: "pdf", label: "PDF", icon: <FileText className="h-4 w-4" />, desc: "Catálogo multipáginas" },
