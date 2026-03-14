@@ -179,6 +179,11 @@ const KitDetailPage = () => {
             ))}
           </div>
         )}
+
+        {/* Smart Download for kit */}
+        {designs.length > 0 && (
+          <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} title="Download Inteligente do Kit" />
+        )}
       </div>
     </AppLayout>
   );

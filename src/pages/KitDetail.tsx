@@ -374,6 +374,11 @@ const DesignDetail = () => {
                 {downloading === "zip" ? "Baixando..." : "Baixar Matriz (ZIP)"}
               </Button>
             )}
+
+            {/* Smart Download */}
+            {id && (
+              <SmartDownloadPanel designIds={[id]} title="Download Inteligente" />
+            )}
           </div>
         </div>
 
