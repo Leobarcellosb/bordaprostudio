@@ -73,6 +73,15 @@ const LibraryPage = () => {
     return matchSearch && matchCat && matchFormat && matchHoop;
   });
 
+  // Debug: log filter state
+  useEffect(() => {
+    if (categoryFilter !== "all") {
+      const withCategory = designs.filter(d => d.category_id === categoryFilter).length;
+      const withoutCategory = designs.filter(d => !d.category_id).length;
+      console.log(`[CategoryFilter] selected: ${categoryFilter}, matching: ${withCategory}, uncategorized: ${withoutCategory}/${designs.length}`);
+    }
+  }, [categoryFilter, designs]);
+
   const hasActiveFilters = search || categoryFilter !== "all" || formatFilter !== "all" || hoopFilter !== "all";
 
   const clearFilters = () => {
