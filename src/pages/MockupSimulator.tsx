@@ -8,12 +8,12 @@ import { toast } from "sonner";
 import { Download, Image as ImageIcon, Layers, Palette } from "lucide-react";
 import {
   MOCKUP_TEMPLATES,
-  FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
-  getMockupBaseSrc,
+  getMockupSrc,
   loadImage,
   renderMockup,
+  getAvailableColors,
   type FabricColor,
   type MockupTemplate,
 } from "@/lib/mockupEngine";
@@ -22,9 +22,18 @@ const MockupSimulator = () => {
   const [designs, setDesigns] = useState<any[]>([]);
   const [selectedDesign, setSelectedDesign] = useState<any>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<MockupTemplate>(MOCKUP_TEMPLATES[0]);
-  const [selectedColor, setSelectedColor] = useState<FabricColor>(FABRIC_COLORS[0]);
+  const [selectedColor, setSelectedColor] = useState<FabricColor>(getAvailableColors(MOCKUP_TEMPLATES[0])[0]);
   const [rendering, setRendering] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // When template changes, reset color to first available
+  const handleTemplateChange = (tpl: MockupTemplate) => {
+    setSelectedTemplate(tpl);
+    const colors = getAvailableColors(tpl);
+    if (!colors.find((c) => c.id === selectedColor.id)) {
+      setSelectedColor(colors[0]);
+    }
+  };
 
   // Load published designs
   useEffect(() => {
@@ -43,7 +52,8 @@ const MockupSimulator = () => {
     if (!ctx) return;
 
     try {
-      const baseImg = await loadImage(getMockupBaseSrc(selectedTemplate.id));
+      // Load the static pre-approved color variant
+      const productImg = await loadImage(getMockupSrc(selectedTemplate.id, selectedColor.id));
       let designImg: HTMLImageElement | null = null;
 
       if (selectedDesign?.cover_image) {
@@ -54,9 +64,9 @@ const MockupSimulator = () => {
         }
       }
 
-      renderMockup(ctx, baseImg, designImg, selectedTemplate, 100, 0, 0, selectedColor.hex);
+      renderMockup(ctx, productImg, designImg, selectedTemplate, 100, 0, 0);
     } catch {
-      // Base mockup image failed — show blank canvas
+      // Product image failed — show blank canvas
       canvas.width = CANVAS_SIZE;
       canvas.height = CANVAS_SIZE;
       ctx.fillStyle = CANVAS_BG;
@@ -84,6 +94,8 @@ const MockupSimulator = () => {
     }
     setRendering(false);
   };
+
+  const availableColors = getAvailableColors(selectedTemplate);
 
   return (
     <AppLayout>
@@ -157,7 +169,7 @@ const MockupSimulator = () => {
                   {MOCKUP_TEMPLATES.map((tpl) => (
                     <button
                       key={tpl.id}
-                      onClick={() => setSelectedTemplate(tpl)}
+                      onClick={() => handleTemplateChange(tpl)}
                       className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left ${
                         selectedTemplate.id === tpl.id
                           ? "border-primary bg-primary/5 ring-1 ring-primary/20"
@@ -165,7 +177,7 @@ const MockupSimulator = () => {
                       }`}
                     >
                       <img
-                        src={getMockupBaseSrc(tpl.id)}
+                        src={getMockupSrc(tpl.id, "branco")}
                         alt={tpl.label}
                         className="w-12 h-12 rounded-md object-cover bg-muted/50"
                       />
@@ -176,7 +188,7 @@ const MockupSimulator = () => {
               </CardContent>
             </Card>
 
-            {/* Step 3: Select color */}
+            {/* Step 3: Select color — only approved variants */}
             <Card className="border-border/60">
               <CardContent className="p-4 space-y-3">
                 <p className="text-sm font-medium flex items-center gap-2">
@@ -184,7 +196,7 @@ const MockupSimulator = () => {
                   3. Cor do Produto
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {FABRIC_COLORS.map((color) => (
+                  {availableColors.map((color) => (
                     <button
                       key={color.id}
                       onClick={() => setSelectedColor(color)}
