@@ -564,6 +564,41 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_designs: {
+        Args: {
+          p_category_id?: string
+          p_hoop_size?: string
+          p_limit?: number
+          p_offset?: number
+          p_sort?: string
+          p_stitch_max?: number
+          p_stitch_min?: number
+          search_term: string
+        }
+        Returns: {
+          category_id: string
+          category_name: string
+          colors_count: number
+          cover_image: string
+          created_at: string
+          description: string
+          featured_for_daily_inspiration: boolean
+          generated_title: string
+          height_mm: number
+          hoop_size: string
+          id: string
+          is_published: boolean
+          name: string
+          raw_filename: string
+          relevance: number
+          stitch_count: number
+          tags_text: string
+          total_count: number
+          updated_at: string
+          width_mm: number
+        }[]
+      }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
