@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Image, FileArchive, X, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Image, FileArchive, X, Package, Wand2 } from "lucide-react";
+import { SmartKitBuilder } from "@/components/admin/SmartKitBuilder";
 
 const ACCESS_RULES = [
   { value: "included_in_annual", label: "Incluso no Plano Anual" },
@@ -25,6 +26,7 @@ export const AdminPremiumKits = () => {
   const [kits, setKits] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [smartBuilderOpen, setSmartBuilderOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", cover_image: "", designs_count: 0,
     zip_url: "", access_rule: "included_in_annual", price: "",
@@ -113,7 +115,12 @@ export const AdminPremiumKits = () => {
         <h3 className="font-semibold flex items-center gap-2">
           <Package className="h-4 w-4 text-primary" /> Kits Premium ({kits.length})
         </h3>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Novo Kit</Button>
+        <div className="flex gap-2">
+          <Button variant="default" onClick={() => setSmartBuilderOpen(true)} className="gap-1.5">
+            <Wand2 className="h-4 w-4" /> Kit Inteligente
+          </Button>
+          <Button variant="outline" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Manual</Button>
+        </div>
       </div>
 
       <div className="rounded-lg border overflow-hidden">
@@ -279,6 +286,11 @@ export const AdminPremiumKits = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <SmartKitBuilder
+        open={smartBuilderOpen}
+        onOpenChange={setSmartBuilderOpen}
+        onKitCreated={fetchKits}
+      />
     </div>
   );
 };
