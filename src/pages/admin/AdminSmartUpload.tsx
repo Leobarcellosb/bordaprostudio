@@ -316,7 +316,7 @@ export const AdminSmartUpload = () => {
         }
       }
     },
-    [categories]
+    [categories, classifyCategory, generateAITitle]
   );
 
   const classifyCategory = useCallback(async (groupId: string, title: string, rawFilename: string, tags: string, imageUrl: string | null) => {
