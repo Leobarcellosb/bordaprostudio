@@ -15,6 +15,7 @@ import {
   FABRIC_COLORS,
   CANVAS_SIZE,
   CANVAS_BG,
+  getMockupBaseSrc,
   getMockupSrc,
   renderMockup,
   type ColorId,
@@ -108,18 +109,18 @@ const SalesImageGenerator = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const mockupSrc = getMockupSrc(selectedTemplate.id, selectedColor.id as ColorId);
+    const mockupSrc = getMockupBaseSrc(selectedTemplate.id);
     const mockupImg = new Image();
     mockupImg.crossOrigin = "anonymous";
     mockupImg.onload = () => {
       if (selectedDesign?.cover_image) {
         const designImg = new Image();
         designImg.crossOrigin = "anonymous";
-        designImg.onload = () => renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY);
-        designImg.onerror = () => renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
+        designImg.onload = () => renderMockup(ctx, mockupImg, designImg, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
+        designImg.onerror = () => renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         designImg.src = selectedDesign.cover_image;
       } else {
-        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
+        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
       }
     };
     mockupImg.onerror = () => {
@@ -269,7 +270,7 @@ const SalesImageGenerator = () => {
                         }`}
                       >
                         <img
-                          src={getMockupSrc(tpl.id, "branco")}
+                          src={getMockupBaseSrc(tpl.id)}
                           alt={tpl.label}
                           className="w-10 h-10 rounded-md object-cover bg-muted/50"
                         />

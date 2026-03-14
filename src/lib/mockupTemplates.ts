@@ -73,12 +73,42 @@ export const FABRIC_COLORS: { id: ColorId; label: string; hex: string }[] = [
   { id: "marinho", label: "Azul Marinho", hex: "#1B2A4A" },
 ];
 
-/** Build asset path for product + color variant */
+/** Build asset path — always use the WHITE base for uniform composition */
+export const getMockupBaseSrc = (productId: string) =>
+  `/mockups/${productId}-branco.png`;
+
+/** @deprecated Use getMockupBaseSrc + tinting instead */
 export const getMockupSrc = (productId: string, colorId: ColorId) =>
   `/mockups/${productId}-${colorId}.png`;
 
 /**
+ * Apply fabric color tint to the base (white) mockup image on canvas.
+ * Uses multiply blend mode so shadows/folds/lighting are preserved.
+ */
+function applyColorTint(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  hex: string,
+) {
+  if (hex === "#FFFFFF") return; // white = no tint needed
+
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.fillStyle = hex;
+  ctx.fillRect(x, y, w, h);
+  ctx.restore();
+
+  // Restore original alpha channel (multiply can darken transparent areas)
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.drawImage(ctx.canvas, 0, 0);
+  ctx.restore();
+}
+
+/**
  * Render mockup onto a canvas at standard CANVAS_SIZE.
+ * Uses the WHITE base mockup and tints it to the selected color,
+ * ensuring uniform composition across all color variants.
  * Embroidery is placed inside the template's embroideryArea using contain logic,
  * offset and scaled by user adjustments.
  */
@@ -90,6 +120,7 @@ export function renderMockup(
   userScale: number,   // 0-200, default 100
   userOffsetX: number, // -100 to 100
   userOffsetY: number, // -100 to 100
+  colorHex: string = "#FFFFFF",
 ) {
   const S = CANVAS_SIZE;
   ctx.canvas.width = S;
@@ -99,7 +130,7 @@ export function renderMockup(
   ctx.fillStyle = CANVAS_BG;
   ctx.fillRect(0, 0, S, S);
 
-  // 2. Draw product image centered (contain within canvas)
+  // 2. Draw base (white) product image centered (contain within canvas)
   const imgRatio = mockupImg.width / mockupImg.height;
   let drawW = S, drawH = S;
   if (imgRatio > 1) { drawH = S / imgRatio; } else { drawW = S * imgRatio; }
@@ -107,7 +138,10 @@ export function renderMockup(
   const imgY = (S - drawH) / 2;
   ctx.drawImage(mockupImg, imgX, imgY, drawW, drawH);
 
-  // 3. Overlay embroidery inside embroideryArea
+  // 3. Tint the product to the selected color
+  applyColorTint(ctx, imgX, imgY, drawW, drawH, colorHex);
+
+  // 4. Overlay embroidery inside embroideryArea
   if (!designImg) return;
 
   const area = template.embroideryArea;
