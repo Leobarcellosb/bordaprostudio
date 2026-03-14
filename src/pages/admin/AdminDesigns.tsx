@@ -279,8 +279,6 @@ export const AdminDesigns = () => {
            <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nova Matriz</Button>
          </div>
        </div>
-         </div>
-      </div>
 
       <div className="rounded-lg border overflow-hidden">
         <Table>
