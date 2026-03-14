@@ -30,31 +30,31 @@ export const MOCKUP_TEMPLATES: MockupTemplate[] = [
   {
     id: "baby-towel",
     label: "Toalha de Bebê",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 300, y: 350, width: 800, height: 500 },
   },
   {
     id: "dish-towel",
     label: "Pano de Prato",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 250, y: 350, width: 900, height: 500 },
   },
   {
     id: "baby-bib",
     label: "Babador",
-    defaultScale: 0.5,
+    defaultScale: 0.7,
     embroideryArea: { x: 450, y: 550, width: 500, height: 400 },
   },
   {
     id: "baby-clothes",
     label: "Roupinha de Bebê",
-    defaultScale: 0.5,
+    defaultScale: 0.7,
     embroideryArea: { x: 450, y: 380, width: 500, height: 500 },
   },
   {
     id: "pillow-cover",
     label: "Capa de Almofada",
-    defaultScale: 0.6,
+    defaultScale: 0.75,
     embroideryArea: { x: 350, y: 300, width: 700, height: 700 },
   },
 ];
