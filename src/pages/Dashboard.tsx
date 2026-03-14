@@ -1,390 +1,44 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DesignCard } from "@/components/cards/DesignCard";
-import { useEffect, useState } from "react";
-import { db } from "@/lib/db";
-import { useNavigate } from "react-router-dom";
-import { Library, Download, Crown, TrendingUp, Clock, ArrowRight, Flame, Heart } from "lucide-react";
-import { InspiracaoDoDia } from "@/components/InspiracaoDoDia";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useTranslation } from "@/hooks/useTranslation";
-
+import { Library } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { NewDesignsSection } from "@/components/home/NewDesignsSection";
+import { PopularDesignsSection } from "@/components/home/PopularDesignsSection";
+import { HoopDesignsSection } from "@/components/home/HoopDesignsSection";
+import { CategoriesSection } from "@/components/home/CategoriesSection";
+import { RecommendedSection } from "@/components/home/RecommendedSection";
 
 const Dashboard = () => {
-  const { profile, user, subscription } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [newestDesigns, setNewestDesigns] = useState<any[]>([]);
-  const [mostDownloaded, setMostDownloaded] = useState<any[]>([]);
-  const [trendingDesigns, setTrendingDesigns] = useState<any[]>([]);
-  
-  const [favoriteDesigns, setFavoriteDesigns] = useState<any[]>([]);
-  const [stats, setStats] = useState({ designs: 0, downloads: 0, views: 0 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const { data: kits } = await db
-          .from("designs")
-          .select("*, categories(name)")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false })
-          .limit(6);
-        setNewestDesigns(kits || []);
-
-        const { data: allDownloads } = await db.from("downloads").select("kit_id, downloaded_at");
-        
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
-        const recentDownloads = (allDownloads || []).filter((d: any) => new Date(d.downloaded_at) > sevenDaysAgo);
-        
-        if (allDownloads && allDownloads.length > 0) {
-          const countMap: Record<string, number> = {};
-          allDownloads.forEach((d: any) => {
-            countMap[d.kit_id] = (countMap[d.kit_id] || 0) + 1;
-          });
-
-          const sortedIds = Object.entries(countMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10);
-
-          if (sortedIds.length > 0) {
-            const { data: topKits } = await db
-              .from("designs")
-              .select("*, categories(name)")
-              .in("id", sortedIds.map(([id]) => id))
-              .eq("is_published", true);
-
-            const kitMap = Object.fromEntries((topKits || []).map((k: any) => [k.id, k]));
-            const sorted = sortedIds
-              .map(([id, count]) => ({ ...kitMap[id], downloadCount: count }))
-              .filter((k) => k.id);
-            setMostDownloaded(sorted);
-          }
-        }
-
-        if (recentDownloads.length > 0) {
-          const trendingMap: Record<string, number> = {};
-          recentDownloads.forEach((d: any) => {
-            trendingMap[d.kit_id] = (trendingMap[d.kit_id] || 0) + 1;
-          });
-
-          const trendingIds = Object.entries(trendingMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10);
-
-          if (trendingIds.length > 0) {
-            const { data: trendingKits } = await db
-              .from("designs")
-              .select("*, categories(name)")
-              .in("id", trendingIds.map(([id]) => id))
-              .eq("is_published", true);
-
-            const kitMap = Object.fromEntries((trendingKits || []).map((k: any) => [k.id, k]));
-            const sorted = trendingIds
-              .map(([id, count]) => ({ ...kitMap[id], downloadCount: count }))
-              .filter((k) => k.id);
-            setTrendingDesigns(sorted);
-          }
-        }
-
-
-        if (user) {
-          const { data: userFavorites } = await db
-            .from("favorites")
-            .select("kit_id")
-            .eq("user_id", user.id);
-
-          if (userFavorites && userFavorites.length > 0) {
-            const favKitIds = userFavorites.map((f: any) => f.kit_id);
-            const { data: favKits } = await db
-              .from("designs")
-              .select("*, categories(name)")
-              .in("id", favKitIds)
-              .eq("is_published", true);
-            setFavoriteDesigns(favKits || []);
-          }
-        }
-
-        if (user) {
-          const { count: dlCount } = await db
-            .from("downloads")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id);
-          setStats((prev) => ({ ...prev, downloads: dlCount || 0 }));
-        }
-        const { count: designCount } = await db
-          .from("designs")
-          .select("*", { count: "exact", head: true })
-          .eq("is_published", true);
-        setStats((prev) => ({ ...prev, designs: designCount || 0 }));
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
-
-  const DesignGrid = ({ designs, emptyMsg }: { designs: any[]; emptyMsg: string }) => {
-    if (designs.length === 0) {
-      return (
-        <Card className="border-border/60 bg-muted/30">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            {emptyMsg}
-          </CardContent>
-        </Card>
-      );
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {designs.map((kit: any) => (
-          <DesignCard
-            key={kit.id}
-            name={kit.name}
-            coverImage={kit.cover_image}
-            category={kit.categories?.name}
-            tags={[]}
-            downloadCount={kit.downloadCount}
-            onClick={() => navigate(`/library/${kit.id}`)}
-          />
-        ))}
-      </div>
-    );
-  };
 
   return (
     <AppLayout>
       <div className="space-y-12 animate-fade-in">
-        {/* Welcome header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 md:p-10 lg:p-12">
+        {/* Welcome */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-8 md:p-10">
           <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
-              {t("dashboard.hello")}, {profile?.full_name || profile?.name || "Bordadeira"} 👋
+            <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
+              Olá, {profile?.full_name || profile?.name || "Bordadeira"} 👋
             </h1>
-            <p className="text-muted-foreground mt-2 max-w-lg text-sm md:text-base leading-relaxed">
-              {t("dashboard.subtitle")}
+            <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
+              Descubra novas matrizes de bordado e inspire-se para criar produtos incríveis.
             </p>
             <Button onClick={() => navigate("/library")} className="mt-5 gap-2">
               <Library className="h-4 w-4" />
-              {t("dashboard.exploreLibrary")}
+              Explorar Biblioteca
             </Button>
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-15 blur-3xl bg-primary rounded-full -translate-y-1/2 translate-x-1/2" />
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <Card className="border-border/60 hover:shadow-md transition-shadow group">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-accent group-hover:bg-primary/10 transition-colors">
-                <Library className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-display font-bold">{stats.designs}</p>
-                <p className="text-sm text-muted-foreground">{t("dashboard.availableDesigns")}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60 hover:shadow-md transition-shadow group">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-secondary/10 group-hover:bg-secondary/20 transition-colors">
-                <Download className="h-5 w-5 text-secondary" />
-              </div>
-              <div>
-                <p className="text-2xl font-display font-bold">{stats.downloads}</p>
-                <p className="text-sm text-muted-foreground">{t("dashboard.yourDownloads")}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/60 hover:shadow-md transition-shadow group">
-            <CardContent className="pt-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-accent group-hover:bg-primary/10 transition-colors">
-                <Crown className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-display font-bold">{subscription?.plan_code === "anual" ? "Plano Anual" : "Plano Mensal"}</p>
-                <p className="text-sm text-muted-foreground">{t("dashboard.activeSubscription")}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Favorites section */}
-        {favoriteDesigns.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-destructive/10">
-                  <Heart className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-display font-bold">{t("dashboard.yourFavorites")}</h2>
-                  <p className="text-sm text-muted-foreground">{t("dashboard.savedDesigns")}</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="text-xs gap-1">
-                <Heart className="h-3 w-3" /> {favoriteDesigns.length}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {favoriteDesigns.map((kit: any) => (
-                <DesignCard
-                  key={kit.id}
-                  name={kit.name}
-                  coverImage={kit.cover_image}
-                  category={kit.categories?.name}
-                  tags={[]}
-                  onClick={() => navigate(`/library/${kit.id}`)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Inspiração do Dia */}
-        <InspiracaoDoDia />
-
-        {/* Newest designs */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Clock className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                 <h2 className="text-lg font-display font-bold">{t("dashboard.newDesigns")}</h2>
-                 <p className="text-sm text-muted-foreground">{t("dashboard.recentlyAdded")}</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/library")} className="gap-1.5 text-primary">
-              {t("dashboard.viewAll")} <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <DesignGrid designs={newestDesigns} emptyMsg={t("dashboard.noDesignsAvailable")} />
-        </section>
-
-        {/* Trending (last 7 days) */}
-        {trendingDesigns.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-destructive/10">
-                  <Flame className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-display font-bold">{t("dashboard.trending")}</h2>
-                  <p className="text-sm text-muted-foreground">{t("dashboard.trendingSubtitle")}</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="text-xs">🔥 {t("dashboard.trending")}</Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {trendingDesigns.map((kit: any, index: number) => (
-                <Card
-                  key={kit.id}
-                  className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-lg hover:border-destructive/30 transition-all"
-                  onClick={() => navigate(`/library/${kit.id}`)}
-                >
-                  <div className="relative">
-                    <div className="aspect-video bg-muted overflow-hidden">
-                      {kit.cover_image ? (
-                        <img
-                          src={kit.cover_image}
-                          alt={kit.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🧵</div>
-                      )}
-                    </div>
-                    <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-destructive/90 backdrop-blur-sm flex items-center justify-center text-destructive-foreground font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <Badge className="absolute top-2 right-2 bg-destructive text-destructive-foreground gap-1">
-                      <Download className="h-3 w-3" />
-                      {kit.downloadCount}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="font-medium text-sm truncate group-hover:text-destructive transition-colors">
-                      {kit.name}
-                    </p>
-                    {kit.categories?.name && (
-                      <p className="text-xs text-muted-foreground">{kit.categories.name}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-secondary/10">
-                <TrendingUp className="h-5 w-5 text-secondary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-display font-bold">{t("dashboard.mostDownloaded")}</h2>
-                <p className="text-sm text-muted-foreground">{t("dashboard.mostDownloadedSubtitle")}</p>
-              </div>
-            </div>
-          </div>
-          {mostDownloaded.length === 0 ? (
-            <Card className="border-border/60 bg-muted/30">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                {t("dashboard.rankingsWillAppear")}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mostDownloaded.map((kit: any, index: number) => (
-                <Card
-                  key={kit.id}
-                  className="group cursor-pointer border-border/60 overflow-hidden hover:shadow-lg hover:border-secondary/30 transition-all"
-                  onClick={() => navigate(`/library/${kit.id}`)}
-                >
-                  <div className="relative">
-                    <div className="aspect-video bg-muted overflow-hidden">
-                      {kit.cover_image ? (
-                        <img
-                          src={kit.cover_image}
-                          alt={kit.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🧵</div>
-                      )}
-                    </div>
-                    <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-foreground/80 backdrop-blur-sm flex items-center justify-center text-background font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground gap-1">
-                      <Download className="h-3 w-3" />
-                      {kit.downloadCount}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="font-medium text-sm truncate group-hover:text-secondary transition-colors">
-                      {kit.name}
-                    </p>
-                    {kit.categories?.name && (
-                      <p className="text-xs text-muted-foreground">{kit.categories.name}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Each section loads independently */}
+        <NewDesignsSection />
+        <PopularDesignsSection />
+        <HoopDesignsSection />
+        <CategoriesSection />
+        <RecommendedSection />
       </div>
     </AppLayout>
   );
