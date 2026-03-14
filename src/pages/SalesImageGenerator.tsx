@@ -120,7 +120,7 @@ const SalesImageGenerator = () => {
         designImg.onerror = () => renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
         designImg.src = selectedDesign.cover_image;
       } else {
-        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY);
+        renderMockup(ctx, mockupImg, null, selectedTemplate, scale, offsetX, offsetY, selectedColor.hex);
       }
     };
     mockupImg.onerror = () => {
