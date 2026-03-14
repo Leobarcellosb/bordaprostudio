@@ -22,6 +22,8 @@ interface CatalogCanvasProps {
   layout: LayoutType;
   format: ExportFormat;
   pageIndex?: number;
+  /** Show colored debug guides for alignment validation (preview only) */
+  debug?: boolean;
 }
 
 /* ── Geometry constants ── */
