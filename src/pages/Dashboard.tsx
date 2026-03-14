@@ -40,6 +40,7 @@ const Dashboard = () => {
         <NewDesignsSection />
         <PopularDesignsSection />
         <HoopDesignsSection />
+        <CollectionSuggestionsSection />
         <KitSuggestionsSection />
         <KitsSection />
         <CategoriesSection />
