@@ -14,6 +14,9 @@ interface LibraryGridProps {
   isLoading: boolean;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 export const LibraryGrid = ({
