@@ -13,6 +13,7 @@ import { KitSuggestionsSection } from "@/components/home/KitSuggestionsSection";
 import { CollectionSuggestionsSection } from "@/components/home/CollectionSuggestionsSection";
 import { SeasonalCalendarSection } from "@/components/home/SeasonalCalendarSection";
 import { MeuAcervoSection } from "@/components/home/MeuAcervoSection";
+import { RecentDownloadsSection } from "@/components/home/RecentDownloadsSection";
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -40,6 +41,7 @@ const Dashboard = () => {
 
         {/* Each section loads independently */}
         <MeuAcervoSection />
+        <RecentDownloadsSection />
         <SeasonalCalendarSection />
         <NewDesignsSection />
         <PopularDesignsSection />
