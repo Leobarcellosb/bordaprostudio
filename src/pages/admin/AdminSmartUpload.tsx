@@ -316,7 +316,8 @@ export const AdminSmartUpload = () => {
         }
       }
     },
-    [categories, classifyCategory, generateAITitle]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [categories]
   );
 
   const classifyCategory = useCallback(async (groupId: string, title: string, rawFilename: string, tags: string, imageUrl: string | null) => {
