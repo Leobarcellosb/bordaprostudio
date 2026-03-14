@@ -1,4 +1,4 @@
-import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Eye, Camera } from "lucide-react";
+import { Home, Library, Sparkles, BookOpen, Settings, LogOut, Shield, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -14,8 +14,6 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   { icon: Lightbulb, labelKey: "nav.productIdeas", path: "/product-ideas" },
   { icon: Sparkles, labelKey: "nav.salesGenerator", path: "/sales-generator" },
   { icon: Eye, label: "Visualizar Matriz", path: "/embroidery-viewer" },
-  
-  { icon: Camera, label: "Imagens para Venda", path: "/sales-image" },
   { icon: Calculator, labelKey: "nav.profitCalculator", path: "/profit-calculator" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
   { icon: Package, label: "Kits Premium", path: "/kits" },

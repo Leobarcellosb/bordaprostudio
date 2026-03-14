@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Layers, DollarSign, TrendingUp, X } from "lucide-react";
+import { Sparkles, DollarSign, TrendingUp, X } from "lucide-react";
 
 interface ProductIdeaCardProps {
   name: string;
@@ -9,11 +9,11 @@ interface ProductIdeaCardProps {
   priceRange?: string | null;
   profitExample?: string | null;
   onGenerate?: () => void;
-  onMockup?: () => void;
+  
   onDelete?: () => void;
 }
 
-export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onMockup, onDelete }: ProductIdeaCardProps) => (
+export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profitExample, onGenerate, onDelete }: ProductIdeaCardProps) => (
   <Card className="group overflow-hidden border-border/40 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 relative">
     {onDelete && (
       <button
@@ -57,11 +57,6 @@ export const ProductIdeaCard = ({ name, description, imageUrl, priceRange, profi
       )}
 
       <div className="flex flex-col gap-2 pt-1">
-        {onMockup && (
-          <Button onClick={onMockup} variant="outline" size="sm" className="w-full gap-1.5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all">
-            <Layers className="h-3.5 w-3.5" /> Gerar mockup deste produto
-          </Button>
-        )}
         {onGenerate && (
           <Button onClick={onGenerate} variant="outline" size="sm" className="w-full gap-1.5 border-secondary/20 text-secondary hover:bg-secondary hover:text-secondary-foreground transition-all">
             <Sparkles className="h-3.5 w-3.5" /> Gerar texto de venda
