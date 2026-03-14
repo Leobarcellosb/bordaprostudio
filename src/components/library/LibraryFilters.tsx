@@ -50,7 +50,7 @@ export const LibraryFilters = ({
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
           <Input
-            placeholder={t("library.searchPlaceholder")}
+            placeholder="Buscar matriz por nome, tema, categoria ou tag..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 h-11 bg-muted/30 border-border/40 focus:bg-background focus:border-primary/30 transition-colors rounded-xl"
