@@ -29,7 +29,6 @@ import PremiumKitDetail from "./pages/PremiumKitDetail";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
