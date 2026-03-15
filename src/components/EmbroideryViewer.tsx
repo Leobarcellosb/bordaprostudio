@@ -693,6 +693,34 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     return results;
   }, [pattern, pw, ph, normalStitches, colorLayerInfo]);
 
+  // ── Estimated time ──
+  const timeEstimate = useMemo(() => {
+    const baseMinutes = normalStitches / 700;
+    const colorChanges = Math.max(0, colorLayerInfo.length - 1);
+    const colorPenaltySec = colorChanges * 20;
+
+    // Count long jumps (> 8mm)
+    let longJumps = 0;
+    for (let i = 1; i < pattern.stitches.length; i++) {
+      const prev = pattern.stitches[i - 1];
+      const cur = pattern.stitches[i];
+      if (cur.flags !== JUMP) continue;
+      const dx = (cur.x - prev.x) * 0.1;
+      const dy = (cur.y - prev.y) * 0.1;
+      if (Math.sqrt(dx * dx + dy * dy) > 8) longJumps++;
+    }
+    const jumpPenaltySec = longJumps * 5;
+
+    const totalMinutes = baseMinutes + (colorPenaltySec + jumpPenaltySec) / 60;
+    const level = totalMinutes < 8 ? "rápido" : totalMinutes <= 20 ? "médio" : "demorado";
+    const levelColor = totalMinutes < 8 ? "text-green-600" : totalMinutes <= 20 ? "text-amber-500" : "text-red-500";
+    const display = totalMinutes < 1
+      ? `${Math.round(totalMinutes * 60)} seg`
+      : `${Math.round(totalMinutes)} min`;
+
+    return { display, level, levelColor };
+  }, [normalStitches, pattern, colorLayerInfo]);
+
   return (
     <div className={`flex flex-col ${className}`}>
       {/* Toolbar */}
@@ -903,6 +931,17 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Estimated Time Panel */}
+            <div className="border-t border-border px-3 py-2 space-y-1 shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Tempo estimado</h3>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-foreground">{timeEstimate.display}</span>
+                <span className={`text-[10px] font-medium ${timeEstimate.levelColor}`}>
+                  {timeEstimate.level}
+                </span>
               </div>
             </div>
           </div>
