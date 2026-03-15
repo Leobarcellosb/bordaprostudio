@@ -41,8 +41,46 @@ export const AdminUsers = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
-    const { data } = await db.from("profiles").select("id, name, last_name, email, plan, created_at, user_roles(role)").order("created_at", { ascending: false });
-    setUsers(data || []);
+    try {
+      // Fetch profiles
+      const { data: profilesData, error: profilesError } = await db
+        .from("profiles")
+        .select("id, name, last_name, email, plan, created_at")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) {
+        console.error("[AdminUsers] profiles query error:", profilesError);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch all roles separately (avoids FK join issue between profiles and user_roles)
+      const { data: rolesData, error: rolesError } = await db
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) {
+        console.error("[AdminUsers] user_roles query error:", rolesError);
+      }
+
+      // Build a map of user_id -> roles
+      const rolesMap: Record<string, { role: string }[]> = {};
+      (rolesData || []).forEach((r: any) => {
+        if (!rolesMap[r.user_id]) rolesMap[r.user_id] = [];
+        rolesMap[r.user_id].push({ role: r.role });
+      });
+
+      // Merge
+      const merged = (profilesData || []).map((p: any) => ({
+        ...p,
+        user_roles: rolesMap[p.id] || [],
+      }));
+
+      console.log("[AdminUsers] profiles:", profilesData?.length, "roles:", rolesData?.length, "merged:", merged.length);
+      setUsers(merged);
+    } catch (err) {
+      console.error("[AdminUsers] unexpected error:", err);
+    }
     setLoading(false);
   };
 
