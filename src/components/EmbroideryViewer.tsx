@@ -707,7 +707,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">
-                          {info.color.name || `Cor ${info.order + 1}`}
+                          {translateColorName(info.color.name, info.order)}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {info.stitchCount.toLocaleString()} pontos
