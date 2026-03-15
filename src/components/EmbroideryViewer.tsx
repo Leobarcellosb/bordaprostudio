@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { EmbroideryPattern, EmbroideryColor, Stitch } from "@/lib/embroideryPreview";
+import type { EmbroideryPattern, EmbroideryColor } from "@/lib/embroideryPreview";
 
 const NORMAL = 0;
 const JUMP = 1;
