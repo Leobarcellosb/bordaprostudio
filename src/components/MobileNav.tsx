@@ -16,6 +16,7 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   
   
   { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
+  { icon: Users, label: "Comunidade", path: "/comunidade" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
   { icon: Package, label: "Kits Premium", path: "/kits" },
   { icon: Crown, labelKey: "nav.plans", path: "/pricing" },

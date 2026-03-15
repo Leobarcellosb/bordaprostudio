@@ -60,6 +60,7 @@ const App = () => (
             
             
             <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
+            <Route path="/comunidade" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
             <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
