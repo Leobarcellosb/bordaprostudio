@@ -403,15 +403,22 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     }
   }, [pattern]);
 
-  const usedColors = (() => {
-    const map = new Map<number, EmbroideryColor>();
+  const colorLayerInfo = useMemo(() => {
+    const map = new Map<number, { color: EmbroideryColor; stitchCount: number; order: number }>();
+    let orderCounter = 0;
     for (const s of pattern.stitches) {
+      if (s.flags !== NORMAL) continue;
       if (!map.has(s.color)) {
-        map.set(s.color, pattern.colors[s.color] || CATALOG_PALETTE[s.color % CATALOG_PALETTE.length]);
+        map.set(s.color, {
+          color: pattern.colors[s.color] || CATALOG_PALETTE[s.color % CATALOG_PALETTE.length],
+          stitchCount: 0,
+          order: orderCounter++,
+        });
       }
+      map.get(s.color)!.stitchCount++;
     }
-    return Array.from(map.entries());
-  })();
+    return Array.from(map.entries()).sort((a, b) => a[1].order - b[1].order);
+  }, [pattern]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
