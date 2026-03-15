@@ -159,16 +159,18 @@ function drawPaths(
 function drawJumps(
   ctx: CanvasRenderingContext2D,
   jumps: JumpSegment[],
+  color: string,
   scale: number,
   offsetX: number,
   offsetY: number,
 ) {
   if (jumps.length === 0) return;
   ctx.save();
-  ctx.strokeStyle = "rgba(200, 80, 80, 0.3)";
-  ctx.lineWidth = 0.5;
-  ctx.setLineDash([3, 3]);
-  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.0;
+  ctx.setLineDash([4, 6]);
+  ctx.globalAlpha = 0.45;
+  ctx.lineCap = "butt";
   for (const j of jumps) {
     ctx.beginPath();
     ctx.moveTo(j.from.x * scale + offsetX, j.from.y * scale + offsetY);
@@ -351,7 +353,7 @@ function drawPattern(
 
     // Jump stitches
     if (showJumps) {
-      drawJumps(ctx, block.jumps, scale, offsetX, offsetY);
+      drawJumps(ctx, block.jumps, block.hex, scale, offsetX, offsetY);
     }
 
     globalStitchCounter += blockStitchCount;
@@ -515,6 +517,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   };
 
   const normalStitches = pattern.stitches.filter(s => s.flags === NORMAL).length;
+  const jumpStitches = pattern.stitches.filter(s => s.flags === JUMP).length;
   const colorCount = new Set(pattern.stitches.map(s => s.color)).size;
   const pw = pattern.right - pattern.left;
   const ph = pattern.bottom - pattern.top;
@@ -607,6 +610,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
           <span>{normalStitches.toLocaleString()} pontos</span>
           <span>{colorCount} cor{colorCount !== 1 ? "es" : ""}</span>
           <span>{(pw * 0.1).toFixed(1)}×{(ph * 0.1).toFixed(1)} mm</span>
+          <span className="text-primary font-medium">Saltos detectados: {jumpStitches}</span>
         </div>
       </div>
 
