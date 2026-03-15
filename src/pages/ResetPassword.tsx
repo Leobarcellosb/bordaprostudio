@@ -11,9 +11,11 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const isInvite = window.location.hash.includes("type=invite");
+
   useEffect(() => {
     const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
+    if (!hash.includes("type=recovery") && !hash.includes("type=invite")) {
       toast.error("Link de recuperação inválido");
       navigate("/login");
     }
