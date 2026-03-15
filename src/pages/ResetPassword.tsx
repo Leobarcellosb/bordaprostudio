@@ -41,7 +41,7 @@ const ResetPassword = () => {
           <form onSubmit={handleUpdate} className="space-y-4">
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" required minLength={6} />
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Atualizando..." : "Atualizar senha"}
+              {loading ? "Atualizando..." : isInvite ? "Criar senha e entrar" : "Atualizar senha"}
             </Button>
           </form>
         </CardContent>
