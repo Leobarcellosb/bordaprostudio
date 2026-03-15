@@ -206,19 +206,18 @@ function drawPaths(
   ctx.strokeStyle = style;
   ctx.globalAlpha = alpha;
   let stitchCount = 0;
+  // Draw each stitch segment individually to prevent overlap accumulation
+  // in dense fill areas — this is how professional viewers render
   for (const path of paths) {
     if (path.length < 2) { stitchCount += path.length; continue; }
-    ctx.beginPath();
-    ctx.moveTo(path[0].x * scale + offsetX, path[0].y * scale + offsetY);
     for (let j = 1; j < path.length; j++) {
       stitchCount++;
-      if (maxStitchIndex !== undefined && stitchCount > maxStitchIndex) {
-        ctx.stroke();
-        return;
-      }
+      if (maxStitchIndex !== undefined && stitchCount > maxStitchIndex) return;
+      ctx.beginPath();
+      ctx.moveTo(path[j - 1].x * scale + offsetX, path[j - 1].y * scale + offsetY);
       ctx.lineTo(path[j].x * scale + offsetX, path[j].y * scale + offsetY);
+      ctx.stroke();
     }
-    ctx.stroke();
   }
 }
 
@@ -435,14 +434,13 @@ function drawPattern(
     drawBackgroundGrid(ctx, canvasWidth, canvasHeight, scale, offsetX, offsetY, pcx, pcy);
   }
 
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "miter";
 
-  // Professional-grade stitch width: thin, zoom-compensated, capped
-  // At default zoom the line should be delicate (~0.8-1.2px); zooming in reveals detail without bloating
-  const rawThickness = (Math.min(canvasWidth, canvasHeight) / 600);
-  // Cap thickness so zooming in doesn't over-thicken lines
-  const baseThickness = Math.max(0.6, Math.min(rawThickness * Math.sqrt(zoom), 2.5));
+  // Professional stitch width: very thin, zoom-compensated
+  // Use inverse-sqrt to keep lines thin when zoomed out, slightly thicker when zoomed in
+  const pixelSize = Math.min(canvasWidth, canvasHeight);
+  const baseThickness = Math.max(0.4, Math.min((pixelSize / 800) * Math.pow(zoom, 0.3), 1.8));
 
   let globalStitchCounter = 0;
 
@@ -458,8 +456,8 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Single main stitch layer — no shadow/highlight overdraw for clean professional look
-    drawPaths(ctx, block.paths, block.hex, baseThickness, 0.85, scale, offsetX, offsetY, remaining);
+    // Single clean layer, full opacity for crisp stitch visibility
+    drawPaths(ctx, block.paths, block.hex, baseThickness, 1.0, scale, offsetX, offsetY, remaining);
 
     globalStitchCounter += blockStitchCount;
   }
