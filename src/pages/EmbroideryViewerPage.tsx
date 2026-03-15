@@ -5,10 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileType, Eye } from "lucide-react";
 import { toast } from "sonner";
-import type { EmbroideryPattern } from "@/components/EmbroideryViewer";
-
-// We import the parsing logic from embroideryPreview via a thin wrapper
-// to avoid duplicating parsers.
+import type { EmbroideryPattern } from "@/lib/embroideryPreview";
 import { parseEmbroideryFile } from "@/lib/embroideryPreview";
 
 const SUPPORTED_EXTENSIONS = ["pes", "dst", "jef", "exp", "xxx", "vp3"];
