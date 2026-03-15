@@ -349,6 +349,50 @@ function drawHoopGrid(
   ctx.restore();
 }
 
+function drawSequenceMarkers(
+  ctx: CanvasRenderingContext2D,
+  blocks: ColorBlock[],
+  hiddenColors: Set<number>,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+) {
+  ctx.save();
+  const radius = 10;
+  const font = "bold 9px sans-serif";
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (hiddenColors.has(block.colorIndex)) continue;
+    const firstPath = block.paths.find(p => p.length > 0);
+    if (!firstPath) continue;
+    const pt = firstPath[0];
+    const cx = pt.x * scale + offsetX;
+    const cy = pt.y * scale + offsetY;
+
+    // White circle with border
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+    ctx.strokeStyle = "#333333";
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = "#333333";
+    const label = i === 0 ? "1" : String(i + 1);
+    ctx.fillText(label, cx, cy + 0.5);
+  }
+  ctx.restore();
+}
+
 function drawPattern(
   ctx: CanvasRenderingContext2D,
   blocks: ColorBlock[],
@@ -361,6 +405,7 @@ function drawPattern(
   hiddenColors: Set<number>,
   showJumps: boolean,
   showGrid: boolean,
+  showSequence: boolean,
   maxStitchIndex?: number,
   hoopSize?: { w: number; h: number; label: string },
 ) {
