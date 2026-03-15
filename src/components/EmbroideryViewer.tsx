@@ -351,15 +351,18 @@ function drawPattern(
     // Highlight layer (subtle sheen)
     drawPaths(ctx, block.paths, block.highlightHex, baseThickness * 0.35, 0.2, scale, offsetX, offsetY, remaining);
 
-    // Jump stitches
-    if (showJumps) {
-      drawJumps(ctx, block.jumps, block.hex, scale, offsetX, offsetY);
-    }
-
     globalStitchCounter += blockStitchCount;
   }
 
   ctx.globalAlpha = 1.0;
+
+  // ── SEPARATE PASS: Jump stitches on top of everything ──
+  if (showJumps) {
+    for (const block of blocks) {
+      if (hiddenColors.has(block.colorIndex)) continue;
+      drawJumps(ctx, block.jumps, "#ff0000", scale, offsetX, offsetY);
+    }
+  }
 
   if (hoopSize) {
     drawHoopGrid(ctx, hoopSize, pattern, canvasWidth, canvasHeight, zoom, panX, panY);
