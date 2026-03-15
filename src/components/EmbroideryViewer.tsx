@@ -399,6 +399,76 @@ function drawSequenceMarkers(
   ctx.restore();
 }
 
+function drawNeedleMarker(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  color: string,
+) {
+  const cx = x * scale + offsetX;
+  const cy = y * scale + offsetY;
+  ctx.save();
+  // Outer glow
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.25;
+  ctx.fill();
+  // Inner circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 1;
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawColorChangeMessage(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  message: string,
+) {
+  ctx.save();
+  const fontSize = 14;
+  ctx.font = `600 ${fontSize}px sans-serif`;
+  const metrics = ctx.measureText(message);
+  const padX = 16;
+  const padY = 10;
+  const boxW = metrics.width + padX * 2;
+  const boxH = fontSize + padY * 2;
+  const bx = (canvasWidth - boxW) / 2;
+  const by = canvasHeight - boxH - 24;
+
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#1a1a2e";
+  const r = 8;
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by);
+  ctx.lineTo(bx + boxW - r, by);
+  ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + r);
+  ctx.lineTo(bx + boxW, by + boxH - r);
+  ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - r, by + boxH);
+  ctx.lineTo(bx + r, by + boxH);
+  ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - r);
+  ctx.lineTo(bx, by + r);
+  ctx.quadraticCurveTo(bx, by, bx + r, by);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, canvasWidth / 2, by + boxH / 2);
+  ctx.restore();
+}
+
 function drawPattern(
   ctx: CanvasRenderingContext2D,
   blocks: ColorBlock[],
@@ -414,6 +484,8 @@ function drawPattern(
   showSequence: boolean,
   maxStitchIndex?: number,
   hoopSize?: { w: number; h: number; label: string },
+  needlePos?: { x: number; y: number; color: string } | null,
+  colorChangeMsg?: string | null,
 ) {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   ctx.fillStyle = BG_COLOR;
@@ -436,26 +508,20 @@ function drawPattern(
   const offsetX = cx - pcx * scale;
   const offsetY = cy - pcy * scale;
 
-  // Background grid
   if (showGrid) {
     drawBackgroundGrid(ctx, canvasWidth, canvasHeight, scale, offsetX, offsetY, pcx, pcy);
   }
 
-  // Thread-like rendering: round caps simulate thread ends
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // ── Zoom-aware stitch width (Wilcom/EMDigitizer style) ──
-  // Base width is thin; divided by zoom so zooming in doesn't fatten lines.
-  // Clamped to subpixel range [0.2, 0.6] for delicate, professional rendering.
   const rawWidth = 0.5 / zoom;
   const baseThickness = Math.max(0.2, Math.min(rawWidth, 0.6));
 
-  // Debug: log render metrics (remove after validation)
   if (typeof window !== 'undefined' && (window as any).__EMB_DEBUG) {
     let totalSegs = 0;
     for (const b of blocks) for (const p of b.paths) totalSegs += Math.max(0, p.length - 1);
-    console.log(`[EmbroideryRenderer] zoom=${zoom.toFixed(2)} rawWidth=${rawWidth.toFixed(3)} lineWidth=${baseThickness.toFixed(3)} segments=${totalSegs}`);
+    console.log(`[EmbroideryRenderer] zoom=${zoom.toFixed(2)} lineWidth=${baseThickness.toFixed(3)} segments=${totalSegs}`);
   }
 
   let globalStitchCounter = 0;
@@ -472,13 +538,9 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Thread-like render: softened color (+10% brightness) with subtle per-segment
-    // opacity variation to simulate natural thread texture. Dense fills stay breathable.
     const softenedColor = shadeColor(block.hex, 10);
-
-    // Determine if block is likely outline vs fill based on path density
     const avgPathLen = blockStitchCount / Math.max(1, block.paths.length);
-    const isLikelyOutline = avgPathLen > 15; // Outlines tend to have longer continuous paths
+    const isLikelyOutline = avgPathLen > 15;
     const blockOpacity = isLikelyOutline ? 0.78 : 0.83;
 
     drawPaths(ctx, block.paths, softenedColor, baseThickness, blockOpacity, scale, offsetX, offsetY, remaining);
@@ -488,7 +550,6 @@ function drawPattern(
 
   ctx.globalAlpha = 1.0;
 
-  // ── SEPARATE PASS: Jump stitches on top of everything ──
   if (showJumps) {
     for (const block of blocks) {
       if (hiddenColors.has(block.colorIndex)) continue;
@@ -500,9 +561,18 @@ function drawPattern(
     drawHoopGrid(ctx, hoopSize, pattern, canvasWidth, canvasHeight, zoom, panX, panY);
   }
 
-  // ── SEPARATE PASS: Sequence markers on top of everything ──
   if (showSequence) {
     drawSequenceMarkers(ctx, blocks, hiddenColors, scale, offsetX, offsetY);
+  }
+
+  // Draw needle marker on top
+  if (needlePos) {
+    drawNeedleMarker(ctx, needlePos.x, needlePos.y, scale, offsetX, offsetY, needlePos.color);
+  }
+
+  // Draw color change message overlay
+  if (colorChangeMsg) {
+    drawColorChangeMessage(ctx, canvasWidth, canvasHeight, colorChangeMsg);
   }
 }
 
