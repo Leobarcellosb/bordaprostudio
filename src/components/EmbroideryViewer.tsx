@@ -353,7 +353,7 @@ function drawPattern(
 
     // Jump stitches
     if (showJumps) {
-      drawJumps(ctx, block.jumps, scale, offsetX, offsetY);
+      drawJumps(ctx, block.jumps, block.hex, scale, offsetX, offsetY);
     }
 
     globalStitchCounter += blockStitchCount;

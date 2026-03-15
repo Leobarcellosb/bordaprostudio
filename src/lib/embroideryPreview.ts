@@ -519,17 +519,16 @@ function parseDST(buffer: ArrayBuffer): EmbroideryPattern {
     if (b[2] === 0xF3) {
       flags = END;
     } else if ((b[2] & 0xC3) === 0xC3) {
+      // Color change: trim + stop
       flags = TRIM | STOP;
-    } else {
-      if (b[2] & 0x80) flags |= TRIM;
-      if (b[2] & 0x40) flags |= STOP;
+    } else if (b[2] & 0x80) {
+      // Bit 7 in DST = jump/move stitch
+      flags = JUMP;
+    } else if (b[2] & 0x40) {
+      flags = STOP;
     }
 
-    const thisJump = (flags & JUMP) !== 0;
-    if (prevJump) flags |= JUMP;
-
     addStitchRel(pattern, x, y, flags, true);
-    prevJump = thisJump;
 
     if (flags === END) break;
   }
