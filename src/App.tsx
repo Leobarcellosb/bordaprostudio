@@ -27,6 +27,7 @@ import Settings from "./pages/Settings";
 import PricingPage from "./pages/PricingPage";
 import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
+import MinhaContaPage from "./pages/MinhaContaPage";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
             <Route path="/downloads" element={<ProtectedRoute><DownloadsPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/minha-conta" element={<ProtectedRoute><MinhaContaPage /></ProtectedRoute>} />
             <Route path="/kits" element={<ProtectedRoute><PremiumKitsPage /></ProtectedRoute>} />
             <Route path="/kits/:id" element={<ProtectedRoute><PremiumKitDetail /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
