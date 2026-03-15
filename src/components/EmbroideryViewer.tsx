@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff, GitBranch } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff, GitBranch, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -349,6 +349,50 @@ function drawHoopGrid(
   ctx.restore();
 }
 
+function drawSequenceMarkers(
+  ctx: CanvasRenderingContext2D,
+  blocks: ColorBlock[],
+  hiddenColors: Set<number>,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+) {
+  ctx.save();
+  const radius = 10;
+  const font = "bold 9px sans-serif";
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (hiddenColors.has(block.colorIndex)) continue;
+    const firstPath = block.paths.find(p => p.length > 0);
+    if (!firstPath) continue;
+    const pt = firstPath[0];
+    const cx = pt.x * scale + offsetX;
+    const cy = pt.y * scale + offsetY;
+
+    // White circle with border
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+    ctx.strokeStyle = "#333333";
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = "#333333";
+    const label = i === 0 ? "1" : String(i + 1);
+    ctx.fillText(label, cx, cy + 0.5);
+  }
+  ctx.restore();
+}
+
 function drawPattern(
   ctx: CanvasRenderingContext2D,
   blocks: ColorBlock[],
@@ -361,6 +405,7 @@ function drawPattern(
   hiddenColors: Set<number>,
   showJumps: boolean,
   showGrid: boolean,
+  showSequence: boolean,
   maxStitchIndex?: number,
   hoopSize?: { w: number; h: number; label: string },
 ) {
@@ -433,6 +478,11 @@ function drawPattern(
   if (hoopSize) {
     drawHoopGrid(ctx, hoopSize, pattern, canvasWidth, canvasHeight, zoom, panX, panY);
   }
+
+  // ── SEPARATE PASS: Sequence markers on top of everything ──
+  if (showSequence) {
+    drawSequenceMarkers(ctx, blocks, hiddenColors, scale, offsetX, offsetY);
+  }
 }
 
 // ── Component ───────────────────────────────────────────────────────────
@@ -459,6 +509,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   const totalNormalRef = useRef(0);
   const [showJumps, setShowJumps] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [showSequence, setShowSequence] = useState(false);
 
   useEffect(() => {
     if (pattern.stitches.length > 0) {
@@ -502,8 +553,8 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     const maxIdx = simulating ? simProgress : undefined;
     const hoop = hoopIndex !== null ? HOOP_SIZES[hoopIndex] : undefined;
 
-    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, maxIdx, hoop);
-  }, [pattern, zoom, pan, hiddenColors, simulating, simProgress, hoopIndex, showJumps, showGrid]);
+    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, showSequence, maxIdx, hoop);
+  }, [pattern, zoom, pan, hiddenColors, simulating, simProgress, hoopIndex, showJumps, showGrid, showSequence]);
 
   useEffect(() => { render(); }, [render]);
 
@@ -568,6 +619,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     setPan({ x: 0, y: 0 });
     setShowJumps(false);
     setShowGrid(false);
+    setShowSequence(false);
     setHoopIndex(null);
     setHiddenColors(new Set());
     setSimulating(false);
@@ -649,6 +701,18 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
           >
             <Grid3X3 className="h-3.5 w-3.5" />
             Grade
+          </Button>
+
+          {/* Sequence markers toggle */}
+          <Button
+            variant={showSequence ? "default" : "outline"}
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setShowSequence(v => !v)}
+            title="Mostrar/ocultar sequência"
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
+            Sequência
           </Button>
 
           {/* Hoop selector */}
