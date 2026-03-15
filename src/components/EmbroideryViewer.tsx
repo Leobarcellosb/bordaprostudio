@@ -650,6 +650,49 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   const pw = pattern.right - pattern.left;
   const ph = pattern.bottom - pattern.top;
 
+  // ── Analysis checks ──
+  const analysisResults = useMemo(() => {
+    const results: { label: string; ok: boolean }[] = [];
+
+    // 1. Short stitch detection
+    let hasShortStitch = false;
+    for (let i = 1; i < pattern.stitches.length; i++) {
+      const prev = pattern.stitches[i - 1];
+      const cur = pattern.stitches[i];
+      if (cur.flags !== NORMAL) continue;
+      const dx = (cur.x - prev.x) * 0.1;
+      const dy = (cur.y - prev.y) * 0.1;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 0.4 && dist > 0) { hasShortStitch = true; break; }
+    }
+    results.push({ label: hasShortStitch ? "Pontos muito curtos detectados" : "Comprimento dos pontos normal", ok: !hasShortStitch });
+
+    // 2. Long jump detection
+    let hasLongJump = false;
+    for (let i = 1; i < pattern.stitches.length; i++) {
+      const prev = pattern.stitches[i - 1];
+      const cur = pattern.stitches[i];
+      if (cur.flags !== JUMP) continue;
+      const dx = (cur.x - prev.x) * 0.1;
+      const dy = (cur.y - prev.y) * 0.1;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 8) { hasLongJump = true; break; }
+    }
+    results.push({ label: hasLongJump ? "Saltos longos detectados" : "Saltos dentro do normal", ok: !hasLongJump });
+
+    // 3. Density check
+    const widthMm = pw * 0.1;
+    const heightMm = ph * 0.1;
+    const density = widthMm > 0 && heightMm > 0 ? normalStitches / (widthMm * heightMm) : 0;
+    results.push({ label: density > 0.65 ? "Densidade alta" : "Densidade adequada", ok: density <= 0.65 });
+
+    // 4. Color change check
+    const colorChanges = Math.max(0, colorLayerInfo.length - 1);
+    results.push({ label: colorChanges > 12 ? "Muitas trocas de linha" : "Trocas de linha normais", ok: colorChanges <= 12 });
+
+    return results;
+  }, [pattern, pw, ph, normalStitches, colorLayerInfo]);
+
   return (
     <div className={`flex flex-col ${className}`}>
       {/* Toolbar */}
@@ -843,6 +886,23 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                     ? (normalStitches / ((pw * 0.1) * (ph * 0.1))).toFixed(2)
                     : "—"} pts/mm²
                 </span>
+              </div>
+            </div>
+
+            {/* Analysis Panel */}
+            <div className="border-t border-border px-3 py-2 space-y-1.5 shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Análise da matriz</h3>
+              <div className="space-y-1">
+                {analysisResults.map((r, i) => (
+                  <div key={i} className="flex items-start gap-1.5 text-[10px]">
+                    <span className={r.ok ? "text-green-600" : "text-amber-500"}>
+                      {r.ok ? "✔" : "⚠"}
+                    </span>
+                    <span className={r.ok ? "text-muted-foreground" : "text-foreground font-medium"}>
+                      {r.label}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
