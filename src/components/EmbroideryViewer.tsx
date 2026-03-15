@@ -465,10 +465,16 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Thread-like render: softened color (+8% brightness) and reduced opacity (0.82)
-    // to prevent dense fills from looking overly dark/solid
-    const softenedColor = shadeColor(block.hex, 8);
-    drawPaths(ctx, block.paths, softenedColor, baseThickness, 0.82, scale, offsetX, offsetY, remaining);
+    // Thread-like render: softened color (+10% brightness) with subtle per-segment
+    // opacity variation to simulate natural thread texture. Dense fills stay breathable.
+    const softenedColor = shadeColor(block.hex, 10);
+
+    // Determine if block is likely outline vs fill based on path density
+    const avgPathLen = blockStitchCount / Math.max(1, block.paths.length);
+    const isLikelyOutline = avgPathLen > 15; // Outlines tend to have longer continuous paths
+    const blockOpacity = isLikelyOutline ? 0.78 : 0.83;
+
+    drawPaths(ctx, block.paths, softenedColor, baseThickness, blockOpacity, scale, offsetX, offsetY, remaining);
 
     globalStitchCounter += blockStitchCount;
   }
