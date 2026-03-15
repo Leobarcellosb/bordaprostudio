@@ -1,4 +1,4 @@
-import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings } from "lucide-react";
+import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,12 +13,19 @@ const sections = [
     ],
   },
   {
-    title: "Explorar",
+    title: "Biblioteca",
     items: [
       { icon: Library, labelKey: "nav.library", path: "/library" },
       { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
       { icon: Package, label: "Kits Premium", path: "/kits" },
       { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+    ],
+  },
+  {
+    title: "Ferramentas",
+    items: [
+      { icon: Eye, label: "Visualizar Matriz", path: "/embroidery-viewer" },
+      { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
     ],
   },
   {
@@ -32,12 +39,6 @@ const sections = [
     title: "Comunidade",
     items: [
       { icon: Users, label: "Comunidade", path: "/comunidade" },
-    ],
-  },
-  {
-    title: "Ferramentas",
-    items: [
-      { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
     ],
   },
   {
