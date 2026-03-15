@@ -15,8 +15,8 @@ import { AddToCatalogModal } from "@/components/AddToCatalogModal";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Lightbulb, FileType, Layers, Loader2, Heart, BookOpen, Plus, X, Sparkles, Tag } from "lucide-react";
-import { useSmartSuggestions } from "@/hooks/useSmartSuggestions";
-import { SmartSuggestionsSection } from "@/components/SmartSuggestionsSection";
+import { useRelatedDesigns } from "@/hooks/useRelatedDesigns";
+import { RelatedDesignsSection } from "@/components/RelatedDesignsSection";
 
 const formatIcons: Record<string, string> = {
   PES: "🪡", EXP: "📐", DST: "🧵", JEF: "✂️", XXX: "📎",
@@ -99,7 +99,7 @@ const DesignDetail = () => {
   const [togglingFavorite, setTogglingFavorite] = useState(false);
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
-  const smartSuggestions = useSmartSuggestions(id, design);
+  const { designs: relatedDesigns, loading: relatedLoading } = useRelatedDesigns(id, design);
 
   useEffect(() => {
     const fetchDesign = async () => {
@@ -467,7 +467,7 @@ const DesignDetail = () => {
         )}
 
         {/* Smart Suggestions */}
-        <SmartSuggestionsSection suggestions={smartSuggestions} />
+        <RelatedDesignsSection designs={relatedDesigns} loading={relatedLoading} />
 
         {id && (
           <AddToCatalogModal
