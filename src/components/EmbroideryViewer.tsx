@@ -934,16 +934,45 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
 
           <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Simulate */}
-          <Button
-            variant={simulating ? "default" : "outline"}
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={toggleSimulation}
-          >
-            {simulating ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            {simulating ? "Pausar" : "Simular"}
-          </Button>
+          {/* Simulation controls */}
+          {!isSimActive ? (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={startSimulation}>
+              <Play className="h-3.5 w-3.5" />
+              Simular
+            </Button>
+          ) : (
+            <>
+              {simulating ? (
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={pauseSimulation}>
+                  <Pause className="h-3.5 w-3.5" />
+                  Pausar
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={resumeSimulation}>
+                  <Play className="h-3.5 w-3.5" />
+                  Continuar
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={stopSimulation}>
+                <Square className="h-3.5 w-3.5" />
+                Parar
+              </Button>
+            </>
+          )}
+
+          {/* Speed selector */}
+          <Select value={String(simSpeed)} onValueChange={(v) => setSimSpeed(Number(v))}>
+            <SelectTrigger className="h-8 w-20 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.5">0.5×</SelectItem>
+              <SelectItem value="1">1×</SelectItem>
+              <SelectItem value="2">2×</SelectItem>
+              <SelectItem value="5">5×</SelectItem>
+              <SelectItem value="10">10×</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Jump stitch toggle */}
           <Button
