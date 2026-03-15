@@ -159,16 +159,18 @@ function drawPaths(
 function drawJumps(
   ctx: CanvasRenderingContext2D,
   jumps: JumpSegment[],
+  color: string,
   scale: number,
   offsetX: number,
   offsetY: number,
 ) {
   if (jumps.length === 0) return;
   ctx.save();
-  ctx.strokeStyle = "rgba(200, 80, 80, 0.3)";
-  ctx.lineWidth = 0.5;
-  ctx.setLineDash([3, 3]);
-  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.0;
+  ctx.setLineDash([4, 6]);
+  ctx.globalAlpha = 0.45;
+  ctx.lineCap = "butt";
   for (const j of jumps) {
     ctx.beginPath();
     ctx.moveTo(j.from.x * scale + offsetX, j.from.y * scale + offsetY);
