@@ -1,4 +1,4 @@
-import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Users } from "lucide-react";
+import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -6,20 +6,47 @@ import { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import logoIcon from "@/assets/logo-icon.png";
 
-const navItems: { icon: any; labelKey?: string; label?: string; path: string }[] = [
-  { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
-  { icon: Library, labelKey: "nav.library", path: "/library" },
-  { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
-  { icon: Download, labelKey: "nav.mobile.downloads", path: "/downloads" },
-  { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
-  { icon: Lightbulb, labelKey: "nav.mobile.ideas", path: "/product-ideas" },
-  
-  
-  { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
-  { icon: Users, label: "Comunidade", path: "/comunidade" },
-  { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
-  { icon: Package, label: "Kits Premium", path: "/kits" },
-  { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
+const sections = [
+  {
+    items: [
+      { icon: Home, labelKey: "nav.dashboard", path: "/dashboard" },
+    ],
+  },
+  {
+    title: "Explorar",
+    items: [
+      { icon: Library, labelKey: "nav.library", path: "/library" },
+      { icon: TrendingUp, labelKey: "nav.trends", path: "/trends" },
+      { icon: Package, label: "Kits Premium", path: "/kits" },
+      { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
+    ],
+  },
+  {
+    title: "Meu uso",
+    items: [
+      { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
+      { icon: Download, labelKey: "nav.mobile.downloads", path: "/downloads" },
+    ],
+  },
+  {
+    title: "Comunidade",
+    items: [
+      { icon: Users, label: "Comunidade", path: "/comunidade" },
+    ],
+  },
+  {
+    title: "Ferramentas",
+    items: [
+      { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
+    ],
+  },
+  {
+    title: "Conta",
+    items: [
+      { icon: Crown, labelKey: "nav.plans", path: "/pricing" },
+      { icon: Settings, labelKey: "nav.settings", path: "/settings" },
+    ],
+  },
 ];
 
 export const MobileNav = () => {
@@ -42,19 +69,32 @@ export const MobileNav = () => {
       </header>
       {open && (
         <div className="md:hidden fixed inset-0 top-[61px] bg-background z-50 p-4 space-y-1 animate-fade-in overflow-y-auto">
-          {navItems.map(({ icon: Icon, labelKey, label, path }) => (
-            <button key={path} onClick={() => { navigate(path); setOpen(false); }}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-                location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
-              )}>
-              <Icon className="h-4 w-4" />{labelKey ? t(labelKey) : label}
-            </button>
+          {sections.map((section, idx) => (
+            <div key={idx}>
+              {idx > 0 && <div className="h-px bg-border my-2" />}
+              {section.title && (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-4 pb-1 pt-2">
+                  {section.title}
+                </p>
+              )}
+              {section.items.map(({ icon: Icon, labelKey, label, path }) => (
+                <button key={path} onClick={() => { navigate(path); setOpen(false); }}
+                  className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+                    location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
+                  )}>
+                  <Icon className="h-4 w-4" />{labelKey ? t(labelKey) : label}
+                </button>
+              ))}
+            </div>
           ))}
           {isAdmin && (
-            <button onClick={() => { navigate("/admin"); setOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
-              <Shield className="h-4 w-4" />{t("nav.adminPanel")}
-            </button>
+            <>
+              <div className="h-px bg-border my-2" />
+              <button onClick={() => { navigate("/admin"); setOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted">
+                <Shield className="h-4 w-4" />{t("nav.adminPanel")}
+              </button>
+            </>
           )}
           <div className="h-px bg-border my-2" />
           <button onClick={() => { signOut(); setOpen(false); }}
