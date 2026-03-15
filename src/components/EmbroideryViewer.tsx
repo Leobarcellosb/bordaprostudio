@@ -437,10 +437,18 @@ function drawPattern(
   ctx.lineCap = "butt";
   ctx.lineJoin = "miter";
 
-  // Professional stitch width: very thin, zoom-compensated
-  // Use inverse-sqrt to keep lines thin when zoomed out, slightly thicker when zoomed in
-  const pixelSize = Math.min(canvasWidth, canvasHeight);
-  const baseThickness = Math.max(0.4, Math.min((pixelSize / 800) * Math.pow(zoom, 0.3), 1.8));
+  // ── Zoom-aware stitch width (Wilcom/EMDigitizer style) ──
+  // Base width is thin; divided by zoom so zooming in doesn't fatten lines.
+  // Clamped to subpixel range [0.2, 0.6] for delicate, professional rendering.
+  const rawWidth = 0.5 / zoom;
+  const baseThickness = Math.max(0.2, Math.min(rawWidth, 0.6));
+
+  // Debug: log render metrics (remove after validation)
+  if (typeof window !== 'undefined' && (window as any).__EMB_DEBUG) {
+    let totalSegs = 0;
+    for (const b of blocks) for (const p of b.paths) totalSegs += Math.max(0, p.length - 1);
+    console.log(`[EmbroideryRenderer] zoom=${zoom.toFixed(2)} rawWidth=${rawWidth.toFixed(3)} lineWidth=${baseThickness.toFixed(3)} segments=${totalSegs}`);
+  }
 
   let globalStitchCounter = 0;
 
