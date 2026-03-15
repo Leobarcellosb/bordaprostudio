@@ -434,8 +434,9 @@ function drawPattern(
     drawBackgroundGrid(ctx, canvasWidth, canvasHeight, scale, offsetX, offsetY, pcx, pcy);
   }
 
-  ctx.lineCap = "butt";
-  ctx.lineJoin = "miter";
+  // Thread-like rendering: round caps simulate thread ends
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
   // ── Zoom-aware stitch width (Wilcom/EMDigitizer style) ──
   // Base width is thin; divided by zoom so zooming in doesn't fatten lines.
