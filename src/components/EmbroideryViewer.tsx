@@ -888,6 +888,23 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                 </span>
               </div>
             </div>
+
+            {/* Analysis Panel */}
+            <div className="border-t border-border px-3 py-2 space-y-1.5 shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Análise da matriz</h3>
+              <div className="space-y-1">
+                {analysisResults.map((r, i) => (
+                  <div key={i} className="flex items-start gap-1.5 text-[10px]">
+                    <span className={r.ok ? "text-green-600" : "text-amber-500"}>
+                      {r.ok ? "✔" : "⚠"}
+                    </span>
+                    <span className={r.ok ? "text-muted-foreground" : "text-foreground font-medium"}>
+                      {r.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
