@@ -438,8 +438,11 @@ function drawPattern(
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // Thinner base thickness for more precise look
-  const baseThickness = Math.max(1.0, (Math.min(canvasWidth, canvasHeight) / 350) * zoom);
+  // Professional-grade stitch width: thin, zoom-compensated, capped
+  // At default zoom the line should be delicate (~0.8-1.2px); zooming in reveals detail without bloating
+  const rawThickness = (Math.min(canvasWidth, canvasHeight) / 600);
+  // Cap thickness so zooming in doesn't over-thicken lines
+  const baseThickness = Math.max(0.6, Math.min(rawThickness * Math.sqrt(zoom), 2.5));
 
   let globalStitchCounter = 0;
 
@@ -455,12 +458,8 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Shadow layer (subtle)
-    drawPaths(ctx, block.paths, block.darkerHex, baseThickness * 1.2, 0.3, scale, offsetX, offsetY, remaining);
-    // Main stitch layer
-    drawPaths(ctx, block.paths, block.hex, baseThickness, 1.0, scale, offsetX, offsetY, remaining);
-    // Highlight layer (subtle sheen)
-    drawPaths(ctx, block.paths, block.highlightHex, baseThickness * 0.35, 0.2, scale, offsetX, offsetY, remaining);
+    // Single main stitch layer — no shadow/highlight overdraw for clean professional look
+    drawPaths(ctx, block.paths, block.hex, baseThickness, 0.85, scale, offsetX, offsetY, remaining);
 
     globalStitchCounter += blockStitchCount;
   }
