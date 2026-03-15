@@ -619,6 +619,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     setPan({ x: 0, y: 0 });
     setShowJumps(false);
     setShowGrid(false);
+    setShowSequence(false);
     setHoopIndex(null);
     setHiddenColors(new Set());
     setSimulating(false);
