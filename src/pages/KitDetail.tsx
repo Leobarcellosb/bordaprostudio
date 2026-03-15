@@ -272,15 +272,15 @@ const DesignDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10">
           {/* Large preview image */}
           <div className="lg:col-span-3">
-            <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden border border-border/60 shadow-sm">
+            <div className="bg-muted rounded-2xl overflow-hidden border border-border/60 shadow-sm flex items-center justify-center min-h-[280px] max-h-[520px]">
               {design.cover_image ? (
                 <img
                   src={design.cover_image}
                   alt={design.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full max-h-[520px] object-contain object-center"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-accent">
+                <div className="w-full aspect-[4/3] flex items-center justify-center bg-accent">
                   <span className="text-8xl">🧵</span>
                 </div>
               )}
