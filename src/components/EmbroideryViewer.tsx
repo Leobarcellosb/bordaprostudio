@@ -39,6 +39,37 @@ function shadeColor(hex: string, percent: number): string {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
+// ── Color name localization ──────────────────────────────────────────────
+
+const COLOR_NAME_PT: Record<string, string> = {
+  black: "Preto", white: "Branco", blue: "Azul", red: "Vermelho",
+  green: "Verde", yellow: "Amarelo", orange: "Laranja", pink: "Rosa",
+  purple: "Roxo", brown: "Marrom", gray: "Cinza", grey: "Cinza",
+  gold: "Dourado", silver: "Prata", navy: "Azul Marinho",
+  cyan: "Ciano", magenta: "Magenta", lime: "Lima", teal: "Verde-azulado",
+  coral: "Coral", salmon: "Salmão", cream: "Creme", beige: "Bege",
+  ivory: "Marfim", turquoise: "Turquesa", violet: "Violeta",
+  crimson: "Carmesim", scarlet: "Escarlate", emerald: "Esmeralda",
+  amber: "Âmbar", indigo: "Índigo", maroon: "Bordô", olive: "Oliva",
+  tan: "Castanho", peach: "Pêssego", lavender: "Lavanda", khaki: "Cáqui",
+  light: "Claro", dark: "Escuro", deep: "Intenso", bright: "Brilhante",
+  rich: "Rico", royal: "Real", sky: "Céu", golden: "Dourado",
+};
+
+function translateColorName(name: string | undefined, index: number): string {
+  if (!name) return `Cor ${index + 1}`;
+  const lower = name.toLowerCase().trim();
+  // Try exact match first
+  if (COLOR_NAME_PT[lower]) return COLOR_NAME_PT[lower];
+  // Try word-by-word translation
+  const words = lower.split(/[\s\-_]+/);
+  const translated = words.map(w => COLOR_NAME_PT[w] || null);
+  if (translated.some(t => t !== null)) {
+    return translated.map((t, i) => t || words[i]).join(" ");
+  }
+  return `Cor ${index + 1}`;
+}
+
 // ── Constants ───────────────────────────────────────────────────────────
 
 const BG_COLOR = "#f4f4f4";
