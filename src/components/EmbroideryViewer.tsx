@@ -702,6 +702,18 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
             Grade
           </Button>
 
+          {/* Sequence markers toggle */}
+          <Button
+            variant={showSequence ? "default" : "outline"}
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setShowSequence(v => !v)}
+            title="Mostrar/ocultar sequência"
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
+            Sequência
+          </Button>
+
           {/* Hoop selector */}
           <Popover>
             <PopoverTrigger asChild>
