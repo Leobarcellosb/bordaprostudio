@@ -517,6 +517,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   };
 
   const normalStitches = pattern.stitches.filter(s => s.flags === NORMAL).length;
+  const jumpStitches = pattern.stitches.filter(s => s.flags === JUMP).length;
   const colorCount = new Set(pattern.stitches.map(s => s.color)).size;
   const pw = pattern.right - pattern.left;
   const ph = pattern.bottom - pattern.top;
