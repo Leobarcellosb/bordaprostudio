@@ -467,7 +467,7 @@ const DesignDetail = () => {
         )}
 
         {/* Smart Suggestions */}
-        <SmartSuggestionsSection suggestions={smartSuggestions} />
+        <RelatedDesignsSection designs={relatedDesigns} loading={relatedLoading} />
 
         {id && (
           <AddToCatalogModal
