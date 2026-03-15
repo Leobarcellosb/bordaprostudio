@@ -636,45 +636,65 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
         </div>
       )}
 
-      {/* Canvas */}
-      <div
-        ref={containerRef}
-        className="flex-1 min-h-[300px] rounded-b-xl border border-t-0 border-border overflow-hidden"
-        style={{ cursor: isDragging ? "grabbing" : "grab", backgroundColor: BG_COLOR }}
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onDoubleClick={handleDoubleClick}
-      >
-        <canvas ref={canvasRef} className="w-full h-full" />
-      </div>
-
-      {/* Color legend */}
-      {usedColors.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-2 mt-3">
-          {usedColors.slice(0, 20).map(([idx, c]) => {
-            const isHidden = hiddenColors.has(idx);
-            return (
-              <button
-                key={idx}
-                className={`flex items-center gap-1.5 text-xs transition-opacity ${isHidden ? "opacity-40" : "opacity-100"}`}
-                onClick={() => toggleColor(idx)}
-                title={isHidden ? "Mostrar cor" : "Ocultar cor"}
-              >
-                <div
-                  className="w-3.5 h-3.5 rounded-full border border-border flex items-center justify-center"
-                  style={{ backgroundColor: isHidden ? "transparent" : saturateHex(rgbToHex(c), 0.15) }}
-                >
-                  {isHidden && <EyeOff className="h-2.5 w-2.5 text-muted-foreground" />}
-                </div>
-                <span className="text-muted-foreground">{c.name}</span>
-              </button>
-            );
-          })}
+      {/* Canvas + Color Panel side by side */}
+      <div className="flex flex-1 min-h-[300px] rounded-b-xl border border-t-0 border-border overflow-hidden">
+        {/* Canvas */}
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-hidden"
+          style={{ cursor: isDragging ? "grabbing" : "grab", backgroundColor: BG_COLOR }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onDoubleClick={handleDoubleClick}
+        >
+          <canvas ref={canvasRef} className="w-full h-full" />
         </div>
-      )}
+
+        {/* Color Layer Panel */}
+        {colorLayerInfo.length > 0 && (
+          <div className="w-52 border-l border-border bg-background flex flex-col shrink-0">
+            <div className="px-3 py-2 border-b border-border">
+              <h3 className="text-xs font-semibold text-foreground">Cores da matriz</h3>
+              <p className="text-[10px] text-muted-foreground">{colorLayerInfo.length} cor{colorLayerInfo.length !== 1 ? "es" : ""}</p>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-1">
+                {colorLayerInfo.map(([idx, info]) => {
+                  const hex = saturateHex(rgbToHex(info.color), 0.15);
+                  const isVisible = !hiddenColors.has(idx);
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md transition-opacity ${isVisible ? "opacity-100" : "opacity-50"}`}
+                    >
+                      <div
+                        className="w-4 h-4 rounded-full border border-border shrink-0"
+                        style={{ backgroundColor: hex }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {info.color.name || `Cor ${info.order + 1}`}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {info.stitchCount.toLocaleString()} pontos
+                        </p>
+                      </div>
+                      <Switch
+                        checked={isVisible}
+                        onCheckedChange={() => toggleColor(idx)}
+                        className="scale-75"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
