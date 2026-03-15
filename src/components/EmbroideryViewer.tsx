@@ -167,9 +167,9 @@ function drawJumps(
   if (jumps.length === 0) return;
   ctx.save();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.0;
-  ctx.setLineDash([4, 6]);
-  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.globalAlpha = 0.7;
   ctx.lineCap = "butt";
   for (const j of jumps) {
     ctx.beginPath();
