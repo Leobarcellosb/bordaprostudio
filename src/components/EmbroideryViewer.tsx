@@ -41,31 +41,64 @@ function shadeColor(hex: string, percent: number): string {
 
 // ── Color name localization ──────────────────────────────────────────────
 
-const COLOR_NAME_PT: Record<string, string> = {
+// Compound phrases first (multi-word), then single words
+const COLOR_PHRASES_PT: [string, string][] = [
+  // Greens
+  ["light green", "Verde Claro"], ["dark green", "Verde Escuro"], ["lime green", "Verde Limão"],
+  ["olive green", "Verde Oliva"], ["forest green", "Verde Floresta"], ["emerald green", "Verde Esmeralda"],
+  ["mint green", "Verde Menta"], ["sea green", "Verde Mar"], ["bright green", "Verde Brilhante"],
+  ["deep green", "Verde Intenso"], ["neon green", "Verde Neon"],
+  // Blues
+  ["light blue", "Azul Claro"], ["dark blue", "Azul Escuro"], ["sky blue", "Azul Céu"],
+  ["navy blue", "Azul Marinho"], ["royal blue", "Azul Royal"], ["baby blue", "Azul Bebê"],
+  ["deep blue", "Azul Intenso"], ["bright blue", "Azul Brilhante"],
+  // Browns
+  ["light brown", "Marrom Claro"], ["dark brown", "Marrom Escuro"], ["golden brown", "Marrom Dourado"],
+  // Grays
+  ["light gray", "Cinza Claro"], ["light grey", "Cinza Claro"],
+  ["dark gray", "Cinza Escuro"], ["dark grey", "Cinza Escuro"],
+  // Reds/Pinks
+  ["dark red", "Vermelho Escuro"], ["bright red", "Vermelho Brilhante"], ["deep red", "Vermelho Intenso"],
+  ["light pink", "Rosa Claro"], ["dark pink", "Rosa Escuro"], ["hot pink", "Rosa Pink"],
+  ["rich red", "Vermelho Rico"],
+  // Purples
+  ["light purple", "Roxo Claro"], ["dark purple", "Roxo Escuro"], ["deep purple", "Roxo Intenso"],
+  // Yellows
+  ["light yellow", "Amarelo Claro"], ["dark yellow", "Amarelo Escuro"], ["golden yellow", "Amarelo Ouro"],
+  ["bright yellow", "Amarelo Brilhante"], ["golden amber", "Âmbar Dourado"],
+  // Others
+  ["old gold", "Ouro Velho"], ["off white", "Branco Gelo"],
+];
+
+const COLOR_SINGLE_PT: Record<string, string> = {
   black: "Preto", white: "Branco", blue: "Azul", red: "Vermelho",
   green: "Verde", yellow: "Amarelo", orange: "Laranja", pink: "Rosa",
   purple: "Roxo", brown: "Marrom", gray: "Cinza", grey: "Cinza",
   gold: "Dourado", silver: "Prata", navy: "Azul Marinho",
-  cyan: "Ciano", magenta: "Magenta", lime: "Lima", teal: "Verde-azulado",
+  cyan: "Ciano", magenta: "Magenta", lime: "Verde Limão", teal: "Verde-azulado",
   coral: "Coral", salmon: "Salmão", cream: "Creme", beige: "Bege",
   ivory: "Marfim", turquoise: "Turquesa", violet: "Violeta",
   crimson: "Carmesim", scarlet: "Escarlate", emerald: "Esmeralda",
-  amber: "Âmbar", indigo: "Índigo", maroon: "Bordô", olive: "Oliva",
+  amber: "Âmbar", indigo: "Índigo", maroon: "Bordô", olive: "Verde Oliva",
   tan: "Castanho", peach: "Pêssego", lavender: "Lavanda", khaki: "Cáqui",
-  light: "Claro", dark: "Escuro", deep: "Intenso", bright: "Brilhante",
-  rich: "Rico", royal: "Real", sky: "Céu", golden: "Dourado",
 };
 
 function translateColorName(name: string | undefined, index: number): string {
   if (!name) return `Cor ${index + 1}`;
   const lower = name.toLowerCase().trim();
-  // Try exact match first
-  if (COLOR_NAME_PT[lower]) return COLOR_NAME_PT[lower];
-  // Try word-by-word translation
-  const words = lower.split(/[\s\-_]+/);
-  const translated = words.map(w => COLOR_NAME_PT[w] || null);
-  if (translated.some(t => t !== null)) {
-    return translated.map((t, i) => t || words[i]).join(" ");
+  // Try compound phrase match first
+  for (const [en, pt] of COLOR_PHRASES_PT) {
+    if (lower === en) return pt;
+  }
+  // Try single-word match
+  if (COLOR_SINGLE_PT[lower]) return COLOR_SINGLE_PT[lower];
+  // Try compound as substring (e.g. "rich red" → check phrases)
+  for (const [en, pt] of COLOR_PHRASES_PT) {
+    if (lower.includes(en)) return pt;
+  }
+  // Try to find the base color word in the name
+  for (const [en, pt] of Object.entries(COLOR_SINGLE_PT)) {
+    if (lower.includes(en)) return pt;
   }
   return `Cor ${index + 1}`;
 }
