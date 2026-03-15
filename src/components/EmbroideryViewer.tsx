@@ -206,19 +206,18 @@ function drawPaths(
   ctx.strokeStyle = style;
   ctx.globalAlpha = alpha;
   let stitchCount = 0;
+  // Draw each stitch segment individually to prevent overlap accumulation
+  // in dense fill areas — this is how professional viewers render
   for (const path of paths) {
     if (path.length < 2) { stitchCount += path.length; continue; }
-    ctx.beginPath();
-    ctx.moveTo(path[0].x * scale + offsetX, path[0].y * scale + offsetY);
     for (let j = 1; j < path.length; j++) {
       stitchCount++;
-      if (maxStitchIndex !== undefined && stitchCount > maxStitchIndex) {
-        ctx.stroke();
-        return;
-      }
+      if (maxStitchIndex !== undefined && stitchCount > maxStitchIndex) return;
+      ctx.beginPath();
+      ctx.moveTo(path[j - 1].x * scale + offsetX, path[j - 1].y * scale + offsetY);
       ctx.lineTo(path[j].x * scale + offsetX, path[j].y * scale + offsetY);
+      ctx.stroke();
     }
-    ctx.stroke();
   }
 }
 
