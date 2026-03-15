@@ -1049,13 +1049,18 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
         </div>
       </div>
 
-      {/* Simulation progress bar */}
-      {simulating && (
-        <div className="h-1 bg-muted">
-          <div
-            className="h-full bg-primary transition-[width] duration-75"
-            style={{ width: `${totalNormalRef.current > 0 ? (simProgress / totalNormalRef.current) * 100 : 0}%` }}
-          />
+      {/* Simulation progress bar + stitch counter */}
+      {isSimActive && (
+        <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/50 border-b border-border">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-75 rounded-full"
+              style={{ width: `${totalNormalRef.current > 0 ? (simProgress / totalNormalRef.current) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+            Ponto {simProgress.toLocaleString()} / {totalNormalRef.current.toLocaleString()}
+          </span>
         </div>
       )}
 
