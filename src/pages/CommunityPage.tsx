@@ -114,10 +114,13 @@ const CommunityPage = () => {
       const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
       setRequests(
-        data.map((r: any) => ({
-          ...r,
-          user_name: profileMap.get(r.user_id)?.name || "Usuária",
-        }))
+        data.map((r: any) => {
+          const prof = profileMap.get(r.user_id) as any;
+          return {
+            ...r,
+            user_name: prof?.name || "Usuária",
+          };
+        })
       );
     } else {
       setRequests([]);
