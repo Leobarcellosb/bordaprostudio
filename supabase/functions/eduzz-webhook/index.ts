@@ -6,6 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const ok = (extra?: object) =>
+  new Response(JSON.stringify({ received: true, ...extra }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 async function logEvent(
   supabase: any,
   integration: string,
@@ -18,13 +24,8 @@ async function logEvent(
 ) {
   try {
     await supabase.from("integration_logs").insert({
-      integration,
-      event_type: eventType,
-      email,
-      user_id: userId,
-      status,
-      message,
-      payload: payload || null,
+      integration, event_type: eventType, email, user_id: userId,
+      status, message, payload: payload || null,
     });
   } catch (e) {
     console.error("Failed to log event:", e);
@@ -32,16 +33,8 @@ async function logEvent(
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return ok();
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -49,35 +42,36 @@ Deno.serve(async (req) => {
   );
 
   try {
-    // Optional: validate webhook secret token
-    const webhookSecret = Deno.env.get("EDUZZ_WEBHOOK_SECRET");
-    if (webhookSecret) {
-      const authToken = req.headers.get("x-webhook-secret") || req.headers.get("authorization");
-      if (authToken !== webhookSecret && authToken !== `Bearer ${webhookSecret}`) {
-        await logEvent(supabase, "eduzz", "auth_failed", null, null, "error", "Token de webhook inválido");
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-
-    const payload = await req.json();
+    const payload = await req.json().catch(() => ({}));
     console.log("Eduzz webhook received:", JSON.stringify(payload));
 
-    // Eduzz webhook fields
-    const buyerEmail = (payload.cus_email || payload.buyer_email || payload.email || "").toLowerCase();
-    const buyerId = String(payload.cus_id || payload.buyer_id || payload.customer_id || "");
-    const invoiceId = String(payload.inv_id || payload.invoice_id || payload.transaction_id || "");
-    const offerId = String(payload.pro_id || payload.offer_id || payload.product_id || "");
-    const eventType = (payload.trans_status || payload.event_type || payload.status || "").toString().toLowerCase();
+    // Support both old flat format and new nested format
+    const data = payload.data || payload;
+    const eduzzEvent = (payload.event || "").toString().toLowerCase();
+    const buyer = data.buyer || {};
+    const student = data.student || {};
+
+    const buyerEmail = (
+      buyer.email || student.email || data.cus_email || data.buyer_email || data.email || ""
+    ).toString().toLowerCase().trim();
+
+    const buyerId = String(buyer.id || data.cus_id || data.buyer_id || data.customer_id || "");
+    const invoiceId = String(data.id || data.inv_id || data.invoice_id || data.transaction_id || "");
+
+    // Collect product IDs from items array or flat fields
+    const items = Array.isArray(data.items) ? data.items : [];
+    const offerId = String(
+      items[0]?.productId || data.pro_id || data.offer_id || data.product_id || ""
+    );
+
+    const eventType = (
+      eduzzEvent || data.trans_status || data.event_type || data.status || ""
+    ).toString().toLowerCase();
 
     if (!buyerEmail) {
-      await logEvent(supabase, "eduzz", eventType || "unknown", null, null, "error", "Email do comprador ausente no payload", payload);
-      return new Response(JSON.stringify({ error: "Missing buyer email" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.log("No buyer email found, ignoring event:", eventType);
+      await logEvent(supabase, "eduzz", eventType || "unknown", null, null, "pending", "Email ausente — evento ignorado", payload);
+      return ok({ note: "no_email" });
     }
 
     // Determine plan
@@ -87,30 +81,32 @@ Deno.serve(async (req) => {
     if (offerId === offerAnualId && offerAnualId) planCode = "anual";
     else if (offerId === offerMensalId && offerMensalId) planCode = "mensal";
 
-    // Map status
-    const paidStatuses = ["3", "paid", "approved", "completed", "purchase_approved"];
-    const pendingStatuses = ["1", "6", "open", "waiting", "pending", "waiting_payment"];
-    const inactiveStatuses = ["4", "7", "11", "canceled", "cancelled", "expired", "refunded", "chargeback", "purchase_refunded", "subscription_canceled"];
+    // Map status from event name or status field
+    const paidPatterns = ["paid", "approved", "completed", "purchase_approved", "invoice_paid"];
+    const pendingPatterns = ["open", "waiting", "pending", "waiting_payment"];
+    const inactivePatterns = ["canceled", "cancelled", "expired", "refunded", "chargeback", "invoice_refunded", "invoice_chargeback", "subscription_canceled", "purchase_refunded"];
+
+    const matchesAny = (val: string, patterns: string[]) => patterns.some(p => val.includes(p));
 
     let status: "active" | "pending" | "inactive";
-    if (paidStatuses.includes(eventType)) {
+    if (matchesAny(eventType, paidPatterns)) {
       status = "active";
-    } else if (pendingStatuses.includes(eventType)) {
-      status = "pending";
-    } else if (inactiveStatuses.includes(eventType)) {
+    } else if (matchesAny(eventType, inactivePatterns)) {
       status = "inactive";
-    } else {
+    } else if (matchesAny(eventType, pendingPatterns)) {
       status = "pending";
+    } else {
+      // Unknown event (e.g. cart_abandonment) — log and return 200
+      console.log("Unrecognized event type, ignoring:", eventType);
+      await logEvent(supabase, "eduzz", eventType, buyerEmail, null, "pending", `Evento não reconhecido: ${eventType}`, payload);
+      return ok({ note: "unrecognized_event" });
     }
 
     // Find or create user
     let userId: string | null = null;
 
     const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", buyerEmail)
-      .maybeSingle();
+      .from("profiles").select("id").eq("email", buyerEmail).maybeSingle();
 
     if (existingProfile) {
       userId = existingProfile.id;
@@ -118,27 +114,22 @@ Deno.serve(async (req) => {
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: buyerEmail,
         email_confirm: true,
-        user_metadata: { name: buyerEmail.split("@")[0] },
+        user_metadata: { name: buyer.name || buyerEmail.split("@")[0] },
       });
 
       if (createError) {
         const { data: authUsers } = await supabase.auth.admin.listUsers();
-        const found = authUsers?.users?.find(
-          (u: any) => u.email?.toLowerCase() === buyerEmail
-        );
+        const found = authUsers?.users?.find((u: any) => u.email?.toLowerCase() === buyerEmail);
         if (found) {
           userId = found.id;
         } else {
+          console.error("User creation failed:", createError.message);
           await logEvent(supabase, "eduzz", eventType, buyerEmail, null, "error", `Falha ao criar usuário: ${createError.message}`, payload);
-          return new Response(JSON.stringify({ error: "User creation failed" }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return ok({ note: "user_creation_failed" });
         }
       } else {
         userId = newUser.user.id;
-        await logEvent(supabase, "eduzz", "user_created", buyerEmail, userId, "success", `Usuário criado automaticamente via Eduzz`);
-        // Wait for profile trigger
+        await logEvent(supabase, "eduzz", "user_created", buyerEmail, userId, "success", "Usuário criado via Eduzz");
         await new Promise((r) => setTimeout(r, 500));
       }
     }
@@ -153,25 +144,14 @@ Deno.serve(async (req) => {
 
     // Upsert subscription
     const { data: existingSub } = await supabase
-      .from("subscriptions")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("provider", "eduzz")
-      .maybeSingle();
+      .from("subscriptions").select("id").eq("user_id", userId).eq("provider", "eduzz").maybeSingle();
 
     const subscriptionData = {
-      user_id: userId,
-      email: buyerEmail,
-      provider: "eduzz",
-      provider_buyer_id: buyerId,
-      provider_invoice_id: invoiceId,
-      provider_offer_id: offerId,
-      plan_code: planCode,
-      status,
-      access_expires_at: accessExpiresAt,
-      last_event: eventType,
-      raw_payload: payload,
-      updated_at: new Date().toISOString(),
+      user_id: userId, email: buyerEmail, provider: "eduzz",
+      provider_buyer_id: buyerId, provider_invoice_id: invoiceId,
+      provider_offer_id: offerId, plan_code: planCode, status,
+      access_expires_at: accessExpiresAt, last_event: eventType,
+      raw_payload: payload, updated_at: new Date().toISOString(),
     };
 
     if (existingSub) {
@@ -182,21 +162,14 @@ Deno.serve(async (req) => {
 
     // Update profile plan
     if (status === "active") {
-      await supabase
-        .from("profiles")
-        .update({ plan: planCode, updated_at: new Date().toISOString() })
-        .eq("id", userId);
+      await supabase.from("profiles").update({ plan: planCode, updated_at: new Date().toISOString() }).eq("id", userId);
     } else if (status === "inactive") {
-      await supabase
-        .from("profiles")
-        .update({ plan: "basic", updated_at: new Date().toISOString() })
-        .eq("id", userId);
+      await supabase.from("profiles").update({ plan: "basic", updated_at: new Date().toISOString() }).eq("id", userId);
     }
 
-    // Determine human-readable event description
     let eventMessage = `Evento ${eventType} processado`;
     if (status === "active") eventMessage = `Assinatura ${planCode} ativada`;
-    else if (status === "inactive" && inactiveStatuses.includes(eventType)) {
+    else if (status === "inactive") {
       if (eventType.includes("refund")) eventMessage = "Reembolso processado — acesso removido";
       else if (eventType.includes("cancel")) eventMessage = "Assinatura cancelada — acesso removido";
       else eventMessage = "Assinatura desativada";
@@ -204,29 +177,19 @@ Deno.serve(async (req) => {
 
     await logEvent(supabase, "eduzz", eventType, buyerEmail, userId, status === "active" ? "success" : status === "inactive" ? "error" : "pending", eventMessage, payload);
 
-    // Dispatch outgoing webhooks for subscription events
+    // Dispatch outgoing webhooks
     if (status === "active") {
       try {
         const { data: configs } = await supabase.from("webhook_configs").select("*").eq("is_active", true);
-        if (configs && configs.length > 0) {
-          const webhookPayload = {
-            event_name: "subscription_started",
-            timestamp: new Date().toISOString(),
-            user_email: buyerEmail,
-            user_id: userId,
-            design_id: null,
-          };
+        if (configs?.length) {
+          const webhookPayload = { event_name: "subscription_started", timestamp: new Date().toISOString(), user_email: buyerEmail, user_id: userId, design_id: null };
           for (const config of configs) {
             if (config.events && !config.events.includes("subscription_started")) continue;
             try {
-              const resp = await fetch(config.url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(webhookPayload),
-              });
+              const resp = await fetch(config.url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(webhookPayload) });
               await logEvent(supabase, "webhook", "subscription_started", buyerEmail, userId, resp.ok ? "success" : "error", `Webhook enviado para ${config.url} (${resp.status})`);
             } catch (err) {
-              await logEvent(supabase, "webhook", "subscription_started", buyerEmail, userId, "error", `Erro de conexão: ${(err as Error).message}`);
+              await logEvent(supabase, "webhook", "subscription_started", buyerEmail, userId, "error", `Erro: ${(err as Error).message}`);
             }
           }
         }
@@ -234,17 +197,11 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Subscription updated: user=${userId}, status=${status}, plan=${planCode}`);
+    return ok({ status, plan_code: planCode });
 
-    return new Response(JSON.stringify({ success: true, status, plan_code: planCode }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error) {
     console.error("Webhook error:", error);
-    await logEvent(supabase, "eduzz", "error", null, null, "error", `Erro interno: ${(error as Error).message}`);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    try { await logEvent(supabase, "eduzz", "error", null, null, "error", `Erro interno: ${(error as Error).message}`); } catch {}
+    return ok({ note: "internal_error" });
   }
 });
