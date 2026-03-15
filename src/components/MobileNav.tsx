@@ -1,4 +1,4 @@
-import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package } from "lucide-react";
+import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Lightbulb, Calculator, TrendingUp, Heart, Download, Crown, Package, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const navItems: { icon: any; labelKey?: string; label?: string; path: string }[]
   
   
   { icon: Calculator, labelKey: "nav.mobile.calculator", path: "/profit-calculator" },
+  { icon: Users, label: "Comunidade", path: "/comunidade" },
   { icon: BookOpen, labelKey: "nav.catalogs", path: "/catalogs" },
   { icon: Package, label: "Kits Premium", path: "/kits" },
   { icon: Crown, labelKey: "nav.plans", path: "/pricing" },

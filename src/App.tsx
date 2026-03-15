@@ -29,6 +29,7 @@ import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
 import MinhaContaPage from "./pages/MinhaContaPage";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
+import CommunityPage from "./pages/CommunityPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
 
@@ -59,6 +60,7 @@ const App = () => (
             
             
             <Route path="/embroidery-viewer" element={<ProtectedRoute><EmbroideryViewerPage /></ProtectedRoute>} />
+            <Route path="/comunidade" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
             <Route path="/profit-calculator" element={<ProtectedRoute><ProfitCalculator /></ProtectedRoute>} />
             <Route path="/trends" element={<ProtectedRoute><TrendInsights /></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />

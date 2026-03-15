@@ -104,6 +104,33 @@ export type Database = {
         }
         Relationships: []
       }
+      community_posts: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          design_name: string | null
+          id: string
+          image_url: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          design_name?: string | null
+          id?: string
+          image_url: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          design_name?: string | null
+          id?: string
+          image_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       designs: {
         Row: {
           category_id: string | null
@@ -364,6 +391,65 @@ export type Database = {
           id?: string
           name?: string
           slug?: string | null
+        }
+        Relationships: []
+      }
+      matrix_request_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matrix_request_votes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "matrix_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matrix_requests: {
+        Row: {
+          category: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          theme: string
+          user_id: string
+          votes_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          theme: string
+          user_id: string
+          votes_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          theme?: string
+          user_id?: string
+          votes_count?: number | null
         }
         Relationships: []
       }
