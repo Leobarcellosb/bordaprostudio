@@ -204,15 +204,21 @@ function drawPaths(
 ) {
   ctx.lineWidth = width;
   ctx.strokeStyle = style;
-  ctx.globalAlpha = alpha;
   let stitchCount = 0;
-  // Draw each stitch segment individually to prevent overlap accumulation
-  // in dense fill areas — this is how professional viewers render
+
+  // Draw each stitch segment individually to prevent overlap accumulation.
+  // Subtle opacity jitter (±0.04) simulates natural thread irregularity
+  // without distorting geometry — lightweight seeded variation by index.
   for (const path of paths) {
     if (path.length < 2) { stitchCount += path.length; continue; }
     for (let j = 1; j < path.length; j++) {
       stitchCount++;
       if (maxStitchIndex !== undefined && stitchCount > maxStitchIndex) return;
+
+      // Subtle per-segment opacity variation for thread-like texture
+      const jitter = ((stitchCount * 7 + j * 13) % 17) / 17; // 0..1 deterministic
+      ctx.globalAlpha = alpha + (jitter - 0.5) * 0.06; // ±0.03 range
+
       ctx.beginPath();
       ctx.moveTo(path[j - 1].x * scale + offsetX, path[j - 1].y * scale + offsetY);
       ctx.lineTo(path[j].x * scale + offsetX, path[j].y * scale + offsetY);
