@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff, GitBranch, ListOrdered } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff, GitBranch, ListOrdered, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EmbroideryPattern, EmbroideryColor } from "@/lib/embroideryPreview";
 
 const NORMAL = 0;
@@ -398,6 +399,76 @@ function drawSequenceMarkers(
   ctx.restore();
 }
 
+function drawNeedleMarker(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  offsetX: number,
+  offsetY: number,
+  color: string,
+) {
+  const cx = x * scale + offsetX;
+  const cy = y * scale + offsetY;
+  ctx.save();
+  // Outer glow
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.25;
+  ctx.fill();
+  // Inner circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 1;
+  ctx.fill();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawColorChangeMessage(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  message: string,
+) {
+  ctx.save();
+  const fontSize = 14;
+  ctx.font = `600 ${fontSize}px sans-serif`;
+  const metrics = ctx.measureText(message);
+  const padX = 16;
+  const padY = 10;
+  const boxW = metrics.width + padX * 2;
+  const boxH = fontSize + padY * 2;
+  const bx = (canvasWidth - boxW) / 2;
+  const by = canvasHeight - boxH - 24;
+
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#1a1a2e";
+  const r = 8;
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by);
+  ctx.lineTo(bx + boxW - r, by);
+  ctx.quadraticCurveTo(bx + boxW, by, bx + boxW, by + r);
+  ctx.lineTo(bx + boxW, by + boxH - r);
+  ctx.quadraticCurveTo(bx + boxW, by + boxH, bx + boxW - r, by + boxH);
+  ctx.lineTo(bx + r, by + boxH);
+  ctx.quadraticCurveTo(bx, by + boxH, bx, by + boxH - r);
+  ctx.lineTo(bx, by + r);
+  ctx.quadraticCurveTo(bx, by, bx + r, by);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(message, canvasWidth / 2, by + boxH / 2);
+  ctx.restore();
+}
+
 function drawPattern(
   ctx: CanvasRenderingContext2D,
   blocks: ColorBlock[],
@@ -413,6 +484,8 @@ function drawPattern(
   showSequence: boolean,
   maxStitchIndex?: number,
   hoopSize?: { w: number; h: number; label: string },
+  needlePos?: { x: number; y: number; color: string } | null,
+  colorChangeMsg?: string | null,
 ) {
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   ctx.fillStyle = BG_COLOR;
@@ -435,26 +508,20 @@ function drawPattern(
   const offsetX = cx - pcx * scale;
   const offsetY = cy - pcy * scale;
 
-  // Background grid
   if (showGrid) {
     drawBackgroundGrid(ctx, canvasWidth, canvasHeight, scale, offsetX, offsetY, pcx, pcy);
   }
 
-  // Thread-like rendering: round caps simulate thread ends
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // ── Zoom-aware stitch width (Wilcom/EMDigitizer style) ──
-  // Base width is thin; divided by zoom so zooming in doesn't fatten lines.
-  // Clamped to subpixel range [0.2, 0.6] for delicate, professional rendering.
   const rawWidth = 0.5 / zoom;
   const baseThickness = Math.max(0.2, Math.min(rawWidth, 0.6));
 
-  // Debug: log render metrics (remove after validation)
   if (typeof window !== 'undefined' && (window as any).__EMB_DEBUG) {
     let totalSegs = 0;
     for (const b of blocks) for (const p of b.paths) totalSegs += Math.max(0, p.length - 1);
-    console.log(`[EmbroideryRenderer] zoom=${zoom.toFixed(2)} rawWidth=${rawWidth.toFixed(3)} lineWidth=${baseThickness.toFixed(3)} segments=${totalSegs}`);
+    console.log(`[EmbroideryRenderer] zoom=${zoom.toFixed(2)} lineWidth=${baseThickness.toFixed(3)} segments=${totalSegs}`);
   }
 
   let globalStitchCounter = 0;
@@ -471,13 +538,9 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Thread-like render: softened color (+10% brightness) with subtle per-segment
-    // opacity variation to simulate natural thread texture. Dense fills stay breathable.
     const softenedColor = shadeColor(block.hex, 10);
-
-    // Determine if block is likely outline vs fill based on path density
     const avgPathLen = blockStitchCount / Math.max(1, block.paths.length);
-    const isLikelyOutline = avgPathLen > 15; // Outlines tend to have longer continuous paths
+    const isLikelyOutline = avgPathLen > 15;
     const blockOpacity = isLikelyOutline ? 0.78 : 0.83;
 
     drawPaths(ctx, block.paths, softenedColor, baseThickness, blockOpacity, scale, offsetX, offsetY, remaining);
@@ -487,7 +550,6 @@ function drawPattern(
 
   ctx.globalAlpha = 1.0;
 
-  // ── SEPARATE PASS: Jump stitches on top of everything ──
   if (showJumps) {
     for (const block of blocks) {
       if (hiddenColors.has(block.colorIndex)) continue;
@@ -499,9 +561,18 @@ function drawPattern(
     drawHoopGrid(ctx, hoopSize, pattern, canvasWidth, canvasHeight, zoom, panX, panY);
   }
 
-  // ── SEPARATE PASS: Sequence markers on top of everything ──
   if (showSequence) {
     drawSequenceMarkers(ctx, blocks, hiddenColors, scale, offsetX, offsetY);
+  }
+
+  // Draw needle marker on top
+  if (needlePos) {
+    drawNeedleMarker(ctx, needlePos.x, needlePos.y, scale, offsetX, offsetY, needlePos.color);
+  }
+
+  // Draw color change message overlay
+  if (colorChangeMsg) {
+    drawColorChangeMessage(ctx, canvasWidth, canvasHeight, colorChangeMsg);
   }
 }
 
@@ -524,12 +595,33 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   const [hiddenColors, setHiddenColors] = useState<Set<number>>(new Set());
   const [hoopIndex, setHoopIndex] = useState<number | null>(null);
   const [simulating, setSimulating] = useState(false);
+  const [simPaused, setSimPaused] = useState(false);
   const [simProgress, setSimProgress] = useState(0);
   const simRef = useRef<number>(0);
   const totalNormalRef = useRef(0);
   const [showJumps, setShowJumps] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showSequence, setShowSequence] = useState(false);
+  const [simSpeed, setSimSpeed] = useState<number>(1);
+  const [needlePos, setNeedlePos] = useState<{ x: number; y: number; color: string } | null>(null);
+  const [colorChangeMsg, setColorChangeMsg] = useState<string | null>(null);
+  const colorChangePauseRef = useRef(false);
+  const simProgressRef = useRef(0);
+
+  // Build flat stitch list for simulation
+  const flatStitches = useMemo(() => {
+    const result: { x: number; y: number; color: string; isJump: boolean; colorIndex: number }[] = [];
+    for (const s of pattern.stitches) {
+      const c = pattern.colors[s.color] || CATALOG_PALETTE[s.color % CATALOG_PALETTE.length];
+      const hex = saturateHex(rgbToHex(c), 0.15);
+      if (s.flags === JUMP) {
+        result.push({ x: s.x, y: s.y, color: hex, isJump: true, colorIndex: s.color });
+      } else if (s.flags === NORMAL) {
+        result.push({ x: s.x, y: s.y, color: hex, isJump: false, colorIndex: s.color });
+      }
+    }
+    return result;
+  }, [pattern]);
 
   useEffect(() => {
     if (pattern.stitches.length > 0) {
@@ -555,6 +647,8 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     return Array.from(map.entries()).sort((a, b) => a[1].order - b[1].order);
   }, [pattern]);
 
+  const isSimActive = simulating || simPaused;
+
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -570,11 +664,17 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     const ctx = canvas.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    const maxIdx = simulating ? simProgress : undefined;
+    const maxIdx = isSimActive ? simProgress : undefined;
     const hoop = hoopIndex !== null ? HOOP_SIZES[hoopIndex] : undefined;
 
-    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, showSequence, maxIdx, hoop);
-  }, [pattern, zoom, pan, hiddenColors, simulating, simProgress, hoopIndex, showJumps, showGrid, showSequence]);
+    drawPattern(
+      ctx, blocksRef.current, pattern, rect.width, rect.height,
+      zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, showSequence,
+      maxIdx, hoop,
+      isSimActive ? needlePos : null,
+      isSimActive ? colorChangeMsg : null,
+    );
+  }, [pattern, zoom, pan, hiddenColors, isSimActive, simProgress, hoopIndex, showJumps, showGrid, showSequence, needlePos, colorChangeMsg]);
 
   useEffect(() => { render(); }, [render]);
 
@@ -586,27 +686,82 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     return () => ro.disconnect();
   }, [render]);
 
+  // Simulation loop
   useEffect(() => {
-    if (!simulating) return;
+    if (!simulating || simPaused) return;
     const total = totalNormalRef.current;
     if (total === 0) { setSimulating(false); return; }
 
-    const step = Math.max(1, Math.floor(total / 400));
-    let current = simProgress;
+    const speedMap: Record<number, number> = { 0.5: 2, 1: 5, 2: 12, 5: 30, 10: 60 };
+    const stitchesPerFrame = speedMap[simSpeed] || 5;
+
+    let current = simProgressRef.current;
+    let lastColorIdx = -1;
+
+    if (current < flatStitches.length) {
+      lastColorIdx = flatStitches[current].colorIndex;
+    }
 
     const tick = () => {
-      current += step;
-      if (current >= total) {
-        setSimProgress(total);
-        setSimulating(false);
+      if (colorChangePauseRef.current) {
+        simRef.current = requestAnimationFrame(tick);
         return;
       }
-      setSimProgress(current);
+
+      const nextTarget = Math.min(current + stitchesPerFrame, flatStitches.length);
+
+      for (let i = current; i < nextTarget && i < flatStitches.length; i++) {
+        const s = flatStitches[i];
+        if (s.isJump) continue;
+        if (lastColorIdx >= 0 && s.colorIndex !== lastColorIdx) {
+          const colorOrder = colorLayerInfo.findIndex(([idx]) => idx === s.colorIndex);
+          const colorName = colorOrder >= 0
+            ? translateColorName(colorLayerInfo[colorOrder][1].color.name, colorOrder)
+            : `Cor ${s.colorIndex + 1}`;
+          setColorChangeMsg(`Troca de linha — ${colorName}`);
+          colorChangePauseRef.current = true;
+          lastColorIdx = s.colorIndex;
+
+          setTimeout(() => {
+            setColorChangeMsg(null);
+            colorChangePauseRef.current = false;
+          }, 1000);
+
+          current = i;
+          simProgressRef.current = current;
+          setSimProgress(current);
+          setNeedlePos({ x: s.x, y: s.y, color: s.color });
+          simRef.current = requestAnimationFrame(tick);
+          return;
+        }
+        lastColorIdx = s.colorIndex;
+      }
+
+      current = nextTarget;
+      simProgressRef.current = current;
+
+      if (current >= flatStitches.length) {
+        setSimProgress(totalNormalRef.current);
+        setSimulating(false);
+        setNeedlePos(null);
+        return;
+      }
+
+      let normalCount = 0;
+      for (let i = 0; i < current && i < flatStitches.length; i++) {
+        if (!flatStitches[i].isJump) normalCount++;
+      }
+      setSimProgress(normalCount);
+
+      const s = flatStitches[current];
+      setNeedlePos({ x: s.x, y: s.y, color: s.color });
+
       simRef.current = requestAnimationFrame(tick);
     };
+
     simRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(simRef.current);
-  }, [simulating]);
+  }, [simulating, simPaused, simSpeed, flatStitches, colorLayerInfo]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -642,17 +797,37 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     setShowSequence(false);
     setHoopIndex(null);
     setHiddenColors(new Set());
-    setSimulating(false);
-    setSimProgress(0);
+    stopSimulation();
   };
 
-  const toggleSimulation = () => {
-    if (simulating) {
-      setSimulating(false);
-    } else {
-      setSimProgress(0);
-      setSimulating(true);
-    }
+  const startSimulation = () => {
+    setSimProgress(0);
+    simProgressRef.current = 0;
+    setNeedlePos(null);
+    setColorChangeMsg(null);
+    colorChangePauseRef.current = false;
+    setSimPaused(false);
+    setSimulating(true);
+  };
+
+  const pauseSimulation = () => {
+    setSimulating(false);
+    setSimPaused(true);
+  };
+
+  const resumeSimulation = () => {
+    setSimPaused(false);
+    setSimulating(true);
+  };
+
+  const stopSimulation = () => {
+    setSimulating(false);
+    setSimPaused(false);
+    setSimProgress(0);
+    simProgressRef.current = 0;
+    setNeedlePos(null);
+    setColorChangeMsg(null);
+    colorChangePauseRef.current = false;
   };
 
   const toggleColor = (colorIdx: number) => {
@@ -759,16 +934,45 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
 
           <div className="w-px h-5 bg-border mx-1" />
 
-          {/* Simulate */}
-          <Button
-            variant={simulating ? "default" : "outline"}
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={toggleSimulation}
-          >
-            {simulating ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            {simulating ? "Pausar" : "Simular"}
-          </Button>
+          {/* Simulation controls */}
+          {!isSimActive ? (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={startSimulation}>
+              <Play className="h-3.5 w-3.5" />
+              Simular
+            </Button>
+          ) : (
+            <>
+              {simulating ? (
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={pauseSimulation}>
+                  <Pause className="h-3.5 w-3.5" />
+                  Pausar
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={resumeSimulation}>
+                  <Play className="h-3.5 w-3.5" />
+                  Continuar
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={stopSimulation}>
+                <Square className="h-3.5 w-3.5" />
+                Parar
+              </Button>
+            </>
+          )}
+
+          {/* Speed selector */}
+          <Select value={String(simSpeed)} onValueChange={(v) => setSimSpeed(Number(v))}>
+            <SelectTrigger className="h-8 w-20 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.5">0.5×</SelectItem>
+              <SelectItem value="1">1×</SelectItem>
+              <SelectItem value="2">2×</SelectItem>
+              <SelectItem value="5">5×</SelectItem>
+              <SelectItem value="10">10×</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Jump stitch toggle */}
           <Button
@@ -845,13 +1049,18 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
         </div>
       </div>
 
-      {/* Simulation progress bar */}
-      {simulating && (
-        <div className="h-1 bg-muted">
-          <div
-            className="h-full bg-primary transition-[width] duration-75"
-            style={{ width: `${totalNormalRef.current > 0 ? (simProgress / totalNormalRef.current) * 100 : 0}%` }}
-          />
+      {/* Simulation progress bar + stitch counter */}
+      {isSimActive && (
+        <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/50 border-b border-border">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-[width] duration-75 rounded-full"
+              style={{ width: `${totalNormalRef.current > 0 ? (simProgress / totalNormalRef.current) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+            Ponto {simProgress.toLocaleString()} / {totalNormalRef.current.toLocaleString()}
+          </span>
         </div>
       )}
 
