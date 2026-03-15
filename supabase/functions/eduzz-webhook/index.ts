@@ -111,25 +111,43 @@ Deno.serve(async (req) => {
     if (existingProfile) {
       userId = existingProfile.id;
     } else {
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: buyerEmail,
-        email_confirm: true,
-        user_metadata: { name: buyer.name || buyerEmail.split("@")[0] },
-      });
+      // Try to find user in auth system first (may exist without profile)
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const existingAuth = authUsers?.users?.find((u: any) => u.email?.toLowerCase() === buyerEmail);
 
-      if (createError) {
-        const { data: authUsers } = await supabase.auth.admin.listUsers();
-        const found = authUsers?.users?.find((u: any) => u.email?.toLowerCase() === buyerEmail);
-        if (found) {
-          userId = found.id;
-        } else {
-          console.error("User creation failed:", createError.message);
-          await logEvent(supabase, "eduzz", eventType, buyerEmail, null, "error", `Falha ao criar usuário: ${createError.message}`, payload);
-          return ok({ note: "user_creation_failed" });
-        }
+      if (existingAuth) {
+        userId = existingAuth.id;
+        console.log("Found existing auth user without profile:", userId);
       } else {
-        userId = newUser.user.id;
-        await logEvent(supabase, "eduzz", "user_created", buyerEmail, userId, "success", "Usuário criado via Eduzz");
+        // Create new user via invite — sends email with link to set password
+        const siteUrl = Deno.env.get("SITE_URL") || Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "";
+        const redirectTo = siteUrl ? `${siteUrl}/reset-password` : undefined;
+
+        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(buyerEmail, {
+          data: { name: buyer.name || buyerEmail.split("@")[0], invited_via: "eduzz" },
+          redirectTo,
+        });
+
+        if (inviteError) {
+          console.error("Invite failed:", inviteError.message);
+          // Fallback: create user directly
+          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+            email: buyerEmail,
+            email_confirm: true,
+            user_metadata: { name: buyer.name || buyerEmail.split("@")[0] },
+          });
+
+          if (createError) {
+            console.error("User creation also failed:", createError.message);
+            await logEvent(supabase, "eduzz", eventType, buyerEmail, null, "error", `Falha ao criar usuário: ${createError.message}`, payload);
+            return ok({ note: "user_creation_failed" });
+          }
+          userId = newUser.user.id;
+          await logEvent(supabase, "eduzz", "user_created", buyerEmail, userId, "success", "Usuário criado via Eduzz (fallback createUser)");
+        } else {
+          userId = inviteData.user.id;
+          await logEvent(supabase, "eduzz", "user_invited", buyerEmail, userId, "success", "Convite enviado via Eduzz — cliente receberá email para criar senha");
+        }
         await new Promise((r) => setTimeout(r, 500));
       }
     }

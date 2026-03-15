@@ -11,9 +11,11 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const isInvite = window.location.hash.includes("type=invite");
+
   useEffect(() => {
     const hash = window.location.hash;
-    if (!hash.includes("type=recovery")) {
+    if (!hash.includes("type=recovery") && !hash.includes("type=invite")) {
       toast.error("Link de recuperação inválido");
       navigate("/login");
     }
@@ -32,13 +34,14 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-serif">Nova Senha</CardTitle>
+          <CardTitle className="text-2xl font-serif">{isInvite ? "Crie sua senha" : "Nova Senha"}</CardTitle>
+          {isInvite && <p className="text-sm text-muted-foreground mt-2">Bem-vindo ao Borda Pro! Crie sua senha para acessar a plataforma.</p>}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdate} className="space-y-4">
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" required minLength={6} />
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Atualizando..." : "Atualizar senha"}
+              {loading ? "Atualizando..." : isInvite ? "Criar senha e entrar" : "Atualizar senha"}
             </Button>
           </form>
         </CardContent>
