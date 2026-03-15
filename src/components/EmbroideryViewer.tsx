@@ -3,31 +3,7 @@ import { ZoomIn, ZoomOut, RotateCcw, Play, Pause, Grid3X3, Eye, EyeOff } from "l
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-// ── Types ────────────────────────────────────────────────────────────────
-
-interface Stitch {
-  x: number;
-  y: number;
-  flags: number;
-  color: number;
-}
-
-interface EmbroideryColor {
-  r: number;
-  g: number;
-  b: number;
-  name: string;
-}
-
-interface EmbroideryPattern {
-  stitches: Stitch[];
-  colors: EmbroideryColor[];
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
+import type { EmbroideryPattern, EmbroideryColor, Stitch } from "@/lib/embroideryPreview";
 
 const NORMAL = 0;
 const JUMP = 1;
