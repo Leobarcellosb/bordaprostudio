@@ -88,7 +88,8 @@ const CommunityPage = () => {
             ...p,
             user_name: prof?.name || "Usuária",
             avatar_url: prof?.avatar_url,
-        }))
+          };
+        })
       );
     } else {
       setPosts([]);
