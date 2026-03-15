@@ -9,21 +9,21 @@
 
 // ── Types ───────────────────────────────────────────────────────────────
 
-interface Stitch {
+export interface Stitch {
   x: number;
   y: number;
   flags: number;
   color: number;
 }
 
-interface EmbroideryColor {
+export interface EmbroideryColor {
   r: number;
   g: number;
   b: number;
   name: string;
 }
 
-interface EmbroideryPattern {
+export interface EmbroideryPattern {
   stitches: Stitch[];
   colors: EmbroideryColor[];
   lastX: number;

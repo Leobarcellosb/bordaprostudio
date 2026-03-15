@@ -523,4 +523,4 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   );
 }
 
-export type { EmbroideryPattern, EmbroideryColor, Stitch };
+export type { EmbroideryPattern, EmbroideryColor, Stitch } from "@/lib/embroideryPreview";
