@@ -465,8 +465,10 @@ function drawPattern(
 
     const remaining = maxStitchIndex !== undefined ? maxStitchIndex - globalStitchCounter : undefined;
 
-    // Single clean layer, full opacity for crisp stitch visibility
-    drawPaths(ctx, block.paths, block.hex, baseThickness, 1.0, scale, offsetX, offsetY, remaining);
+    // Thread-like render: softened color (+8% brightness) and reduced opacity (0.82)
+    // to prevent dense fills from looking overly dark/solid
+    const softenedColor = shadeColor(block.hex, 8);
+    drawPaths(ctx, block.paths, softenedColor, baseThickness, 0.82, scale, offsetX, offsetY, remaining);
 
     globalStitchCounter += blockStitchCount;
   }
