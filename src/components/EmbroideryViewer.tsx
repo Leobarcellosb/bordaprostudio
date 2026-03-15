@@ -509,6 +509,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
   const totalNormalRef = useRef(0);
   const [showJumps, setShowJumps] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [showSequence, setShowSequence] = useState(false);
 
   useEffect(() => {
     if (pattern.stitches.length > 0) {
