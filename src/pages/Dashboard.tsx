@@ -14,6 +14,7 @@ import { CollectionSuggestionsSection } from "@/components/home/CollectionSugges
 import { SeasonalCalendarSection } from "@/components/home/SeasonalCalendarSection";
 import { MeuAcervoSection } from "@/components/home/MeuAcervoSection";
 import { RecentDownloadsSection } from "@/components/home/RecentDownloadsSection";
+import { CommunityPromptBanner } from "@/components/home/CommunityPromptBanner";
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -40,6 +41,7 @@ const Dashboard = () => {
         </div>
 
         {/* Each section loads independently */}
+        <CommunityPromptBanner />
         <MeuAcervoSection />
         <RecentDownloadsSection />
         <SeasonalCalendarSection />
