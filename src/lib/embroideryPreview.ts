@@ -483,7 +483,7 @@ function parseDST(buffer: ArrayBuffer): EmbroideryPattern {
   const pattern = createPattern();
 
   file.seek(512); // Skip DST header
-  let prevJump = false;
+  // Parse stitch data
 
   while (file.tell() < file.byteLength - 3) {
     const b = [file.getUint8(), file.getUint8(), file.getUint8()];

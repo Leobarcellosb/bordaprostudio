@@ -610,6 +610,7 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
           <span>{normalStitches.toLocaleString()} pontos</span>
           <span>{colorCount} cor{colorCount !== 1 ? "es" : ""}</span>
           <span>{(pw * 0.1).toFixed(1)}×{(ph * 0.1).toFixed(1)} mm</span>
+          <span className="text-primary font-medium">Saltos detectados: {jumpStitches}</span>
         </div>
       </div>
 
