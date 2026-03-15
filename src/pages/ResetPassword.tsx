@@ -34,7 +34,8 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-serif">Nova Senha</CardTitle>
+          <CardTitle className="text-2xl font-serif">{isInvite ? "Crie sua senha" : "Nova Senha"}</CardTitle>
+          {isInvite && <p className="text-sm text-muted-foreground mt-2">Bem-vindo ao Borda Pro! Crie sua senha para acessar a plataforma.</p>}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdate} className="space-y-4">
