@@ -820,6 +820,31 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                 })}
               </div>
             </ScrollArea>
+
+            {/* Statistics Panel */}
+            <div className="border-t border-border px-3 py-2 space-y-1.5 shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Estatísticas da matriz</h3>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                <span className="text-muted-foreground">Pontos</span>
+                <span className="text-foreground text-right font-medium">{normalStitches.toLocaleString()}</span>
+                <span className="text-muted-foreground">Cores</span>
+                <span className="text-foreground text-right font-medium">{colorCount}</span>
+                <span className="text-muted-foreground">Trocas de linha</span>
+                <span className="text-foreground text-right font-medium">{Math.max(0, colorLayerInfo.length - 1)}</span>
+                <span className="text-muted-foreground">Saltos</span>
+                <span className="text-foreground text-right font-medium">{jumpStitches.toLocaleString()}</span>
+                <span className="text-muted-foreground">Largura</span>
+                <span className="text-foreground text-right font-medium">{(pw * 0.1).toFixed(1)} mm</span>
+                <span className="text-muted-foreground">Altura</span>
+                <span className="text-foreground text-right font-medium">{(ph * 0.1).toFixed(1)} mm</span>
+                <span className="text-muted-foreground">Densidade</span>
+                <span className="text-foreground text-right font-medium">
+                  {pw > 0 && ph > 0
+                    ? (normalStitches / ((pw * 0.1) * (ph * 0.1))).toFixed(2)
+                    : "—"} pts/mm²
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
