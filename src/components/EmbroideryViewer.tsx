@@ -478,6 +478,11 @@ function drawPattern(
   if (hoopSize) {
     drawHoopGrid(ctx, hoopSize, pattern, canvasWidth, canvasHeight, zoom, panX, panY);
   }
+
+  // ── SEPARATE PASS: Sequence markers on top of everything ──
+  if (showSequence) {
+    drawSequenceMarkers(ctx, blocks, hiddenColors, scale, offsetX, offsetY);
+  }
 }
 
 // ── Component ───────────────────────────────────────────────────────────
