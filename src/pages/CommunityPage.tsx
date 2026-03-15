@@ -82,10 +82,12 @@ const CommunityPage = () => {
       const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
       setPosts(
-        data.map((p: any) => ({
-          ...p,
-          user_name: profileMap.get(p.user_id)?.name || "Usuária",
-          avatar_url: profileMap.get(p.user_id)?.avatar_url,
+        data.map((p: any) => {
+          const prof = profileMap.get(p.user_id) as any;
+          return {
+            ...p,
+            user_name: prof?.name || "Usuária",
+            avatar_url: prof?.avatar_url,
         }))
       );
     } else {
