@@ -99,7 +99,7 @@ const DesignDetail = () => {
   const [togglingFavorite, setTogglingFavorite] = useState(false);
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
-  const smartSuggestions = useSmartSuggestions(id, design);
+  const { designs: relatedDesigns, loading: relatedLoading } = useRelatedDesigns(id, design);
 
   useEffect(() => {
     const fetchDesign = async () => {
