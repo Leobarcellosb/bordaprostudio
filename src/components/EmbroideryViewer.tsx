@@ -553,8 +553,8 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
     const maxIdx = simulating ? simProgress : undefined;
     const hoop = hoopIndex !== null ? HOOP_SIZES[hoopIndex] : undefined;
 
-    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, maxIdx, hoop);
-  }, [pattern, zoom, pan, hiddenColors, simulating, simProgress, hoopIndex, showJumps, showGrid]);
+    drawPattern(ctx, blocksRef.current, pattern, rect.width, rect.height, zoom, pan.x, pan.y, hiddenColors, showJumps, showGrid, showSequence, maxIdx, hoop);
+  }, [pattern, zoom, pan, hiddenColors, simulating, simProgress, hoopIndex, showJumps, showGrid, showSequence]);
 
   useEffect(() => { render(); }, [render]);
 
