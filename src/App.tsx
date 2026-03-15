@@ -27,6 +27,7 @@ import Settings from "./pages/Settings";
 import PricingPage from "./pages/PricingPage";
 import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
+import MinhaContaPage from "./pages/MinhaContaPage";
 import EmbroideryViewerPage from "./pages/EmbroideryViewerPage";
 import AdminPanel from "./pages/admin/AdminPanel";
 import NotFound from "./pages/NotFound";
