@@ -933,6 +933,17 @@ export function EmbroideryViewer({ pattern, className = "" }: EmbroideryViewerPr
                 ))}
               </div>
             </div>
+
+            {/* Estimated Time Panel */}
+            <div className="border-t border-border px-3 py-2 space-y-1 shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Tempo estimado</h3>
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-foreground">{timeEstimate.display}</span>
+                <span className={`text-[10px] font-medium ${timeEstimate.levelColor}`}>
+                  {timeEstimate.level}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
