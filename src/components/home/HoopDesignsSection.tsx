@@ -5,56 +5,42 @@ import { Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "./SectionHeader";
 import { DesignCarousel } from "./DesignCarousel";
+import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 export const HoopDesignsSection = () => {
   const { user } = useAuth();
   const [designs, setDesigns] = useState<any[]>([]);
-  const [hoopSize, setHoopSize] = useState("13x18");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        let detectedHoop = "13x18";
+        // Use the user's locked hoop size
+        const hoopSize = machineHoopSize || "13x18";
 
-        if (user) {
-          // Detect most frequent hoop from user's downloads
-          const { data: userDownloads } = await db
-            .from("downloads")
-            .select("kit_id")
-            .eq("user_id", user.id)
-            .limit(100);
-
-          if (userDownloads && userDownloads.length > 0) {
-            const kitIds = userDownloads.map((d: any) => d.kit_id);
-            const { data: downloadedDesigns } = await db
-              .from("designs")
-              .select("hoop_size")
-              .in("id", kitIds);
-
-            if (downloadedDesigns && downloadedDesigns.length > 0) {
-              const hoopCount: Record<string, number> = {};
-              downloadedDesigns.forEach((d: any) => {
-                if (d.hoop_size) hoopCount[d.hoop_size] = (hoopCount[d.hoop_size] || 0) + 1;
-              });
-              const sorted = Object.entries(hoopCount).sort((a, b) => b[1] - a[1]);
-              if (sorted.length > 0) detectedHoop = sorted[0][0];
-            }
-          }
-        }
-
-        setHoopSize(detectedHoop);
-
-        const { data } = await db
+        let query = db
           .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true)
-          .eq("hoop_size", detectedHoop)
+          .eq("hoop_size", hoopSize)
           .order("created_at", { ascending: false })
-          .limit(12);
+          .limit(24);
 
-        setDesigns(data || []);
+        const { data } = await query;
+
+        let filtered = data || [];
+
+        if (machineFormat && filtered.length > 0) {
+          const ids = filtered.map((d: any) => d.id);
+          const { data: files } = await db
+            .from("kit_arquivos").select("design_id").in("design_id", ids).ilike("format", machineFormat);
+          const validIds = new Set((files || []).map((f: any) => f.design_id));
+          filtered = filtered.filter((d: any) => validIds.has(d.id));
+        }
+
+        setDesigns(filtered.slice(0, 12));
       } catch (err) {
         console.error("HoopDesigns error:", err);
       } finally {
@@ -62,7 +48,7 @@ export const HoopDesignsSection = () => {
       }
     };
     fetch();
-  }, [user]);
+  }, [user, machineFormat, machineHoopSize]);
 
   if (!loading && designs.length === 0) return null;
 
@@ -72,7 +58,7 @@ export const HoopDesignsSection = () => {
         icon={Target}
         iconClassName="bg-accent text-accent-foreground"
         title="Para o seu Bastidor"
-        subtitle={`Designs compatíveis com bastidor ${hoopSize}`}
+        subtitle={`Designs compatíveis com bastidor ${machineHoopSize || "13x18"}`}
         onViewAll={() => navigate("/library")}
       />
       <DesignCarousel designs={designs} loading={loading} />
