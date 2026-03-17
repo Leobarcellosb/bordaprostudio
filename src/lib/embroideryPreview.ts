@@ -3,7 +3,7 @@
  * Based on the proven open-source embroidery-viewer project by Leonardo Murça.
  * Reference: https://github.com/leomurca/embroidery-viewer (MIT License)
  *
- * Supports: PES, DST, JEF, EXP, XXX
+ * Supports: PES, DST, JEF, EXP, XXX, VP3, HUS, EMB
  * Renders stitch paths on a Canvas and returns a PNG Blob.
  */
 
