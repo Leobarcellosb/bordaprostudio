@@ -21,6 +21,8 @@ interface DesignResult {
   categories: any[];
   downloadCounts: Record<string, number>;
   designFiles: Record<string, string[]>;
+  hasIncompatible: boolean;
+  compatibleCount: number;
 }
 
 export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResult {
@@ -32,6 +34,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   const [categories, setCategories] = useState<any[]>([]);
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
+  const [hasIncompatible, setHasIncompatible] = useState(false);
+  const [compatibleCount, setCompatibleCount] = useState(0);
 
   // Load categories once
   useEffect(() => {
@@ -39,7 +43,6 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       .then(({ data }: any) => setCategories(data || []));
   }, []);
 
-  // Load designs via RPC with automatic machine filtering
   const fetchDesigns = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -73,9 +76,12 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         categories: r.category_name ? { name: r.category_name } : null,
       }));
 
-      if (search.trim()) {
-        console.log(`[search] "${search.trim()}" → ${count} results (format: ${machineFormat}, hoop: ${machineHoopSize})`);
-      }
+      // Track compatibility info
+      const compatible = mapped.filter((d: any) => d.is_compatible !== false).length;
+      setCompatibleCount(compatible);
+      setHasIncompatible(mapped.some((d: any) => d.is_compatible === false));
+
+      console.log(`[library] ${count} total, ${compatible}/${mapped.length} compatible (format: ${machineFormat}, hoop: ${machineHoopSize})`);
 
       setDesigns(mapped);
       setTotalCount(count);
@@ -126,6 +132,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     categories,
     downloadCounts,
     designFiles,
+    hasIncompatible,
+    compatibleCount,
   };
 }
 

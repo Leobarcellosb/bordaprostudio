@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesigns";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
+import { CompatibilityBanner } from "@/components/library/CompatibilityBanner";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
@@ -40,7 +41,7 @@ const LibraryPage = () => {
     ? [search, ...selectedTags].filter(Boolean).join(" ")
     : search;
 
-  const { designs, totalCount, isLoading, categories, downloadCounts } = useLibraryDesigns({
+  const { designs, totalCount, isLoading, categories, downloadCounts, hasIncompatible, compatibleCount } = useLibraryDesigns({
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
   });
 
@@ -156,7 +157,13 @@ const LibraryPage = () => {
           )}
         </div>
 
-        {/* No QuickHoopFilter - automatic filtering */}
+        <CompatibilityBanner
+          machineFormat={machineFormat}
+          machineHoopSize={machineHoopSize}
+          hasIncompatible={hasIncompatible}
+          compatibleCount={compatibleCount}
+          totalShown={designs.length}
+        />
 
         <LibraryFilters
           search={search}
