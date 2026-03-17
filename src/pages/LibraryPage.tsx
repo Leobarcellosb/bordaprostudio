@@ -157,7 +157,13 @@ const LibraryPage = () => {
           )}
         </div>
 
-        {/* No QuickHoopFilter - automatic filtering */}
+        <CompatibilityBanner
+          machineFormat={machineFormat}
+          machineHoopSize={machineHoopSize}
+          hasIncompatible={hasIncompatible}
+          compatibleCount={compatibleCount}
+          totalShown={designs.length}
+        />
 
         <LibraryFilters
           search={search}
