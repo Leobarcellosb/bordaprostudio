@@ -26,7 +26,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center gradient-hero p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={logoHorizontal} alt="Borda Pro" className="w-[200px] h-auto mb-8" />
+          <img src={logoHorizontal} alt="Borda Pro" className="w-[260px] h-auto mb-8" />
           <p className="text-muted-foreground text-sm">Sua plataforma de bordados profissionais</p>
         </div>
         <Card className="border-border/40 shadow-xl shadow-primary/5">
