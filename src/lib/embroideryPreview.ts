@@ -1175,6 +1175,8 @@ const FORMAT_PARSERS: Record<string, Parser> = {
   exp: parseEXP,
   xxx: parseXXX,
   vp3: parseVP3,
+  hus: parseHUS,
+  emb: parseEMB,
 };
 
 /**
