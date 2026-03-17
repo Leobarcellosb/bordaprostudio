@@ -52,7 +52,7 @@ const LandingPage = () => {
       {/* ══════ NAV ══════ */}
       <nav className="sticky top-0 z-50 bg-[hsl(var(--landing-warm))]/80 backdrop-blur-lg border-b border-border/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <img src={logoHorizontal} alt="Borda Pro" className="h-8" />
+          <img src={logoHorizontal} alt="Borda Pro" className="h-12" />
           <div className="flex items-center gap-2 sm:gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-foreground/70 hover:text-foreground">
               Entrar
