@@ -4,7 +4,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HOOP_SIZE_OPTIONS } from "@/lib/hoopSize";
 import { SortOption } from "@/hooks/useLibraryDesigns";
 import { usePopularTags } from "@/hooks/usePopularTags";
 
@@ -21,8 +20,6 @@ interface LibraryFiltersProps {
   onSearchChange: (v: string) => void;
   categoryFilter: string;
   onCategoryChange: (v: string) => void;
-  hoopFilter: string;
-  onHoopChange: (v: string) => void;
   stitchRange: string;
   onStitchRangeChange: (v: string) => void;
   sortBy: SortOption;
@@ -39,7 +36,6 @@ interface LibraryFiltersProps {
 export const LibraryFilters = ({
   search, onSearchChange,
   categoryFilter, onCategoryChange,
-  hoopFilter, onHoopChange,
   stitchRange, onStitchRangeChange,
   sortBy, onSortChange,
   categories,
@@ -72,17 +68,6 @@ export const LibraryFilters = ({
               <SelectItem value="all">{t("library.allCategories")}</SelectItem>
               {categories.map((c: any) => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={hoopFilter} onValueChange={onHoopChange}>
-            <SelectTrigger className="w-full sm:w-36 h-11 bg-muted/30 border-border/40 rounded-xl">
-              <SelectValue placeholder={t("library.allHoops")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("library.allHoops")}</SelectItem>
-              {HOOP_SIZE_OPTIONS.map((h) => (
-                <SelectItem key={h} value={h}>{h}</SelectItem>
               ))}
             </SelectContent>
           </Select>

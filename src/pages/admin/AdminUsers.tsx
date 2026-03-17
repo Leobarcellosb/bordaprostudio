@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, MoreHorizontal, Users, ShieldCheck, UserCog, ToggleLeft, ToggleRight } from "lucide-react";
+import { Loader2, Plus, Search, MoreHorizontal, Users, ShieldCheck, UserCog, ToggleLeft, ToggleRight, Settings2 } from "lucide-react";
+import { MACHINE_FORMATS, MACHINE_HOOP_SIZES } from "@/hooks/useUserMachineSettings";
 
 interface UserRow {
   id: string;
@@ -18,6 +19,8 @@ interface UserRow {
   last_name: string | null;
   email: string | null;
   plan: string | null;
+  machine_format: string | null;
+  machine_hoop_size: string | null;
   created_at: string | null;
   user_roles: { role: string }[];
 }
@@ -37,15 +40,14 @@ export const AdminUsers = () => {
   // Edit modal
   const [editOpen, setEditOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserRow | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", last_name: "", plan: "", role: "" });
+  const [editForm, setEditForm] = useState({ name: "", last_name: "", plan: "", role: "", machine_format: "", machine_hoop_size: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchUsers = async () => {
     try {
-      // Fetch profiles
       const { data: profilesData, error: profilesError } = await db
         .from("profiles")
-        .select("id, name, last_name, email, plan, created_at")
+        .select("id, name, last_name, email, plan, machine_format, machine_hoop_size, created_at")
         .order("created_at", { ascending: false });
 
       if (profilesError) {
@@ -54,7 +56,6 @@ export const AdminUsers = () => {
         return;
       }
 
-      // Fetch all roles separately (avoids FK join issue between profiles and user_roles)
       const { data: rolesData, error: rolesError } = await db
         .from("user_roles")
         .select("user_id, role");
@@ -63,20 +64,17 @@ export const AdminUsers = () => {
         console.error("[AdminUsers] user_roles query error:", rolesError);
       }
 
-      // Build a map of user_id -> roles
       const rolesMap: Record<string, { role: string }[]> = {};
       (rolesData || []).forEach((r: any) => {
         if (!rolesMap[r.user_id]) rolesMap[r.user_id] = [];
         rolesMap[r.user_id].push({ role: r.role });
       });
 
-      // Merge
       const merged = (profilesData || []).map((p: any) => ({
         ...p,
         user_roles: rolesMap[p.id] || [],
       }));
 
-      console.log("[AdminUsers] profiles:", profilesData?.length, "roles:", rolesData?.length, "merged:", merged.length);
       setUsers(merged);
     } catch (err) {
       console.error("[AdminUsers] unexpected error:", err);
@@ -122,6 +120,8 @@ export const AdminUsers = () => {
       last_name: u.last_name || "",
       plan: u.plan || "basic",
       role: u.user_roles?.[0]?.role || "user",
+      machine_format: u.machine_format || "",
+      machine_hoop_size: u.machine_hoop_size || "",
     });
     setEditOpen(true);
   };
@@ -130,9 +130,14 @@ export const AdminUsers = () => {
     if (!editUser) return;
     setSaving(true);
     try {
-      // Update profile
-      await db.from("profiles").update({ name: editForm.name, last_name: editForm.last_name, plan: editForm.plan }).eq("id", editUser.id);
-      // Update role
+      await db.from("profiles").update({
+        name: editForm.name,
+        last_name: editForm.last_name,
+        plan: editForm.plan,
+        machine_format: editForm.machine_format || null,
+        machine_hoop_size: editForm.machine_hoop_size || null,
+      }).eq("id", editUser.id);
+
       const currentRole = editUser.user_roles?.[0]?.role;
       if (currentRole !== editForm.role) {
         await callAdmin({ action: "update_role", user_id: editUser.id, role: editForm.role });
@@ -175,7 +180,6 @@ export const AdminUsers = () => {
     }
   };
 
-  // Filters
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     const matchSearch = !q || (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q) || (u.last_name || "").toLowerCase().includes(q);
@@ -189,7 +193,6 @@ export const AdminUsers = () => {
 
   return (
     <div className="mt-4 space-y-4">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h3 className="font-semibold text-lg">Usuários ({users.length})</h3>
         <Button onClick={() => setCreateOpen(true)} size="sm">
@@ -197,7 +200,6 @@ export const AdminUsers = () => {
         </Button>
       </div>
 
-      {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -223,7 +225,6 @@ export const AdminUsers = () => {
         </Select>
       </div>
 
-      {/* Table or empty */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center border rounded-lg border-dashed border-border">
           <Users className="h-12 w-12 text-muted-foreground/40 mb-4" />
@@ -244,6 +245,8 @@ export const AdminUsers = () => {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Formato</TableHead>
+                <TableHead>Bastidor</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Papel</TableHead>
                 <TableHead>Cadastro</TableHead>
@@ -257,6 +260,16 @@ export const AdminUsers = () => {
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{[u.name, u.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
                     <TableCell className="text-sm">{u.email}</TableCell>
+                    <TableCell>
+                      {u.machine_format ? (
+                        <Badge variant="outline" className="text-xs">{u.machine_format}</Badge>
+                      ) : <span className="text-muted-foreground text-xs">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {u.machine_hoop_size ? (
+                        <Badge variant="outline" className="text-xs">{u.machine_hoop_size}</Badge>
+                      ) : <span className="text-muted-foreground text-xs">—</span>}
+                    </TableCell>
                     <TableCell><Badge variant="secondary" className="capitalize">{u.plan || "basic"}</Badge></TableCell>
                     <TableCell>
                       <Badge variant={role === "admin" ? "default" : "outline"} className="capitalize">{role}</Badge>
@@ -394,6 +407,38 @@ export const AdminUsers = () => {
                     <SelectItem value="moderator">Moderator</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Machine Settings - Admin only */}
+            <div className="border-t border-border pt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings2 className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Configurações da Máquina</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Formato</Label>
+                  <Select value={editForm.machine_format} onValueChange={(v) => setEditForm({ ...editForm, machine_format: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      {MACHINE_FORMATS.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Bastidor</Label>
+                  <Select value={editForm.machine_hoop_size} onValueChange={(v) => setEditForm({ ...editForm, machine_hoop_size: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      {MACHINE_HOOP_SIZES.map((h) => (
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>

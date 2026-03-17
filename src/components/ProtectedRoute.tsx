@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     if (!user) { setCheckingOnboarding(false); return; }
+
+    // Check if machine settings are set on profile
+    if (profile && (!profile.machine_format || !profile.machine_hoop_size)) {
+      setNeedsOnboarding(true);
+      setCheckingOnboarding(false);
+      return;
+    }
+
     db.from("user_preferences")
       .select("id, completed_at")
       .eq("user_id", user.id)
@@ -18,7 +26,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         setNeedsOnboarding(!data || !data.completed_at);
         setCheckingOnboarding(false);
       });
-  }, [user]);
+  }, [user, profile]);
 
   if (loading || checkingOnboarding) return <div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!user) return <Navigate to="/login" replace />;

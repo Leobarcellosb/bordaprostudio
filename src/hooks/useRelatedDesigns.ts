@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/db";
+import { filterDesignsByMachine } from "@/lib/machineFilter";
+import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 export interface RelatedDesign {
   id: string;
@@ -20,6 +22,7 @@ function normalize(text: string): string {
 export function useRelatedDesigns(designId: string | undefined, design: any | null) {
   const [designs, setDesigns] = useState<RelatedDesign[]>([]);
   const [loading, setLoading] = useState(true);
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
   useEffect(() => {
     if (!designId || !design) return;
@@ -31,10 +34,10 @@ export function useRelatedDesigns(designId: string | undefined, design: any | nu
 
         let query = db
           .from("designs")
-          .select("id, name, generated_title, cover_image, tags_text, category_id, categories(name)")
+          .select("id, name, generated_title, cover_image, tags_text, category_id, hoop_size, categories(name)")
           .eq("is_published", true)
           .neq("id", designId)
-          .limit(50)
+          .limit(100)
           .order("created_at", { ascending: false });
 
         if (design.category_id) {
@@ -42,17 +45,16 @@ export function useRelatedDesigns(designId: string | undefined, design: any | nu
         }
 
         const { data } = await query;
-        const candidates = data || [];
 
-        // Score each candidate
+        // Filter by machine settings
+        const candidates = await filterDesignsByMachine(data || [], machineHoopSize, machineFormat);
+
         const scored = candidates.map((d: any) => {
           const dTags = parseTags(d.tags_text);
           let score = 0;
-          // Tag overlap
           for (const t of designTags) {
             if (dTags.includes(t)) score += 10;
           }
-          // Keyword match in name
           const dNorm = normalize(d.generated_title || d.name || "");
           for (const kw of keywords) {
             if (dNorm.includes(kw)) score += 3;
@@ -82,7 +84,7 @@ export function useRelatedDesigns(designId: string | undefined, design: any | nu
     };
 
     run();
-  }, [designId, design]);
+  }, [designId, design, machineFormat, machineHoopSize]);
 
   return { designs, loading };
 }

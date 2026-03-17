@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/db";
+import { filterDesignsByMachine } from "@/lib/machineFilter";
+import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 interface SuggestedDesign {
   id: string;
@@ -18,12 +20,7 @@ export interface SmartSuggestions {
 }
 
 function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .trim();
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, " ").trim();
 }
 
 function parseTags(text: string | null): string[] {
@@ -34,7 +31,6 @@ function tagOverlap(tagsA: string[], tagsB: string[]): number {
   return tagsA.filter(t => tagsB.includes(t)).length;
 }
 
-// Semantic theme groups for "pode vender junto" complementary logic
 const COMPLEMENTARY_GROUPS: string[][] = [
   ["nuvem", "lua", "estrela", "balao", "arcoiris", "ceu", "baby"],
   ["safari", "leao", "elefante", "girafa", "zebra", "macaco", "hipopotamo"],
@@ -77,6 +73,7 @@ function toSuggested(d: any): SuggestedDesign {
 }
 
 export function useSmartSuggestions(designId: string | undefined, design: any | null) {
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const [suggestions, setSuggestions] = useState<SmartSuggestions>({
     combinaCom: [],
     completeSuaColecao: [],
@@ -92,7 +89,6 @@ export function useSmartSuggestions(designId: string | undefined, design: any | 
         const designTags = parseTags(design.tags_text);
         const designKeywords = normalize(design.name + " " + (design.tags_text || "")).split(/\s+/).filter(w => w.length > 2);
 
-        // Fetch candidate designs (same category + broad search)
         const queries = [
           db.from("designs")
             .select("*, categories(name)")
@@ -114,48 +110,36 @@ export function useSmartSuggestions(designId: string | undefined, design: any | 
         }
 
         const results = await Promise.all(queries);
-        const allDesigns = results.flatMap(r => r.data || []);
+        const allRaw = results.flatMap(r => r.data || []);
 
         // Deduplicate
         const seen = new Set<string>();
-        const unique = allDesigns.filter(d => {
+        const allDeduped = allRaw.filter(d => {
           if (seen.has(d.id)) return false;
           seen.add(d.id);
           return true;
         });
 
-        // Score each design for "combina com"
+        // Filter by machine settings
+        const unique = await filterDesignsByMachine(allDeduped, machineHoopSize, machineFormat);
+
         const scored = unique.map(d => {
           const dTags = parseTags(d.tags_text);
           let score = 0;
-
-          // Tag overlap (strongest signal)
           score += tagOverlap(designTags, dTags) * 10;
-
-          // Same category
           if (design.category_id && d.category_id === design.category_id) score += 5;
-
-          // Compatible hoop size
           if (design.hoop_size && d.hoop_size === design.hoop_size) score += 3;
-
-          // Keyword overlap in name
           const dNorm = normalize(d.name);
           for (const kw of designKeywords) {
             if (dNorm.includes(kw)) score += 2;
           }
-
           return { design: d, score };
         });
 
         scored.sort((a, b) => b.score - a.score);
 
-        // Section 1: "Combina com" - top scored
-        const combinaCom = scored
-          .filter(s => s.score > 0)
-          .slice(0, 8)
-          .map(s => toSuggested(s.design));
+        const combinaCom = scored.filter(s => s.score > 0).slice(0, 8).map(s => toSuggested(s.design));
 
-        // Section 2: "Complete sua coleção" - collection detection
         const complementaryGroup = findComplementaryGroup(designTags.concat(designKeywords));
         let completeSuaColecao: SuggestedDesign[] = [];
 
@@ -164,35 +148,23 @@ export function useSmartSuggestions(designId: string | undefined, design: any | 
             const text = normalize((d.name || "") + " " + (d.tags_text || ""));
             return complementaryGroup.some(kw => text.includes(kw));
           });
-
-          // Exclude those already in combinaCom
           const combinaIds = new Set(combinaCom.map(c => c.id));
-          completeSuaColecao = collectionDesigns
-            .filter(d => !combinaIds.has(d.id))
-            .slice(0, 8)
-            .map(toSuggested);
+          completeSuaColecao = collectionDesigns.filter(d => !combinaIds.has(d.id)).slice(0, 8).map(toSuggested);
         }
 
-        // Section 3: "Pode vender junto" - complementary commercial sense
-        const usedIds = new Set([
-          ...combinaCom.map(c => c.id),
-          ...completeSuaColecao.map(c => c.id),
-        ]);
+        const usedIds = new Set([...combinaCom.map(c => c.id), ...completeSuaColecao.map(c => c.id)]);
 
-        // Find designs that share category but have different tags (complementary)
         const podeVenderJunto = scored
           .filter(s => {
             if (usedIds.has(s.design.id)) return false;
             if (s.score <= 0) return false;
             const dTags = parseTags(s.design.tags_text);
             const overlap = tagOverlap(designTags, dTags);
-            // Want some relevance but not identical
             return overlap >= 1 && overlap < designTags.length;
           })
           .slice(0, 8)
           .map(s => toSuggested(s.design));
 
-        // If not enough from scoring, fill with same-category designs
         if (podeVenderJunto.length < 4 && design.category_id) {
           const remaining = unique
             .filter(d => d.category_id === design.category_id && !usedIds.has(d.id) && !podeVenderJunto.some(p => p.id === d.id))
@@ -214,7 +186,7 @@ export function useSmartSuggestions(designId: string | undefined, design: any | 
     };
 
     run();
-  }, [designId, design]);
+  }, [designId, design, machineFormat, machineHoopSize]);
 
   return suggestions;
 }
