@@ -7,41 +7,62 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Sparkles, ArrowRight, ArrowLeft, Check, Lock } from "lucide-react";
 import logoHorizontal from "@/assets/logo-horizontal.png";
+import { MACHINE_FORMATS, MACHINE_HOOP_SIZES } from "@/hooks/useUserMachineSettings";
 
 const STEPS = [
+  {
+    key: "machine_format",
+    question: "Qual o formato da sua máquina de bordado?",
+    multi: false,
+    required: true,
+    locked: true,
+    options: [...MACHINE_FORMATS],
+    hint: "Este formato será usado para filtrar os designs compatíveis. Não poderá ser alterado depois.",
+  },
+  {
+    key: "machine_hoop_size",
+    question: "Qual o tamanho do seu bastidor?",
+    multi: false,
+    required: true,
+    locked: true,
+    options: [...MACHINE_HOOP_SIZES],
+    hint: "Você verá apenas designs compatíveis com este bastidor. Não poderá ser alterado depois.",
+  },
   {
     key: "usage_goal",
     question: "Para que você usa bordado?",
     multi: false,
+    required: false,
+    locked: false,
     options: ["Hobby", "Renda extra", "Negócio principal", "Estou aprendendo"],
   },
   {
     key: "favorite_categories",
     question: "Quais tipos de bordado você mais gosta?",
     multi: true,
+    required: false,
+    locked: false,
     options: [
       "Bebê / Infantil", "Flores", "Animais", "Datas comemorativas",
       "Frases", "Patch aplique", "Profissões", "Religioso", "Cozinha", "Outros",
     ],
   },
   {
-    key: "hoop_size",
-    question: "Qual bastidor você mais usa?",
-    multi: false,
-    options: ["10x10", "13x18", "16x26", "20x20", "Vários tamanhos"],
-  },
-  {
     key: "experience_level",
     question: "Qual seu nível no bordado?",
     multi: false,
+    required: false,
+    locked: false,
     options: ["Iniciante", "Intermediário", "Avançado", "Profissional"],
   },
   {
     key: "selling_activity",
     question: "Você vende produtos bordados?",
     multi: false,
+    required: false,
+    locked: false,
     options: ["Ainda não", "Sim, às vezes", "Sim, é minha principal renda"],
   },
 ];
@@ -86,13 +107,27 @@ const Onboarding = () => {
 
   const handleFinish = async () => {
     if (!user || saving) return;
+
+    // Validate required machine settings
+    if (!answers.machine_format || !answers.machine_hoop_size) {
+      toast.error("Formato da máquina e tamanho do bastidor são obrigatórios.");
+      return;
+    }
+
     setSaving(true);
     try {
+      // Save machine settings to profiles (locked fields)
+      await db.from("profiles").update({
+        machine_format: answers.machine_format,
+        machine_hoop_size: answers.machine_hoop_size,
+      }).eq("id", user.id);
+
+      // Save preferences
       const payload = {
         user_id: user.id,
         usage_goal: answers.usage_goal || null,
         favorite_categories: answers.favorite_categories || [],
-        hoop_size: answers.hoop_size || null,
+        hoop_size: answers.machine_hoop_size || null,
         experience_level: answers.experience_level || null,
         selling_activity: answers.selling_activity || null,
         completed_at: new Date().toISOString(),
@@ -101,8 +136,10 @@ const Onboarding = () => {
         .from("user_preferences")
         .upsert(payload, { onConflict: "user_id" });
       if (error) throw error;
+
       toast.success("Preferências salvas! Bem-vinda ao Borda Pro 🎉");
-      navigate("/dashboard", { replace: true });
+      // Force reload to update profile in AuthContext
+      window.location.href = "/dashboard";
     } catch (err: any) {
       console.error("Onboarding save error:", err);
       toast.error("Erro ao salvar preferências. Tente novamente.");
@@ -112,8 +149,24 @@ const Onboarding = () => {
 
   const handleSkip = async () => {
     if (!user || saving) return;
+
+    // Can't skip if machine settings not set
+    if (!answers.machine_format || !answers.machine_hoop_size) {
+      toast.error("Formato da máquina e tamanho do bastidor são obrigatórios. Complete os 2 primeiros passos.");
+      // Go to step 0 if not set
+      if (!answers.machine_format) { setStep(0); return; }
+      if (!answers.machine_hoop_size) { setStep(1); return; }
+      return;
+    }
+
     setSaving(true);
     try {
+      // Save machine settings even on skip
+      await db.from("profiles").update({
+        machine_format: answers.machine_format,
+        machine_hoop_size: answers.machine_hoop_size,
+      }).eq("id", user.id);
+
       const { error } = await db
         .from("user_preferences")
         .upsert(
@@ -121,13 +174,16 @@ const Onboarding = () => {
           { onConflict: "user_id" }
         );
       if (error) throw error;
-      navigate("/dashboard", { replace: true });
+      window.location.href = "/dashboard";
     } catch (err: any) {
       console.error("Onboarding skip error:", err);
       toast.error("Erro ao pular. Tente novamente.");
       setSaving(false);
     }
   };
+
+  // Can only skip after machine settings are done (step >= 2)
+  const canSkip = step >= 2 && !!answers.machine_format && !!answers.machine_hoop_size;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/10 p-4">
@@ -138,7 +194,7 @@ const Onboarding = () => {
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <p className="text-sm text-muted-foreground">
-              Descubra seleções especiais para criar, vender e se inspirar hoje.
+              Configure sua máquina para ver apenas designs compatíveis.
             </p>
           </div>
         </div>
@@ -155,9 +211,17 @@ const Onboarding = () => {
         {/* Question Card */}
         <Card className="border-border/40 shadow-xl shadow-primary/5">
           <CardContent className="p-6 md:p-8 space-y-6">
-            <h2 className="text-xl font-display font-bold text-center">
-              {current.question}
-            </h2>
+            <div className="space-y-2">
+              <h2 className="text-xl font-display font-bold text-center">
+                {current.question}
+              </h2>
+              {(current as any).hint && (
+                <div className="flex items-center justify-center gap-1.5 text-xs text-amber-500">
+                  <Lock className="h-3 w-3" />
+                  <span>{(current as any).hint}</span>
+                </div>
+              )}
+            </div>
 
             {current.multi && (
               <p className="text-xs text-center text-muted-foreground">
@@ -193,17 +257,11 @@ const Onboarding = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => step > 0 ? setStep(step - 1) : handleSkip()}
-            disabled={saving}
+            onClick={() => step > 0 ? setStep(step - 1) : undefined}
+            disabled={saving || step === 0}
             className="gap-1.5"
           >
-            {step > 0 ? (
-              <>
-                <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-              </>
-            ) : (
-              "Pular"
-            )}
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
 
           <Button
@@ -219,8 +277,8 @@ const Onboarding = () => {
           </Button>
         </div>
 
-        {/* Skip link */}
-        {step > 0 && (
+        {/* Skip link - only after machine settings steps */}
+        {canSkip && (
           <p className="text-center">
             <button
               onClick={handleSkip}

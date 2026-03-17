@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesigns";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
-import { QuickHoopFilter } from "@/components/library/QuickHoopFilter";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { WhatsAppListModal } from "@/components/WhatsAppListModal";
+import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 const LibraryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,7 +21,6 @@ const LibraryPage = () => {
 
   const [search, setSearch] = useState(initialSearch);
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [hoopFilter, setHoopFilter] = useState("all");
   const [stitchRange, setStitchRange] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [page, setPage] = useState(0);
@@ -29,6 +28,7 @@ const LibraryPage = () => {
   const navigate = useNavigate();
   const { favoriteIds, toggle: toggleFavorite } = useFavorites();
   const { t } = useTranslation();
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -41,11 +41,11 @@ const LibraryPage = () => {
     : search;
 
   const { designs, totalCount, isLoading, categories, downloadCounts } = useLibraryDesigns({
-    search: effectiveSearch, categoryFilter, hoopFilter, stitchRange, sortBy, page,
+    search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
   });
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const hasActiveFilters = search !== "" || categoryFilter !== "all" || hoopFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
+  const hasActiveFilters = search !== "" || categoryFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
 
   // Sync URL params when tag changes
   useEffect(() => {
@@ -58,7 +58,6 @@ const LibraryPage = () => {
   const clearFilters = () => {
     setSearch("");
     setCategoryFilter("all");
-    setHoopFilter("all");
     setStitchRange("all");
     setSelectedTags([]);
     setPage(0);
@@ -71,13 +70,11 @@ const LibraryPage = () => {
     setPage(0);
   };
 
-  // Reset page when filters change
   const handleFilterChange = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
     setPage(0);
   };
 
-  // Selection helpers
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -120,6 +117,17 @@ const LibraryPage = () => {
             <p className="text-muted-foreground mt-2 max-w-lg text-sm leading-relaxed">
               {t("library.subtitle")}
             </p>
+            {/* Show machine settings info */}
+            {machineFormat && machineHoopSize && (
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  Formato: {machineFormat}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  Bastidor: {machineHoopSize}
+                </Badge>
+              </div>
+            )}
           </div>
           <div className="absolute top-0 right-0 w-72 h-72 opacity-10 blur-3xl bg-primary rounded-full -translate-y-1/3 translate-x-1/3" />
           <div className="absolute bottom-0 left-1/2 w-48 h-48 opacity-8 blur-3xl bg-secondary rounded-full translate-y-1/2" />
@@ -148,15 +156,13 @@ const LibraryPage = () => {
           )}
         </div>
 
-        <QuickHoopFilter value={hoopFilter} onChange={handleFilterChange(setHoopFilter)} />
+        {/* No QuickHoopFilter - automatic filtering */}
 
         <LibraryFilters
           search={search}
           onSearchChange={handleFilterChange(setSearch)}
           categoryFilter={categoryFilter}
           onCategoryChange={handleFilterChange(setCategoryFilter)}
-          hoopFilter={hoopFilter}
-          onHoopChange={handleFilterChange(setHoopFilter)}
           stitchRange={stitchRange}
           onStitchRangeChange={handleFilterChange(setStitchRange)}
           sortBy={sortBy}
