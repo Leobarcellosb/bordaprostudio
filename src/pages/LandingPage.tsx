@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Check, Download, Zap, Heart, Shield, Star, ChevronRight,
-  Monitor, Library, ArrowDown, MessageCircle, HelpCircle, XCircle,
+  Check, Download, Zap, Heart, Star, ChevronRight,
+  XCircle, Frown, FolderOpen, AlertTriangle, Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logoHorizontal from "@/assets/logo-horizontal.png";
@@ -38,15 +38,12 @@ const LandingPage = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         <div className="max-w-6xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center relative z-10">
           <div className="space-y-6 text-center md:text-left">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide uppercase">
-              Novo jeito de bordar
-            </span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-[1.1] tracking-tight">
-              O Netflix das{" "}
-              <span className="text-gradient-brand">Matrizes de Bordado</span>
+              Chega de baixar{" "}
+              <span className="text-gradient-brand">matriz errada.</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-lg">
-              Baixe matrizes prontas para a sua máquina, sem erro de formato e sem complicação.
+              No Borda Pro você só vê matrizes que funcionam na sua máquina, já organizadas e prontas para bordar.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <Button
@@ -66,6 +63,10 @@ const LandingPage = () => {
                 Já sou assinante
               </Button>
             </div>
+            <p className="text-sm text-muted-foreground/70 flex items-center gap-2 justify-center md:justify-start">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Mais de milhares de matrizes testadas e organizadas
+            </p>
           </div>
           <div className="relative">
             <div className="rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/30">
@@ -80,8 +81,8 @@ const LandingPage = () => {
                 <Download className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-xs font-semibold">+500 matrizes</p>
-                <p className="text-[10px] text-muted-foreground">prontas para download</p>
+                <p className="text-xs font-semibold">Pronto pra bordar</p>
+                <p className="text-[10px] text-muted-foreground">baixe e use na hora</p>
               </div>
             </div>
           </div>
@@ -92,17 +93,18 @@ const LandingPage = () => {
       <section className="bg-muted/30 border-y border-border/30">
         <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center space-y-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold">
-            Você já passou por isso?
+            Se você borda, você já passou por isso…
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
             {[
-              { icon: XCircle, text: "Já baixou matriz errada e perdeu tempo?" },
-              { icon: HelpCircle, text: "Sua máquina não leu o arquivo?" },
-              { icon: MessageCircle, text: "Perde tempo testando formato por formato?" },
+              { icon: XCircle, text: "Baixa uma matriz e a máquina não lê" },
+              { icon: Frown, text: "Perde tempo testando formato por formato" },
+              { icon: FolderOpen, text: "Arquivo desorganizado, tudo bagunçado" },
+              { icon: AlertTriangle, text: "Já perdeu cliente por causa de erro no bordado" },
             ].map(({ icon: Icon, text }) => (
               <Card key={text} className="border-destructive/20 bg-destructive/5">
-                <CardContent className="pt-6 pb-5 text-center space-y-3">
-                  <Icon className="h-8 w-8 text-destructive/70 mx-auto" />
+                <CardContent className="pt-5 pb-4 flex items-start gap-3 text-left">
+                  <Icon className="h-6 w-6 text-destructive/70 shrink-0 mt-0.5" />
                   <p className="text-sm font-medium text-foreground/80">{text}</p>
                 </CardContent>
               </Card>
@@ -110,97 +112,125 @@ const LandingPage = () => {
           </div>
           <div className="max-w-xl mx-auto rounded-2xl bg-primary/5 border border-primary/20 p-6">
             <p className="text-base md:text-lg font-semibold text-primary">
-              No Borda Pro você só vê matrizes que funcionam na sua máquina.
+              Isso não é falta de habilidade. É falta de organização.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="max-w-5xl mx-auto px-4 py-16 md:py-20">
-        <h2 className="text-2xl md:text-3xl font-display font-bold text-center mb-10">
-          Tudo o que você precisa, <span className="text-gradient-brand">num só lugar</span>
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Solution */}
+      <section className="max-w-4xl mx-auto px-4 py-16 md:py-20">
+        <div className="text-center space-y-4 mb-10">
+          <h2 className="text-2xl md:text-3xl font-display font-bold">
+            O Borda Pro <span className="text-gradient-brand">resolve isso pra você</span>
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto">
           {[
-            { icon: Library, title: "Biblioteca completa", desc: "Centenas de matrizes organizadas por categoria" },
-            { icon: Monitor, title: "Compatível com sua máquina", desc: "Filtragem automática por formato e bastidor" },
-            { icon: Zap, title: "Novas toda semana", desc: "Conteúdo atualizado constantemente" },
-            { icon: Download, title: "Download imediato", desc: "Baixe e borde na hora, sem espera" },
-            { icon: Shield, title: "Sem erro de formato", desc: "Só aparece o que funciona na sua máquina" },
-            { icon: Heart, title: "Sem dor de cabeça", desc: "Interface simples feita para bordadeiras" },
-          ].map(({ icon: Icon, title, desc }) => (
-            <Card key={title} className="group hover:border-primary/30 hover:shadow-md transition-all">
-              <CardContent className="pt-6 pb-5 space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-              </CardContent>
-            </Card>
+            "As matrizes já vêm no formato da sua máquina",
+            "Já organizadas por tema e prontas para usar",
+            "Você não precisa testar nada",
+            "É só baixar e bordar",
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border/40">
+              <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-foreground/90">{item}</p>
+            </div>
           ))}
+        </div>
+        <div className="text-center mt-10">
+          <p className="inline-block text-lg md:text-xl font-display font-bold text-primary bg-primary/5 border border-primary/20 rounded-2xl px-8 py-4">
+            Você entra, escolhe e borda. Simples assim.
+          </p>
         </div>
       </section>
 
-      {/* How it works */}
+      {/* Benefits */}
       <section className="bg-muted/30 border-y border-border/30">
         <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center space-y-10">
           <h2 className="text-2xl md:text-3xl font-display font-bold">
-            Como funciona?
+            O que você ganha com o <span className="text-gradient-brand">Borda Pro</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { step: "1", title: "Escolha sua máquina", desc: "Informe o modelo e bastidor no cadastro" },
-              { step: "2", title: "Acesse a biblioteca", desc: "Veja apenas matrizes compatíveis" },
-              { step: "3", title: "Baixe e borde", desc: "Download direto, sem erro de formato" },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="space-y-4">
-                <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto">
-                  {step}
-                </div>
-                <h3 className="font-display font-bold text-lg">{title}</h3>
-                <p className="text-sm text-muted-foreground">{desc}</p>
-              </div>
+              { icon: Download, text: "Mais de centenas de matrizes prontas" },
+              { icon: FolderOpen, text: "Tudo separado por tema (infantil, floral, nomes…)" },
+              { icon: Sparkles, text: "Novas matrizes toda semana" },
+              { icon: Check, text: "Funciona direto na sua máquina" },
+              { icon: Heart, text: "Sem erro, sem dor de cabeça" },
+            ].map(({ icon: Icon, text }) => (
+              <Card key={text} className="group hover:border-primary/30 hover:shadow-md transition-all">
+                <CardContent className="pt-6 pb-5 flex flex-col items-center text-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium">{text}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* How it works */}
       <section className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center space-y-10">
         <h2 className="text-2xl md:text-3xl font-display font-bold">
-          O que dizem nossas <span className="text-gradient-brand">bordadeiras</span>
+          Como funciona?
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
-            { name: "Maria C.", text: "Facilitou demais minha vida, agora só baixo e bordo!" },
-            { name: "Ana P.", text: "Não erro mais o formato, funciona sempre. Recomendo!" },
-          ].map(({ name, text }) => (
-            <Card key={name} className="border-primary/10">
-              <CardContent className="pt-6 pb-5 space-y-3">
-                <div className="flex justify-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-sm italic text-foreground/80">"{text}"</p>
-                <p className="text-xs font-semibold text-muted-foreground">— {name}</p>
-              </CardContent>
-            </Card>
+            { step: "1", title: "Você informa sua máquina", desc: "Diz qual modelo e bastidor você usa" },
+            { step: "2", title: "A gente mostra só o que funciona nela", desc: "Nada de formato errado ou arquivo incompatível" },
+            { step: "3", title: "Você baixa e já pode bordar", desc: "Pronto, sem teste, sem perda de tempo" },
+          ].map(({ step, title, desc }) => (
+            <div key={step} className="space-y-4">
+              <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto">
+                {step}
+              </div>
+              <h3 className="font-display font-bold text-lg">{title}</h3>
+              <p className="text-sm text-muted-foreground">{desc}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Pricing CTA */}
+      {/* Testimonials */}
+      <section className="bg-muted/30 border-y border-border/30">
+        <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 text-center space-y-10">
+          <h2 className="text-2xl md:text-3xl font-display font-bold">
+            Quem usa, <span className="text-gradient-brand">não larga mais</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: "Maria C.", text: "Depois que comecei a usar, nunca mais errei formato." },
+              { name: "Ana P.", text: "Economizo muito tempo, agora só baixo e bordo." },
+              { name: "Cláudia R.", text: "Minha máquina lê tudo de primeira." },
+            ].map(({ name, text }) => (
+              <Card key={name} className="border-primary/10">
+                <CardContent className="pt-6 pb-5 space-y-3">
+                  <div className="flex justify-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                    ))}
+                  </div>
+                  <p className="text-sm italic text-foreground/80">"{text}"</p>
+                  <p className="text-xs font-semibold text-muted-foreground">— {name}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
       <section id="pricing" className="bg-gradient-to-b from-primary/5 to-transparent border-t border-border/30">
         <div className="max-w-4xl mx-auto px-4 py-16 md:py-20 space-y-10">
           <div className="text-center space-y-3">
             <h2 className="text-2xl md:text-3xl font-display font-bold">
-              Escolha seu plano e <span className="text-gradient-brand">comece agora</span>
+              Comece <span className="text-gradient-brand">hoje mesmo</span>
             </h2>
-            <p className="text-muted-foreground text-sm max-w-md mx-auto">
-              Acesse todas as matrizes prontas para sua máquina.
+            <p className="text-muted-foreground text-base max-w-md mx-auto">
+              Tenha acesso a todas as matrizes, sem erro e sem complicação.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -210,7 +240,7 @@ const LandingPage = () => {
                 price: "R$ 79,90",
                 period: "/mês",
                 url: "https://chk.eduzz.com/E0D6ON5691",
-                features: ["Biblioteca completa", "Downloads ilimitados", "Gerador de vendas com IA", "Catálogos personalizados"],
+                features: ["Todas as matrizes", "Downloads ilimitados", "Novas toda semana", "Compatível com sua máquina"],
               },
               {
                 name: "Anual",
@@ -237,7 +267,7 @@ const LandingPage = () => {
                     MAIS POPULAR — {plan.savings}
                   </div>
                 )}
-                <CardContent className={`space-y-6 ${plan.popular ? "pt-8" : "pt-8"} pb-8 px-7`}>
+                <CardContent className={`space-y-6 pt-8 pb-8 px-7`}>
                   <div>
                     <h3 className="font-display font-bold text-xl">{plan.name}</h3>
                     <div className="flex items-baseline gap-1.5 mt-2">
@@ -270,10 +300,13 @@ const LandingPage = () => {
               </Card>
             ))}
           </div>
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-3">
+            <p className="text-sm font-semibold text-primary">
+              Acesso imediato após a compra
+            </p>
             <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> 7 dias de garantia — se não gostar, devolvemos seu dinheiro</span>
               <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Checkout seguro via Eduzz</span>
-              <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Garantia de 7 dias</span>
               <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Cancele quando quiser</span>
             </div>
           </div>
@@ -283,7 +316,7 @@ const LandingPage = () => {
       {/* Final CTA */}
       <section className="max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
         <h2 className="text-2xl md:text-3xl font-display font-bold">
-          Pronta para bordar sem complicação?
+          Se você borda, isso aqui vai <span className="text-gradient-brand">facilitar sua vida.</span>
         </h2>
         <Button
           size="lg"
