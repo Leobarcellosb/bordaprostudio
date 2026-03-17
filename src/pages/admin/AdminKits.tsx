@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Image, FileArchive, X } from "lucide-react";
 
-const ALL_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX"];
+const ALL_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3", "HUS", "EMB"];
 
 export const AdminKits = () => {
   const [kits, setKits] = useState<any[]>([]);

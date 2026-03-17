@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { db } from "@/lib/db";
 import JSZip from "jszip";
 
-const FORMAT_OPTIONS = ["PES", "JEF", "DST", "EXP", "VP3", "HUS"] as const;
+const FORMAT_OPTIONS = ["PES", "JEF", "DST", "EXP", "XXX", "VP3", "HUS", "EMB"] as const;
 
 const HOOP_OPTIONS = [
   { value: "10x10", label: "10×10 cm" },

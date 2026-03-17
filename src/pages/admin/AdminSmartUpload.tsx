@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx", "vp3"];
+const EMBROIDERY_EXTENSIONS = ["pes", "exp", "dst", "jef", "xxx", "vp3", "hus", "emb"];
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"];
 
 function getExtension(name: string) {
@@ -53,7 +53,7 @@ function cleanTitle(name: string) {
     .replace(/\s*\(\d+\)\s*/g, " ")
     .replace(/\b(v\d+|copy|copia|final|rev\d*)\b/gi, " ")
     // Remove leading/trailing format hints
-    .replace(/\b(pes|dst|jef|exp|xxx|vp3)\b/gi, " ")
+    .replace(/\b(pes|dst|jef|exp|xxx|vp3|hus|emb)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
