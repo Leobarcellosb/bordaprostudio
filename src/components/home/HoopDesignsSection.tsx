@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
-import { useAuth } from "@/contexts/AuthContext";
 import { Target } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "./SectionHeader";
@@ -8,39 +7,45 @@ import { DesignCarousel } from "./DesignCarousel";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 export const HoopDesignsSection = () => {
-  const { user } = useAuth();
   const [designs, setDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { machineFormat, machineHoopSize } = useUserMachineSettings();
+  const { machineHoopSize } = useUserMachineSettings();
+
+  const hoopSize = machineHoopSize || "13x18";
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        // Use the user's locked hoop size
-        const hoopSize = machineHoopSize || "13x18";
-
-        let query = db
+        // Prioritize matching hoop, but fill with others if needed
+        const { data: matched } = await db
           .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true)
           .eq("hoop_size", hoopSize)
           .order("created_at", { ascending: false })
-          .limit(24);
+          .limit(12);
 
-        const { data } = await query;
+        let results = matched || [];
 
-        let filtered = data || [];
+        // If less than 12, fill with other sizes
+        if (results.length < 12) {
+          const existingIds = results.map((d: any) => d.id);
+          const remaining = 12 - results.length;
+          const { data: others } = await db
+            .from("designs")
+            .select("*, categories(name)")
+            .eq("is_published", true)
+            .neq("hoop_size", hoopSize)
+            .order("created_at", { ascending: false })
+            .limit(remaining);
 
-        if (machineFormat && filtered.length > 0) {
-          const ids = filtered.map((d: any) => d.id);
-          const { data: files } = await db
-            .from("kit_arquivos").select("design_id").in("design_id", ids).ilike("format", machineFormat);
-          const validIds = new Set((files || []).map((f: any) => f.design_id));
-          filtered = filtered.filter((d: any) => validIds.has(d.id));
+          if (others) {
+            results = [...results, ...others.filter((d: any) => !existingIds.includes(d.id))];
+          }
         }
 
-        setDesigns(filtered.slice(0, 12));
+        setDesigns(results.slice(0, 12));
       } catch (err) {
         console.error("HoopDesigns error:", err);
       } finally {
@@ -48,7 +53,7 @@ export const HoopDesignsSection = () => {
       }
     };
     fetch();
-  }, [user, machineFormat, machineHoopSize]);
+  }, [hoopSize]);
 
   if (!loading && designs.length === 0) return null;
 
@@ -58,7 +63,7 @@ export const HoopDesignsSection = () => {
         icon={Target}
         iconClassName="bg-accent text-accent-foreground"
         title="Para o seu Bastidor"
-        subtitle={`Designs compatíveis com bastidor ${machineHoopSize || "13x18"}`}
+        subtitle={`Designs compatíveis com bastidor ${hoopSize}`}
         onViewAll={() => navigate("/library")}
       />
       <DesignCarousel designs={designs} loading={loading} />

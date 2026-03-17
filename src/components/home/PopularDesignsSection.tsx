@@ -4,14 +4,12 @@ import { TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "./SectionHeader";
 import { DesignCarousel } from "./DesignCarousel";
-import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 export const PopularDesignsSection = () => {
   const [designs, setDesigns] = useState<any[]>([]);
   const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
   useEffect(() => {
     const fetch = async () => {
@@ -27,33 +25,16 @@ export const PopularDesignsSection = () => {
           .slice(0, 24)
           .map(([id]) => id);
 
-        let query = db
+        const { data: topDesigns } = await db
           .from("designs")
           .select("*, categories(name)")
           .in("id", topIds)
           .eq("is_published", true);
 
-        if (machineHoopSize) {
-          query = query.eq("hoop_size", machineHoopSize);
-        }
+        const sorted = (topDesigns || [])
+          .sort((a: any, b: any) => (countMap[b.id] || 0) - (countMap[a.id] || 0))
+          .slice(0, 12);
 
-        const { data: topDesigns } = await query;
-
-        let filtered = topDesigns || [];
-
-        // Filter by format
-        if (machineFormat && filtered.length > 0) {
-          const ids = filtered.map((d: any) => d.id);
-          const { data: files } = await db
-            .from("kit_arquivos")
-            .select("design_id")
-            .in("design_id", ids)
-            .ilike("format", machineFormat);
-          const validIds = new Set((files || []).map((f: any) => f.design_id));
-          filtered = filtered.filter((d: any) => validIds.has(d.id));
-        }
-
-        const sorted = filtered.sort((a: any, b: any) => (countMap[b.id] || 0) - (countMap[a.id] || 0)).slice(0, 12);
         setDesigns(sorted);
         setDownloadCounts(countMap);
       } catch (err) {
@@ -63,7 +44,7 @@ export const PopularDesignsSection = () => {
       }
     };
     fetch();
-  }, [machineFormat, machineHoopSize]);
+  }, []);
 
   if (!loading && designs.length === 0) return null;
 
