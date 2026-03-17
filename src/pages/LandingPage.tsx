@@ -269,6 +269,7 @@ const LandingPage = () => {
               { icon: Sparkles, text: "Novas matrizes toda semana", desc: "A biblioteca cresce junto com você" },
               { icon: Check, text: "Compatível com sua máquina", desc: "Formato certo, automaticamente" },
               { icon: Heart, text: "Sem erro, sem dor de cabeça", desc: "Baixou, bordou. Simples assim." },
+              { icon: Zap, text: "Download imediato", desc: "Baixe e use na hora, sem complicação" },
             ].map(({ icon: Icon, text, desc }) => (
               <Card key={text} className="group bg-card/70 border-border/30 rounded-2xl hover:border-primary/20 hover:shadow-lg hover:shadow-primary/[0.05] hover:-translate-y-1 transition-all duration-300">
                 <CardContent className="pt-7 pb-6 flex flex-col items-center text-center gap-3">
