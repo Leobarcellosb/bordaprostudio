@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2, Loader2, Tags } from "lucide-react";
 
-const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3"];
+const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3", "HUS", "EMB"];
 
 export const AdminDesigns = () => {
   const [designs, setDesigns] = useState<any[]>([]);

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { EmbroideryPattern } from "@/lib/embroideryPreview";
 import { parseEmbroideryFile } from "@/lib/embroideryPreview";
 
-const SUPPORTED_EXTENSIONS = ["pes", "dst", "jef", "exp", "xxx", "vp3"];
+const SUPPORTED_EXTENSIONS = ["pes", "dst", "jef", "exp", "xxx", "vp3", "hus", "emb"];
 
 export default function EmbroideryViewerPage() {
   const [pattern, setPattern] = useState<EmbroideryPattern | null>(null);

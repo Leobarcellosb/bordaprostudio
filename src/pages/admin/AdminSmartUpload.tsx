@@ -53,7 +53,7 @@ function cleanTitle(name: string) {
     .replace(/\s*\(\d+\)\s*/g, " ")
     .replace(/\b(v\d+|copy|copia|final|rev\d*)\b/gi, " ")
     // Remove leading/trailing format hints
-    .replace(/\b(pes|dst|jef|exp|xxx|vp3)\b/gi, " ")
+    .replace(/\b(pes|dst|jef|exp|xxx|vp3|hus|emb)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
