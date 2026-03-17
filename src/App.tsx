@@ -25,6 +25,7 @@ import FavoritesPage from "./pages/FavoritesPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import Settings from "./pages/Settings";
 import PricingPage from "./pages/PricingPage";
+import PlansPage from "./pages/PlansPage";
 import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
 import MinhaContaPage from "./pages/MinhaContaPage";
