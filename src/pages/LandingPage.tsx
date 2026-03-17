@@ -52,7 +52,7 @@ const LandingPage = () => {
       {/* ══════ NAV ══════ */}
       <nav className="sticky top-0 z-50 bg-[hsl(var(--landing-warm))]/80 backdrop-blur-lg border-b border-border/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <img src={logoHorizontal} alt="Borda Pro" className="h-8" />
+          <img src={logoHorizontal} alt="Borda Pro" className="h-12" />
           <div className="flex items-center gap-2 sm:gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-foreground/70 hover:text-foreground">
               Entrar
@@ -599,7 +599,7 @@ const LandingPage = () => {
       {/* ══════ FOOTER ══════ */}
       <footer className="border-t border-border/30 bg-[hsl(var(--landing-cream))]/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logoHorizontal} alt="Borda Pro" className="h-6 opacity-60" />
+          <img src={logoHorizontal} alt="Borda Pro" className="h-10 opacity-60" />
           <div className="flex gap-6 text-xs text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors">Termos</a>
             <a href="#" className="hover:text-foreground transition-colors">Privacidade</a>

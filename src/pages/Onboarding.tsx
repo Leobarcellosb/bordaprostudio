@@ -190,7 +190,7 @@ const Onboarding = () => {
       <div className="w-full max-w-lg space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col items-center text-center space-y-3">
-          <img src={logoHorizontal} alt="Borda Pro" className="w-[160px] h-auto" />
+          <img src={logoHorizontal} alt="Borda Pro" className="w-[220px] h-auto" />
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <p className="text-sm text-muted-foreground">
