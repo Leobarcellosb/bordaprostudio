@@ -769,6 +769,198 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
   return pattern;
 }
 
+// ── HUS Parser (Husqvarna) ───────────────────────────────────────────────
+
+function parseHUS(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  if (file.byteLength < 0x100) throw new Error("Invalid HUS file");
+
+  // HUS magic check
+  file.seek(0);
+  const magic = file.getUint32(0, true);
+  if (magic !== 0x00C8AF5C && magic !== 0x00C8AF5D) {
+    // Try parsing as generic stitch data anyway
+  }
+
+  // Read header: offset to stitch data
+  file.seek(8);
+  const numStitches = file.getInt32(file.tell(), true);
+  const numColors = file.getInt32(file.tell(), true);
+
+  // Read color indices
+  const colorOffset = file.tell();
+  for (let i = 0; i < Math.min(numColors, 64); i++) {
+    const colorIdx = file.getUint8() % CATALOG_PALETTE.length;
+    addColor(pattern, CATALOG_PALETTE[colorIdx]);
+  }
+  if (pattern.colors.length === 0) {
+    addColor(pattern, CATALOG_PALETTE[0]);
+  }
+
+  // Find stitch data — typically after header + color table
+  const stitchDataOffset = colorOffset + numColors * 2;
+  if (stitchDataOffset >= file.byteLength) {
+    // Fallback: scan from position 0x100
+    file.seek(0x100);
+  } else {
+    file.seek(stitchDataOffset);
+  }
+
+  let stitchesRead = 0;
+  const maxStitches = Math.min(numStitches + 100, 500000);
+
+  while (file.tell() + 1 < file.byteLength && stitchesRead < maxStitches) {
+    const b0 = file.getUint8();
+    const b1 = file.getUint8();
+
+    // End marker
+    if (b0 === 0xFF && b1 === 0xFF) {
+      addStitchRel(pattern, 0, 0, END);
+      break;
+    }
+
+    // Color change
+    if (b0 === 0x80 && (b1 & 0x01)) {
+      addStitchRel(pattern, 0, 0, STOP, true);
+      if (file.tell() + 1 < file.byteLength) {
+        file.getUint8();
+        file.getUint8();
+      }
+      stitchesRead++;
+      continue;
+    }
+
+    // Trim/jump
+    if (b0 === 0x80 && (b1 === 0x02 || b1 === 0x04)) {
+      const nb0 = file.tell() < file.byteLength ? file.getUint8() : 0;
+      const nb1 = file.tell() < file.byteLength ? file.getUint8() : 0;
+      const dx = nb0 > 127 ? nb0 - 256 : nb0;
+      const dy = nb1 > 127 ? nb1 - 256 : nb1;
+      addStitchRel(pattern, dx, dy, TRIM, true);
+      stitchesRead++;
+      continue;
+    }
+
+    const dx = b0 > 127 ? b0 - 256 : b0;
+    const dy = b1 > 127 ? b1 - 256 : b1;
+
+    if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
+      addStitchRel(pattern, dx, dy, JUMP, true);
+    } else {
+      addStitchRel(pattern, dx, dy, NORMAL, true);
+    }
+    stitchesRead++;
+  }
+
+  addStitchRel(pattern, 0, 0, END);
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
+}
+
+// ── EMB Parser (Wilcom / generic) ───────────────────────────────────────
+// EMB is a proprietary format (Wilcom). Full parsing requires understanding
+// Wilcom's compound document structure. This parser handles a simplified
+// stitch-data extraction for common EMB files. Complex EMB files with
+// embedded objects may not render perfectly.
+
+function parseEMB(buffer: ArrayBuffer): EmbroideryPattern {
+  const file = new EmbroideryFileView(buffer);
+  const pattern = createPattern();
+
+  if (file.byteLength < 128) throw new Error("Invalid EMB file");
+
+  // EMB files vary greatly. Try to detect stitch data region.
+  // Many EMB files store stitch data as signed-byte pairs.
+  const bytes = new Uint8Array(buffer);
+
+  // Look for a likely stitch data start by scanning for consistent
+  // small-value byte pairs (typical stitch movements are small)
+  let dataStart = 0;
+  const searchStart = Math.min(512, Math.floor(file.byteLength * 0.1));
+
+  for (let i = searchStart; i < Math.min(file.byteLength - 64, 8192); i++) {
+    // Check if we find a run of plausible stitch data (small signed values)
+    let plausible = 0;
+    for (let j = 0; j < 32 && (i + j * 2 + 1) < file.byteLength; j++) {
+      const a = bytes[i + j * 2];
+      const b = bytes[i + j * 2 + 1];
+      const da = a > 127 ? a - 256 : a;
+      const db = b > 127 ? b - 256 : b;
+      if (Math.abs(da) <= 80 && Math.abs(db) <= 80 && (da !== 0 || db !== 0)) {
+        plausible++;
+      }
+    }
+    if (plausible >= 20) {
+      dataStart = i;
+      break;
+    }
+  }
+
+  if (dataStart === 0) {
+    // Fallback: start after a minimal header
+    dataStart = Math.min(256, file.byteLength);
+  }
+
+  addColor(pattern, CATALOG_PALETTE[0]);
+  file.seek(dataStart);
+
+  let stitchesRead = 0;
+  let consecutiveZeros = 0;
+
+  while (file.tell() + 1 < file.byteLength && stitchesRead < 500000) {
+    const b0 = file.getUint8();
+    const b1 = file.getUint8();
+
+    // End detection: multiple consecutive zero pairs
+    if (b0 === 0 && b1 === 0) {
+      consecutiveZeros++;
+      if (consecutiveZeros >= 4) break;
+      continue;
+    }
+    consecutiveZeros = 0;
+
+    // Color change heuristic
+    if (b0 === 0x80 && (b1 & 0x01)) {
+      addStitchRel(pattern, 0, 0, STOP, true);
+      if (file.tell() + 1 < file.byteLength) {
+        file.getUint8();
+        file.getUint8();
+      }
+      stitchesRead++;
+      continue;
+    }
+
+    // Trim/jump heuristic
+    if (b0 === 0x80 && (b1 === 0x02 || b1 === 0x04)) {
+      const nb0 = file.tell() < file.byteLength ? file.getUint8() : 0;
+      const nb1 = file.tell() < file.byteLength ? file.getUint8() : 0;
+      const dx = nb0 > 127 ? nb0 - 256 : nb0;
+      const dy = nb1 > 127 ? nb1 - 256 : nb1;
+      addStitchRel(pattern, dx, dy, TRIM, true);
+      stitchesRead++;
+      continue;
+    }
+
+    const dx = b0 > 127 ? b0 - 256 : b0;
+    const dy = b1 > 127 ? b1 - 256 : b1;
+
+    if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
+      addStitchRel(pattern, dx, dy, JUMP, true);
+    } else {
+      addStitchRel(pattern, dx, dy, NORMAL, true);
+    }
+    stitchesRead++;
+  }
+
+  addStitchRel(pattern, 0, 0, END);
+  invertPatternVertical(pattern);
+  moveToPositive(pattern);
+  return pattern;
+}
+
 // ── Rendering Modes ─────────────────────────────────────────────────────
 
 export type PreviewMode = "commercial" | "technical";
