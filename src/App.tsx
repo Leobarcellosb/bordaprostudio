@@ -11,6 +11,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import LandingPage from "./pages/LandingPage";
 import LibraryPage from "./pages/LibraryPage";
 import KitDetail from "./pages/KitDetail";
 import ProductIdeasPage from "./pages/ProductIdeasPage";
