@@ -25,6 +25,7 @@ import FavoritesPage from "./pages/FavoritesPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import Settings from "./pages/Settings";
 import PricingPage from "./pages/PricingPage";
+import PlansPage from "./pages/PlansPage";
 import PremiumKitsPage from "./pages/PremiumKitsPage";
 import PremiumKitDetail from "./pages/PremiumKitDetail";
 import MinhaContaPage from "./pages/MinhaContaPage";
@@ -46,7 +47,9 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/plans" element={<PlansPage />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
