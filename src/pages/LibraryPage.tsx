@@ -41,7 +41,7 @@ const LibraryPage = () => {
     ? [search, ...selectedTags].filter(Boolean).join(" ")
     : search;
 
-  const { designs, totalCount, isLoading, categories, downloadCounts } = useLibraryDesigns({
+  const { designs, totalCount, isLoading, categories, downloadCounts, hasIncompatible, compatibleCount } = useLibraryDesigns({
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
   });
 
