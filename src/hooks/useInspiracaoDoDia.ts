@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
+import { filterDesignsByMachine } from "@/lib/machineFilter";
+import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
 interface InspirationDesign {
   id: string;
@@ -33,15 +35,16 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
 
 export function useInspiracaoDoDia() {
   const { user } = useAuth();
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const [designs, setDesigns] = useState<InspirationDesign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const todayKey = getTodaySeed();
+    const cacheKey = `${CACHE_KEY}_${machineFormat}_${machineHoopSize}`;
 
-    // Check localStorage cache
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = localStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.date === todayKey && parsed.userId === (user?.id || "anon")) {
@@ -71,17 +74,20 @@ export function useInspiracaoDoDia() {
           });
         };
 
-        // Fetch all published designs once
-        const { data: allDesigns } = await db
+        const { data: rawDesigns } = await db
           .from("designs")
-          .select("id, name, cover_image, category_id, tags_text, created_at, featured_for_daily_inspiration, categories(name)")
+          .select("id, name, cover_image, category_id, tags_text, hoop_size, created_at, featured_for_daily_inspiration, categories(name)")
           .eq("is_published", true);
-        if (!allDesigns || allDesigns.length === 0) { setLoading(false); return; }
+
+        if (!rawDesigns || rawDesigns.length === 0) { setLoading(false); return; }
+
+        // Filter by machine settings
+        const allDesigns = await filterDesignsByMachine(rawDesigns, machineHoopSize, machineFormat);
+        if (allDesigns.length === 0) { setLoading(false); return; }
 
         const designMap = new Map<string, any>();
         allDesigns.forEach((d: any) => designMap.set(d.id, d));
 
-        // Category map for matching
         const categoryDesigns = new Map<string, any[]>();
         allDesigns.forEach((d: any) => {
           if (d.category_id) {
@@ -91,11 +97,8 @@ export function useInspiracaoDoDia() {
         });
 
         if (user) {
-          // 1. Designs from categories user has downloaded
           const { data: userDownloads } = await db
-            .from("downloads")
-            .select("kit_id")
-            .eq("user_id", user.id);
+            .from("downloads").select("kit_id").eq("user_id", user.id);
 
           const downloadedCategoryIds = new Set<string>();
           const downloadedDesignIds = new Set<string>();
@@ -113,11 +116,8 @@ export function useInspiracaoDoDia() {
           });
           seededShuffle(fromDownloadCategories, todayKey + "dl").forEach((d) => addDesign(d, "baseado_downloads"));
 
-          // 2. Designs from categories user has favorited
           const { data: userFavs } = await db
-            .from("favorites")
-            .select("kit_id")
-            .eq("user_id", user.id);
+            .from("favorites").select("kit_id").eq("user_id", user.id);
 
           const favCategoryIds = new Set<string>();
           const favDesignIds = new Set<string>();
@@ -136,46 +136,38 @@ export function useInspiracaoDoDia() {
           seededShuffle(fromFavCategories, todayKey + "fav").forEach((d) => addDesign(d, "baseado_favoritos"));
         }
 
-        // 3. Trending last 7 days
         if (result.length < MAX_ITEMS) {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           const { data: recentDl } = await db
-            .from("downloads")
-            .select("kit_id, created_at")
-            .gte("created_at", sevenDaysAgo.toISOString());
+            .from("downloads").select("kit_id, created_at").gte("created_at", sevenDaysAgo.toISOString());
 
           const trendMap: Record<string, number> = {};
           (recentDl || []).forEach((d: any) => { trendMap[d.kit_id] = (trendMap[d.kit_id] || 0) + 1; });
-          const trendingSorted = Object.entries(trendMap).sort((a, b) => b[1] - a[1]);
-          trendingSorted.forEach(([id]) => {
+          Object.entries(trendMap).sort((a, b) => b[1] - a[1]).forEach(([id]) => {
             const d = designMap.get(id);
             if (d) addDesign(d, "tendencia");
           });
         }
 
-        // 4. Newest designs
         if (result.length < MAX_ITEMS) {
           const newest = [...allDesigns].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           newest.slice(0, 10).forEach((d) => addDesign(d, "novo"));
         }
 
-        // 5. Featured fallback
         if (result.length < MAX_ITEMS) {
           const featured = allDesigns.filter((d: any) => d.featured_for_daily_inspiration);
           seededShuffle(featured, todayKey + "feat").forEach((d) => addDesign(d, "destaque"));
         }
 
-        // 6. Final fallback — random fill
         if (result.length < MAX_ITEMS) {
           seededShuffle(allDesigns, todayKey + "rand").forEach((d) => addDesign(d, null));
         }
 
         setDesigns(result);
 
-        // Cache for today
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
+          localStorage.setItem(cacheKey, JSON.stringify({
             date: todayKey,
             userId: user?.id || "anon",
             designs: result,
@@ -189,7 +181,7 @@ export function useInspiracaoDoDia() {
     };
 
     build();
-  }, [user]);
+  }, [user, machineFormat, machineHoopSize]);
 
   return { designs, loading };
 }
