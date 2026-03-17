@@ -61,6 +61,10 @@
     --shadow-card: 0 1px 3px hsl(268 78% 56% / 0.04), 0 4px 16px hsl(268 78% 56% / 0.06);
     --shadow-card-hover: 0 4px 12px hsl(268 78% 56% / 0.08), 0 12px 32px hsl(268 78% 56% / 0.1);
     --shadow-premium: 0 8px 30px -8px hsl(268 78% 56% / 0.25);
+
+    --landing-warm: 30 30% 96%;
+    --landing-cream: 35 40% 93%;
+    --landing-linen: 28 20% 90%;
   }
 
   .dark {
