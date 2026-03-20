@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/db";
@@ -37,61 +37,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await db.from("profiles").select("*").eq("id", userId).single();
-    setProfile(data);
-  };
+  const fetchUserData = useCallback(async (userId: string) => {
+    try {
+      const [profileRes, roleRes, subRes] = await Promise.all([
+        db.from("profiles").select("*").eq("id", userId).single(),
+        db.from("user_roles").select("role").eq("user_id", userId),
+        db.from("subscriptions")
+          .select("id, plan_code, status, access_expires_at, provider")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await db.from("user_roles").select("role").eq("user_id", userId);
-    setIsAdmin(data?.some((r: any) => r.role === "admin") ?? false);
-  };
+      setProfile(profileRes.data);
+      const admin = roleRes.data?.some((r: any) => r.role === "admin") ?? false;
+      setIsAdmin(admin);
+      setSubscription(subRes.data);
 
-  const fetchSubscription = async (userId: string) => {
-    const { data } = await db
-      .from("subscriptions")
-      .select("id, plan_code, status, access_expires_at, provider")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setSubscription(data);
-  };
-
-  const hasActiveSubscription = !!(
-    subscription?.status === "active" &&
-    subscription?.access_expires_at &&
-    new Date(subscription.access_expires_at) > new Date()
-  );
+      console.log("[Auth] isAdmin:", admin, "subscription:", subRes.data?.status ?? "none");
+    } catch (e) {
+      console.error("[Auth] fetchUserData error:", e);
+    }
+  }, []);
 
   useEffect(() => {
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
+    let mounted = true;
+
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-          fetchRole(session.user.id);
-          fetchSubscription(session.user.id);
-        }, 0);
+        await fetchUserData(session.user.id);
+      }
+      if (mounted) setLoading(false);
+    };
+
+    init();
+
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserData(session.user.id);
       } else {
         setProfile(null); setIsAdmin(false); setSubscription(null);
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRole(session.user.id);
-        fetchSubscription(session.user.id);
-      }
-      setLoading(false);
-    });
+    return () => { mounted = false; authSub.unsubscribe(); };
+  }, [fetchUserData]);
 
-    return () => authSub.unsubscribe();
-  }, []);
+  const hasActiveSubscription = !!(
+    subscription &&
+    ["active", "approved", "paid"].includes(subscription.status) &&
+    subscription.access_expires_at &&
+    new Date(subscription.access_expires_at) > new Date()
+  );
 
   const signOut = async () => {
     await supabase.auth.signOut();
