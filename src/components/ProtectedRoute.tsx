@@ -9,7 +9,15 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
+    if (loading) return; // Wait for auth to finish loading
     if (!user) { setCheckingOnboarding(false); return; }
+
+    // Admins bypass onboarding
+    if (isAdmin) {
+      setNeedsOnboarding(false);
+      setCheckingOnboarding(false);
+      return;
+    }
 
     // Check if machine settings are set on profile
     if (profile && (!profile.machine_format || !profile.machine_hoop_size)) {
@@ -22,16 +30,28 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       .select("id, completed_at")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }: any) => {
-        setNeedsOnboarding(!data || !data.completed_at);
+      .then(({ data, error }: any) => {
+        if (error) {
+          console.error("[ProtectedRoute] user_preferences error:", error);
+          setNeedsOnboarding(false); // Don't block on error
+        } else {
+          setNeedsOnboarding(!data || !data.completed_at);
+        }
+        setCheckingOnboarding(false);
+      })
+      .catch((err: any) => {
+        console.error("[ProtectedRoute] unexpected error:", err);
+        setNeedsOnboarding(false);
         setCheckingOnboarding(false);
       });
-  }, [user, profile]);
+  }, [user, profile, loading, isAdmin]);
 
-  if (loading || checkingOnboarding) return <div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  if (loading || checkingOnboarding) {
+    console.log("[ProtectedRoute] loading:", loading, "checkingOnboarding:", checkingOnboarding, "user:", !!user, "isAdmin:", isAdmin);
+    return <div className="flex min-h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
   if (!user) return <Navigate to="/login" replace />;
   if (needsOnboarding) return <Navigate to="/onboarding" replace />;
-  // Admins bypass paywall; regular users must have active subscription
   if (!isAdmin && !hasActiveSubscription) return <Navigate to="/plans" replace />;
   return <>{children}</>;
 };
