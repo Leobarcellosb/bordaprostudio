@@ -175,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const roleResolvedNow = roleRes.status === "success";
     const subscriptionResolvedNow = subRes.status === "success";
     const onboardingResolvedNow = profileRes.status === "success" && prefsRes.status === "success";
+    let resolvedNeedsOnboarding = false;
 
     if (profileRes.status === "success") {
       setProfile(profileRes.data);
@@ -197,12 +198,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const resolvedAdmin = roleResolvedNow ? admin : isAdminRef.current;
 
       if (resolvedAdmin) {
-        setNeedsOnboarding(false);
+        resolvedNeedsOnboarding = false;
       } else if (prof && (!prof.machine_format || !prof.machine_hoop_size)) {
-        setNeedsOnboarding(true);
+        resolvedNeedsOnboarding = true;
       } else {
-        setNeedsOnboarding(!prefs || !prefs.completed_at);
+        resolvedNeedsOnboarding = !prefs || !prefs.completed_at;
       }
+
+      setNeedsOnboarding(resolvedNeedsOnboarding);
     }
 
     const degraded = !roleResolvedNow || !subscriptionResolvedNow || !onboardingResolvedNow;
@@ -240,9 +243,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userId,
       admin: roleResolvedNow ? admin : "unresolved",
       subscription: subscriptionResolvedNow ? ((subRes.data as Subscription | null)?.status ?? "none") : "unresolved",
-      needsOnboarding: onboardingResolvedNow ? (roleResolvedNow && admin ? false : (profileRes.data as any)?.machine_format ? needsOnboarding : "resolved") : "unresolved",
+      needsOnboarding: onboardingResolvedNow ? resolvedNeedsOnboarding : "unresolved",
     });
-  }, [clearRetryTimer, needsOnboarding]);
+  }, [clearRetryTimer]);
 
   const applySessionState = useCallback(async (nextSession: Session | null, reason: string) => {
     const nextUser = nextSession?.user ?? null;

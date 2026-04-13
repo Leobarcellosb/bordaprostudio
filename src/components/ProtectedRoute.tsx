@@ -52,7 +52,6 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   if (!roleResolved) {
     return (
       <RouteRetryState
@@ -61,5 +60,6 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
       />
     );
   }
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
