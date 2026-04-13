@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,23 +15,70 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, loading: authLoading, isAdmin, hasActiveSubscription, needsOnboarding } = useAuth();
+  const loginTimeoutRef = useRef<number | null>(null);
+  const {
+    user,
+    loading: authLoading,
+    isAdmin,
+    roleResolved,
+    hasActiveSubscription,
+    subscriptionResolved,
+    needsOnboarding,
+    onboardingResolved,
+  } = useAuth();
+
+  const clearLoginTimeout = useCallback(() => {
+    if (loginTimeoutRef.current !== null) {
+      window.clearTimeout(loginTimeoutRef.current);
+      loginTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearLoginTimeout();
+  }, [clearLoginTimeout]);
 
   // Auto-redirect if already authenticated
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) {
+      clearLoginTimeout();
+      return;
+    }
+
+    clearLoginTimeout();
+    setLoading(false);
+
     if (isAdmin) { navigate("/dashboard", { replace: true }); return; }
-    if (needsOnboarding) { navigate("/onboarding", { replace: true }); return; }
-    if (hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
-    navigate("/plans", { replace: true });
-  }, [user, authLoading, isAdmin, hasActiveSubscription, needsOnboarding, navigate]);
+    if (!roleResolved) { navigate("/dashboard", { replace: true }); return; }
+    if (onboardingResolved && needsOnboarding) { navigate("/onboarding", { replace: true }); return; }
+    if (subscriptionResolved) {
+      if (hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
+      navigate("/plans", { replace: true });
+      return;
+    }
+
+    navigate("/dashboard", { replace: true });
+  }, [
+    user,
+    authLoading,
+    isAdmin,
+    roleResolved,
+    hasActiveSubscription,
+    subscriptionResolved,
+    needsOnboarding,
+    onboardingResolved,
+    navigate,
+    clearLoginTimeout,
+  ]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     // Safety timeout — if auth never resolves, re-enable the button
-    const timeout = setTimeout(() => {
+    clearLoginTimeout();
+    loginTimeoutRef.current = window.setTimeout(() => {
       setLoading(false);
       toast.error("Login demorou mais que o esperado. Tente novamente.");
     }, LOGIN_TIMEOUT);
@@ -39,14 +86,14 @@ const Login = () => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        clearTimeout(timeout);
+        clearLoginTimeout();
         toast.error(error.message);
         setLoading(false);
       }
       // On success, don't setLoading(false) — AuthContext handles redirect.
       // The timeout above is the safety net.
     } catch (err) {
-      clearTimeout(timeout);
+      clearLoginTimeout();
       toast.error("Erro inesperado ao fazer login.");
       setLoading(false);
     }
