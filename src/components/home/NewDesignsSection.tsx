@@ -11,18 +11,20 @@ export const NewDesignsSection = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await db
-        .from("designs")
-        .select("*, categories(name)")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(12);
-
-      setDesigns(data || []);
-      setLoading(false);
-    };
-    fetch();
+    db.from("designs")
+      .select("*, categories(name)")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
+      .limit(12)
+      .then(({ data }: any) => {
+        setDesigns(data || []);
+      })
+      .catch((err: any) => {
+        console.error("[NewDesignsSection] fetch error:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   return (

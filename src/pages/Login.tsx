@@ -8,6 +8,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import logoHorizontal from "@/assets/logo-horizontal.png";
 
+const LOGIN_TIMEOUT = 15000; // 15s max waiting for auth resolution
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,21 +20,36 @@ const Login = () => {
   // Auto-redirect if already authenticated
   useEffect(() => {
     if (authLoading || !user) return;
+    if (isAdmin) { navigate("/dashboard", { replace: true }); return; }
     if (needsOnboarding) { navigate("/onboarding", { replace: true }); return; }
-    if (isAdmin || hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
+    if (hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
     navigate("/plans", { replace: true });
   }, [user, authLoading, isAdmin, hasActiveSubscription, needsOnboarding, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(error.message);
+
+    // Safety timeout — if auth never resolves, re-enable the button
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      toast.error("Login demorou mais que o esperado. Tente novamente.");
+    }, LOGIN_TIMEOUT);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        clearTimeout(timeout);
+        toast.error(error.message);
+        setLoading(false);
+      }
+      // On success, don't setLoading(false) — AuthContext handles redirect.
+      // The timeout above is the safety net.
+    } catch (err) {
+      clearTimeout(timeout);
+      toast.error("Erro inesperado ao fazer login.");
       setLoading(false);
     }
-    // Don't setLoading(false) on success — AuthContext handles the redirect via onAuthStateChange
-    // Navigation happens after auth state is fully resolved
   };
 
   return (

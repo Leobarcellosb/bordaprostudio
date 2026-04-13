@@ -28,25 +28,30 @@ const DownloadsPage = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!user) return;
-    const fetch = async () => {
+    if (!user) { setLoading(false); return; }
+    const fetchData = async () => {
       setLoading(true);
-      const { data } = await db
-        .from("downloads")
-        .select("id, kit_id, created_at, designs:kit_id(id, name, cover_image, categories(name))")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      try {
+        const { data } = await db
+          .from("downloads")
+          .select("id, kit_id, created_at, designs:kit_id(id, name, cover_image, categories(name))")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
 
-      const mapped = (data || []).map((d: any) => ({
-        id: d.id,
-        kit_id: d.kit_id,
-        downloaded_at: d.created_at,
-        kit: d.designs,
-      }));
-      setDownloads(mapped);
-      setLoading(false);
+        const mapped = (data || []).map((d: any) => ({
+          id: d.id,
+          kit_id: d.kit_id,
+          downloaded_at: d.created_at,
+          kit: d.designs,
+        }));
+        setDownloads(mapped);
+      } catch (err) {
+        console.error("[DownloadsPage] fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+    fetchData();
   }, [user]);
 
   return (

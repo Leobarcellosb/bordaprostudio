@@ -15,6 +15,11 @@ export function useFavorites() {
       .eq("user_id", user.id)
       .then(({ data }: any) => {
         setFavoriteIds(new Set((data || []).map((f: any) => f.kit_id)));
+      })
+      .catch((err: any) => {
+        console.error("[useFavorites] load error:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [user]);
@@ -22,7 +27,6 @@ export function useFavorites() {
   const toggle = useCallback(async (kitId: string) => {
     if (!user) { toast.error("Faça login para salvar favoritos"); return; }
     const isFav = favoriteIds.has(kitId);
-    // Optimistic update
     setFavoriteIds((prev) => {
       const next = new Set(prev);
       isFav ? next.delete(kitId) : next.add(kitId);
@@ -35,13 +39,11 @@ export function useFavorites() {
       } else {
         await db.from("favorites").insert({ user_id: user.id, kit_id: kitId });
         toast.success("Adicionado aos favoritos!");
-        // Dispatch webhook (non-blocking)
         import("@/lib/webhooks").then(({ dispatchWebhook }) => {
           dispatchWebhook({ event_name: "design_favorited", user_email: user.email || undefined, user_id: user.id, design_id: kitId });
         });
       }
     } catch {
-      // Rollback
       setFavoriteIds((prev) => {
         const next = new Set(prev);
         isFav ? next.add(kitId) : next.delete(kitId);
