@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,14 +13,26 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user, loading: authLoading, isAdmin, hasActiveSubscription, needsOnboarding } = useAuth();
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (needsOnboarding) { navigate("/onboarding", { replace: true }); return; }
+    if (isAdmin || hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
+    navigate("/plans", { replace: true });
+  }, [user, authLoading, isAdmin, hasActiveSubscription, needsOnboarding, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) toast.error(error.message);
-    else navigate("/dashboard");
-    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+    }
+    // Don't setLoading(false) on success — AuthContext handles the redirect via onAuthStateChange
+    // Navigation happens after auth state is fully resolved
   };
 
   return (
