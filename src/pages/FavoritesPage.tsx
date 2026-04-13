@@ -19,7 +19,7 @@ const FavoritesPage = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     const ids = Array.from(favoriteIds);
     if (ids.length === 0) { setDesigns([]); setLoading(false); return; }
 
@@ -29,6 +29,11 @@ const FavoritesPage = () => {
       .eq("is_published", true)
       .then(({ data }: any) => {
         setDesigns(data || []);
+      })
+      .catch((err: any) => {
+        console.error("[FavoritesPage] fetch error:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [user, favoriteIds]);

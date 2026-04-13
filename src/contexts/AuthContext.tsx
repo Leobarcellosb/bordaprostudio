@@ -32,6 +32,20 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// Timeout wrapper for any promise - prevents infinite hangs
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => {
+      console.warn(`[Auth] Query timed out after ${ms}ms, using fallback`);
+      resolve(fallback);
+    }, ms)),
+  ]);
+}
+
+const FETCH_TIMEOUT = 8000; // 8s max for any single query
+const BOOT_TIMEOUT = 12000; // 12s max for entire auth bootstrap
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -43,29 +57,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const initDone = useRef(false);
 
   const fetchUserData = useCallback(async (userId: string) => {
+    console.log("[Auth] fetchUserData START for", userId);
     try {
-      const [profileRes, roleRes, subRes, prefsRes] = await Promise.all([
-        db.from("profiles").select("*").eq("id", userId).single(),
-        db.from("user_roles").select("role").eq("user_id", userId),
-        db.from("subscriptions")
-          .select("id, plan_code, status, access_expires_at, provider")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        db.from("user_preferences")
-          .select("id, completed_at")
-          .eq("user_id", userId)
-          .maybeSingle(),
-      ]);
+      const [profileRes, roleRes, subRes, prefsRes] = await withTimeout(
+        Promise.all([
+          db.from("profiles").select("*").eq("id", userId).maybeSingle(),
+          db.from("user_roles").select("role").eq("user_id", userId),
+          db.from("subscriptions")
+            .select("id, plan_code, status, access_expires_at, provider")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          db.from("user_preferences")
+            .select("id, completed_at")
+            .eq("user_id", userId)
+            .maybeSingle(),
+        ]),
+        FETCH_TIMEOUT,
+        [{ data: null, error: null }, { data: null, error: null }, { data: null, error: null }, { data: null, error: null }]
+      );
 
       const prof = profileRes.data;
       setProfile(prof);
+
       const admin = roleRes.data?.some((r: any) => r.role === "admin") ?? false;
       setIsAdmin(admin);
       setSubscription(subRes.data);
 
-      // Onboarding check: admins bypass, otherwise check machine settings + preferences
+      // Onboarding check: admins bypass
       if (admin) {
         setNeedsOnboarding(false);
       } else if (prof && (!prof.machine_format || !prof.machine_hoop_size)) {
@@ -75,27 +95,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNeedsOnboarding(!prefs || !prefs.completed_at);
       }
 
-      console.log("[Auth] isAdmin:", admin, "subscription:", subRes.data?.status ?? "none");
+      console.log("[Auth] fetchUserData DONE — admin:", admin, "sub:", subRes.data?.status ?? "none");
     } catch (e) {
-      console.error("[Auth] fetchUserData error:", e);
-      setNeedsOnboarding(false); // Don't block on error
+      console.error("[Auth] fetchUserData ERROR:", e);
+      // Don't block the user on error — allow entry with defaults
+      setNeedsOnboarding(false);
     }
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserData(session.user.id);
-      }
-      if (mounted) {
+    // Global boot timeout — if loading is still true after BOOT_TIMEOUT, force it false
+    const bootTimer = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("[Auth] Boot timeout reached, forcing loading=false");
         setLoading(false);
-        initDone.current = true;
+      }
+    }, BOOT_TIMEOUT);
+
+    const init = async () => {
+      console.log("[Auth] init START");
+      try {
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          FETCH_TIMEOUT,
+          { data: { session: null } } as any
+        );
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchUserData(session.user.id);
+        }
+      } catch (e) {
+        console.error("[Auth] init ERROR:", e);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          initDone.current = true;
+          console.log("[Auth] init DONE");
+        }
       }
     };
 
@@ -103,7 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
-      // Skip the first INITIAL_SESSION event — init() already handled it
       if (!initDone.current && _event === "INITIAL_SESSION") return;
 
       console.log("[Auth] onAuthStateChange:", _event);
@@ -111,16 +150,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // CRITICAL: set loading=true BEFORE fetching to prevent premature redirects
         setLoading(true);
-        await fetchUserData(session.user.id);
+        try {
+          await fetchUserData(session.user.id);
+        } catch (e) {
+          console.error("[Auth] onAuthStateChange fetch ERROR:", e);
+        } finally {
+          if (mounted) setLoading(false);
+        }
       } else {
         setProfile(null); setIsAdmin(false); setSubscription(null); setNeedsOnboarding(false);
+        if (mounted) setLoading(false);
       }
-      if (mounted) setLoading(false);
     });
 
-    return () => { mounted = false; authSub.unsubscribe(); };
+    return () => {
+      mounted = false;
+      clearTimeout(bootTimer);
+      authSub.unsubscribe();
+    };
   }, [fetchUserData]);
 
   const hasActiveSubscription = !!(
@@ -132,13 +180,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshSubscription = useCallback(async () => {
     if (!user) return;
-    const { data } = await db.from("subscriptions")
-      .select("id, plan_code, status, access_expires_at, provider")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setSubscription(data);
+    try {
+      const { data } = await withTimeout(
+        db.from("subscriptions")
+          .select("id, plan_code, status, access_expires_at, provider")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        FETCH_TIMEOUT,
+        { data: null }
+      );
+      setSubscription(data);
+    } catch (e) {
+      console.error("[Auth] refreshSubscription ERROR:", e);
+    }
   }, [user]);
 
   const signOut = async () => {

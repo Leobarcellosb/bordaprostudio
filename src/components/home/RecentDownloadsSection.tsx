@@ -21,8 +21,7 @@ export const RecentDownloadsSection = () => {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10)
-      .then(({ data }) => {
-        // Deduplicate by design id, keep most recent
+      .then(({ data }: any) => {
         const seen = new Set<string>();
         const unique = (data || []).filter((d: any) => {
           if (!d.designs || seen.has(d.kit_id)) return false;
@@ -30,6 +29,11 @@ export const RecentDownloadsSection = () => {
           return true;
         });
         setItems(unique);
+      })
+      .catch((err: any) => {
+        console.error("[RecentDownloads] fetch error:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [user]);
