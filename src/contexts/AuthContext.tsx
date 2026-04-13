@@ -105,10 +105,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return;
       // Skip the first INITIAL_SESSION event — init() already handled it
       if (!initDone.current && _event === "INITIAL_SESSION") return;
-      
+
+      console.log("[Auth] onAuthStateChange:", _event);
       setSession(session);
       setUser(session?.user ?? null);
+
       if (session?.user) {
+        // CRITICAL: set loading=true BEFORE fetching to prevent premature redirects
+        setLoading(true);
         await fetchUserData(session.user.id);
       } else {
         setProfile(null); setIsAdmin(false); setSubscription(null); setNeedsOnboarding(false);

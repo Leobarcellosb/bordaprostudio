@@ -17,9 +17,12 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) toast.error(error.message);
-    else navigate("/dashboard");
-    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+    }
+    // Don't setLoading(false) on success — AuthContext handles the redirect via onAuthStateChange
+    // Navigation happens after auth state is fully resolved
   };
 
   return (
