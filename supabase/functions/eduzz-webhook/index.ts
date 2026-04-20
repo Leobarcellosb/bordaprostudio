@@ -1,16 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
-const ok = (extra?: object) =>
-  new Response(JSON.stringify({ received: true, ...extra }), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+async function hmacSha256Hex(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 
 async function logEvent(
   supabase: any,
@@ -33,6 +42,12 @@ async function logEvent(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
+  const ok = (extra?: object) =>
+    new Response(JSON.stringify({ received: true, ...extra }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return ok();
 
@@ -41,9 +56,38 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  const rawBody = await req.text();
+  const secret = Deno.env.get("EDUZZ_WEBHOOK_SECRET");
+
+  if (secret) {
+    const provided = (
+      req.headers.get("X-Eduzz-Signature") ||
+      req.headers.get("x-eduzz-signature") ||
+      req.headers.get("X-Signature") ||
+      ""
+    ).trim().replace(/^sha256=/i, "");
+
+    if (!provided) {
+      await logEvent(supabase, "eduzz", "unauthorized", null, null, "error", "Assinatura HMAC ausente");
+      return new Response(JSON.stringify({ error: "Missing signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const expected = await hmacSha256Hex(secret, rawBody);
+    if (!timingSafeEqual(provided.toLowerCase(), expected.toLowerCase())) {
+      await logEvent(supabase, "eduzz", "unauthorized", null, null, "error", "Assinatura HMAC inválida");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   try {
-    const payload = await req.json().catch(() => ({}));
-    console.log("Eduzz webhook received:", JSON.stringify(payload));
+    let payload: any = {};
+    try { payload = JSON.parse(rawBody); } catch { payload = {}; }
 
     // Support both old flat format and new nested format
     const data = payload.data || payload;

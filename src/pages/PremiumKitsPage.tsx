@@ -17,27 +17,37 @@ const PremiumKitsPage = () => {
   const isAnnual = subscription?.plan_code === "anual" && subscription?.status === "active";
 
   useEffect(() => {
+    let cancelled = false;
     const fetchKits = async () => {
-      const { data } = await db
-        .from("premium_kits")
-        .select("*")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false });
+      setLoading(true);
+      try {
+        const { data } = await db
+          .from("premium_kits")
+          .select("*")
+          .eq("is_published", true)
+          .order("created_at", { ascending: false });
+        if (cancelled) return;
 
-      // Filter out test/incomplete kits
-      const validKits = (data || []).filter((kit: any) => {
-        const title = (kit.title || "").toLowerCase().trim();
-        if (!title || title.length < 3) return false;
-        if (/^teste?$/i.test(title)) return false;
-        if (/^kit\s*teste?$/i.test(title)) return false;
-        if (!kit.description || kit.description.trim().length < 5) return false;
-        return true;
-      });
+        const validKits = (data || []).filter((kit: any) => {
+          const title = (kit.title || "").toLowerCase().trim();
+          if (!title || title.length < 3) return false;
+          if (/^teste?$/i.test(title)) return false;
+          if (/^kit\s*teste?$/i.test(title)) return false;
+          if (!kit.description || kit.description.trim().length < 5) return false;
+          return true;
+        });
 
-      setKits(validKits);
-      setLoading(false);
+        setKits(validKits);
+      } catch (err) {
+        console.error("[PremiumKits] fetch error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     fetchKits();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getAccessLabel = (kit: any) => {

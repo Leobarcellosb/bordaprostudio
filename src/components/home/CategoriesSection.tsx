@@ -22,11 +22,20 @@ export const CategoriesSection = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     db.from("categories")
       .select("*")
       .eq("is_active", true)
       .order("name")
-      .then(({ data }: any) => setCategories(data || []));
+      .then(({ data }: any) => {
+        if (!cancelled) setCategories(data || []);
+      })
+      .catch((err: any) => {
+        console.error("[CategoriesSection] load error:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (categories.length === 0) return null;

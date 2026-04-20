@@ -23,6 +23,10 @@ const ResetPassword = () => {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 8 || !/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+      toast.error("Senha precisa ter pelo menos 8 caracteres, letras e números.");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) toast.error(error.message);
@@ -39,7 +43,7 @@ const ResetPassword = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleUpdate} className="space-y-4">
-            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" required minLength={6} />
+            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mín. 8 caracteres, letras e números" required minLength={8} />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Atualizando..." : isInvite ? "Criar senha e entrar" : "Atualizar senha"}
             </Button>

@@ -47,9 +47,15 @@ export const AdminBulkImport = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    db.from("categories").select("*").order("name").then(({ data }: any) => {
-      setCategories(data || []);
-    });
+    let cancelled = false;
+    db.from("categories").select("*").order("name")
+      .then(({ data }: any) => {
+        if (!cancelled) setCategories(data || []);
+      })
+      .catch((err: any) => console.error("[AdminBulkImport] categories load error:", err));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const parseZip = useCallback(async (file: File) => {

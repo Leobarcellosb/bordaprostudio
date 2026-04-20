@@ -1,11 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -62,6 +60,21 @@ Deno.serve(async (req) => {
     if (action === "update_plan") {
       const { user_id, plan } = body;
       await supabaseAdmin.from("profiles").update({ plan }).eq("id", user_id);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "update_profile") {
+      const { user_id, name, last_name, plan, machine_format, machine_hoop_size } = body;
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const updates: Record<string, unknown> = {};
+      if (typeof name === "string") updates.name = name;
+      if (typeof last_name === "string") updates.last_name = last_name;
+      if (typeof plan === "string") updates.plan = plan;
+      if (typeof machine_format === "string" || machine_format === null) updates.machine_format = machine_format || null;
+      if (typeof machine_hoop_size === "string" || machine_hoop_size === null) updates.machine_hoop_size = machine_hoop_size || null;
+      await supabaseAdmin.from("profiles").update(updates).eq("id", user_id);
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

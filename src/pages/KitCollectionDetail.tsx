@@ -22,35 +22,47 @@ const KitDetailPage = () => {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data: kitData } = await db.from("kits").select("*").eq("id", id).single();
-      if (!kitData) { setLoading(false); return; }
-      setKit(kitData);
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const { data: kitData } = await db.from("kits").select("*").eq("id", id).single();
+        if (cancelled) return;
+        if (!kitData) return;
+        setKit(kitData);
 
-      const { data: relations } = await db
-        .from("kit_designs")
-        .select("design_id, order_index")
-        .eq("kit_id", id)
-        .order("order_index", { ascending: true });
+        const { data: relations } = await db
+          .from("kit_designs")
+          .select("design_id, order_index")
+          .eq("kit_id", id)
+          .order("order_index", { ascending: true });
+        if (cancelled) return;
 
-      if (relations && relations.length > 0) {
-        const designIds = relations.map((r: any) => r.design_id);
-        const { data: designRows } = await db
-          .from("designs")
-          .select("*, categories(name)")
-          .in("id", designIds)
-          .eq("is_published", true);
+        if (relations && relations.length > 0) {
+          const designIds = relations.map((r: any) => r.design_id);
+          const { data: designRows } = await db
+            .from("designs")
+            .select("*, categories(name)")
+            .in("id", designIds)
+            .eq("is_published", true);
+          if (cancelled) return;
 
-        // Maintain order
-        const designMap = Object.fromEntries((designRows || []).map((d: any) => [d.id, d]));
-        const ordered = relations
-          .map((r: any) => designMap[r.design_id])
-          .filter(Boolean);
-        setDesigns(ordered);
+          const designMap = Object.fromEntries((designRows || []).map((d: any) => [d.id, d]));
+          const ordered = relations
+            .map((r: any) => designMap[r.design_id])
+            .filter(Boolean);
+          setDesigns(ordered);
+        }
+      } catch (err) {
+        console.error("[KitDetail] fetch error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
-    fetch();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const handleDownloadAll = async () => {

@@ -18,14 +18,23 @@ const CatalogDetailPage = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    if (!user || !id) return;
-    const [{ data: catData }, { data: itemsData }] = await Promise.all([
-      db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
-      db.from("catalog_items").select("*, designs(*, categories(name))").eq("catalog_id", id).order("created_at", { ascending: false }),
-    ]);
-    setCatalog(catData);
-    setItems(itemsData || []);
-    setLoading(false);
+    if (!user || !id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [{ data: catData }, { data: itemsData }] = await Promise.all([
+        db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
+        db.from("catalog_items").select("*, designs(*, categories(name))").eq("catalog_id", id).order("created_at", { ascending: false }),
+      ]);
+      setCatalog(catData);
+      setItems(itemsData || []);
+    } catch (err) {
+      console.error("[CatalogDetail] fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, [id, user]);

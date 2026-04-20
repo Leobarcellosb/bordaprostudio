@@ -198,7 +198,7 @@ export const AdminPremiumKits = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Quantidade de Matrizes</label>
-                  <Input type="number" value={form.designs_count} onChange={e => setForm({ ...form, designs_count: parseInt(e.target.value) || 0 })} />
+                  <Input type="number" value={form.designs_count} onChange={e => setForm({ ...form, designs_count: parseInt(e.target.value, 10) || 0 })} />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Preço (R$)</label>

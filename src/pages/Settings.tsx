@@ -41,13 +41,29 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    const MAX_SIZE = 5 * 1024 * 1024;
+    const ALLOWED_EXT: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    };
+
+    if (!ALLOWED_EXT[file.type]) {
+      toast.error("Formato inválido. Envie JPG, PNG, WEBP ou GIF.");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      toast.error("Imagem acima de 5MB.");
+      return;
+    }
+
     setUploading(true);
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${user.id}/avatar.${fileExt}`;
+    const filePath = `${user.id}/avatar.${ALLOWED_EXT[file.type]}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
       toast.error(t("settings.uploadError"));

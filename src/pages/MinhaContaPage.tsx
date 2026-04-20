@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { User, Crown, KeyRound, ExternalLink, AlertTriangle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_URL } from "@/lib/env";
+import { PLAN_DISPLAY } from "@/lib/pricing";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -26,15 +28,13 @@ const MinhaContaPage = () => {
   const navigate = useNavigate();
   const [canceling, setCanceling] = useState(false);
 
-  const planLabels: Record<string, string> = {
-    mensal: "Plano Mensal",
-    anual: "Plano Anual",
-  };
+  const planLabels: Record<string, string> = Object.fromEntries(
+    Object.entries(PLAN_DISPLAY).map(([k, v]) => [k, v.label]),
+  );
 
-  const planPrices: Record<string, string> = {
-    mensal: "R$ 79,90/mês",
-    anual: "R$ 597,00/ano",
-  };
+  const planPrices: Record<string, string> = Object.fromEntries(
+    Object.entries(PLAN_DISPLAY).map(([k, v]) => [k, v.price]),
+  );
 
   const statusConfig: Record<string, { label: string; icon: any; variant: "default" | "secondary" | "destructive" }> = {
     active: { label: "Ativa", icon: CheckCircle2, variant: "default" },
@@ -51,7 +51,7 @@ const MinhaContaPage = () => {
   const handleChangePassword = async () => {
     if (!user?.email) return;
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${APP_URL}/reset-password`,
     });
     if (error) {
       toast.error("Erro ao enviar email. Tente novamente.");

@@ -119,9 +119,15 @@ export const AdminSmartUpload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    db.from("categories").select("*").order("name").then(({ data }: any) => {
-      setCategories(data || []);
-    });
+    let cancelled = false;
+    db.from("categories").select("*").order("name")
+      .then(({ data }: any) => {
+        if (!cancelled) setCategories(data || []);
+      })
+      .catch((err: any) => console.error("[AdminSmartUpload] categories load error:", err));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const processFiles = useCallback(
@@ -446,6 +452,7 @@ export const AdminSmartUpload = () => {
     let failCount = 0;
     let skippedCount = 0;
 
+    try {
     for (const group of pending) {
       updateGroup(group.id, { status: "uploading", pipelineLog: [], importResult: null });
       const gid = group.id;
@@ -647,8 +654,12 @@ export const AdminSmartUpload = () => {
       completed++;
       setProgress(Math.round((completed / pending.length) * 100));
     }
+    } catch (err) {
+      console.error("[AdminSmartUpload] import loop error:", err);
+    } finally {
+      setImporting(false);
+    }
 
-    setImporting(false);
     const parts = [];
     if (successCount > 0) parts.push(`${successCount} importado${successCount !== 1 ? "s" : ""}`);
     if (skippedCount > 0) parts.push(`${skippedCount} duplicado${skippedCount !== 1 ? "s" : ""}`);

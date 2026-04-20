@@ -6,7 +6,18 @@ export const AdminDownloads = () => {
   const [downloads, setDownloads] = useState<any[]>([]);
 
   useEffect(() => {
-    db.from("downloads").select("*, designs:kit_id(name), profiles:user_id(name, email)").order("created_at", { ascending: false }).limit(100).then(({ data }: any) => setDownloads(data || []));
+    let cancelled = false;
+    db.from("downloads")
+      .select("*, designs:kit_id(name), profiles:user_id(name, email)")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .then(({ data }: any) => {
+        if (!cancelled) setDownloads(data || []);
+      })
+      .catch((err: any) => console.error("[AdminDownloads] load error:", err));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

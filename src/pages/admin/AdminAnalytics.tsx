@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { db } from "@/lib/db";
+import { monthlyRevenueFor } from "@/lib/pricing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,6 +57,7 @@ export const AdminAnalytics = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       const [downloads, users, subs, designs, favorites, files] = await Promise.all([
         db.from("downloads").select("id, kit_id, user_id, created_at"),
@@ -65,6 +67,7 @@ export const AdminAnalytics = () => {
         db.from("favorites").select("id, kit_id, created_at"),
         db.from("kit_arquivos").select("id, format, created_at"),
       ]);
+      if (cancelled) return;
       setAllDownloads(downloads.data || []);
       setAllUsers(users.data || []);
       setAllSubs(subs.data || []);
@@ -74,6 +77,9 @@ export const AdminAnalytics = () => {
       setLoading(false);
     };
     load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const start = useMemo(() => getStartDate(period), [period]);
@@ -83,7 +89,7 @@ export const AdminAnalytics = () => {
   const periodSubs = useMemo(() => allSubs.filter((s) => new Date(s.created_at) >= start), [allSubs, start]);
 
   const activeSubs = allSubs.filter((s) => s.status === "active" && s.access_expires_at && new Date(s.access_expires_at) > new Date());
-  const mrr = activeSubs.reduce((sum, s) => sum + (s.plan_code === "anual" ? 29.9 : 39.9), 0);
+  const mrr = activeSubs.reduce((sum, s) => sum + monthlyRevenueFor(s.plan_code), 0);
 
   const downloadsChart = useMemo(() => groupByDay(periodDownloads, start), [periodDownloads, start]);
   const usersChart = useMemo(() => groupByDay(periodUsers, start), [periodUsers, start]);

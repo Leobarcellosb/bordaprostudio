@@ -20,7 +20,8 @@ const ProductIdeasPage = () => {
     db.from("product_ideas")
       .select("*, designs(id, name, cover_image)")
       .order("created_at", { ascending: false })
-      .then(({ data }: any) => setIdeas(data || []));
+      .then(({ data }: any) => setIdeas(data || []))
+      .catch((err: any) => console.error("[ProductIdeas] load error:", err));
   };
 
   useEffect(() => { fetchIdeas(); }, []);

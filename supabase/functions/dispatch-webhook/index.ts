@@ -1,12 +1,35 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
+
+const PRIVATE_HOST_PATTERNS = [
+  /^localhost$/i,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^172\.(1[6-9]|2\d|3[0-1])\./,
+  /^169\.254\./,
+  /^0\./,
+  /^::1$/,
+  /^fc00:/i,
+  /^fe80:/i,
+  /\.local$/i,
+  /\.internal$/i,
+];
+
+function isSafePublicUrl(input: string): boolean {
+  try {
+    const u = new URL(input);
+    if (u.protocol !== "https:") return false;
+    const host = u.hostname.toLowerCase();
+    return !PRIVATE_HOST_PATTERNS.some((re) => re.test(host));
+  } catch {
+    return false;
+  }
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -78,6 +101,20 @@ Deno.serve(async (req) => {
     for (const config of configs) {
       // Check if this webhook subscribes to this event
       if (!is_test && config.events && !config.events.includes(event_name)) {
+        continue;
+      }
+
+      if (!isSafePublicUrl(config.url)) {
+        results.push({ url: config.url, status: "blocked", ok: false });
+        await supabase.from("integration_logs").insert({
+          integration: "webhook",
+          event_type: is_test ? "webhook_test" : event_name,
+          email: user_email || null,
+          user_id: user_id || null,
+          status: "error",
+          message: `URL bloqueada (apenas HTTPS públicos são aceitos): ${config.url}`,
+          payload,
+        });
         continue;
       }
 

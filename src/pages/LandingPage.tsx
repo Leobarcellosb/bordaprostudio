@@ -446,7 +446,7 @@ const LandingPage = () => {
                 <div>
                   <h3 className="font-display font-bold text-xl">Mensal</h3>
                   <div className="flex items-baseline gap-1.5 mt-2">
-                    <span className="text-3xl font-bold text-gradient-brand">R$ 79,90</span>
+                    <span className="text-3xl font-bold text-gradient-brand">R$ 49,90</span>
                     <span className="text-muted-foreground text-sm">/mês</span>
                   </div>
                 </div>
@@ -481,17 +481,17 @@ const LandingPage = () => {
                 <div>
                   <h3 className="font-display font-bold text-xl">Anual</h3>
                   <div className="flex items-baseline gap-1.5 mt-2">
-                    <span className="text-3xl font-bold text-gradient-brand">R$ 597</span>
+                    <span className="text-3xl font-bold text-gradient-brand">R$ 397</span>
                     <span className="text-muted-foreground text-sm">/ano</span>
                   </div>
-                  <p className="text-xs text-muted-foreground/70 mt-1 italic">equivalente a R$ 49,75/mês</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 italic">equivalente a R$ 33,08/mês</p>
                   <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mt-2">
                     <Sparkles className="h-3 w-3" />
-                    Economia de R$ 361,80
+                    Economia de R$ 201,80
                   </div>
                 </div>
                 <ul className="space-y-3">
-                  {["Tudo do Mensal", "Prioridade em novos designs", "Suporte prioritário", "Desconto de 38%"].map((f) => (
+                  {["Tudo do Mensal", "Prioridade em novos designs", "Suporte prioritário", "Desconto de 34%"].map((f) => (
                     <li key={f} className="flex items-center gap-2.5 text-sm">
                       <Check className="h-4 w-4 text-primary shrink-0" />
                       <span className="text-foreground/80">{f}</span>

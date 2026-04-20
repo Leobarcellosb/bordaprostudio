@@ -130,13 +130,15 @@ export const AdminUsers = () => {
     if (!editUser) return;
     setSaving(true);
     try {
-      await db.from("profiles").update({
+      await callAdmin({
+        action: "update_profile",
+        user_id: editUser.id,
         name: editForm.name,
         last_name: editForm.last_name,
         plan: editForm.plan,
         machine_format: editForm.machine_format || null,
         machine_hoop_size: editForm.machine_hoop_size || null,
-      }).eq("id", editUser.id);
+      });
 
       const currentRole = editUser.user_roles?.[0]?.role;
       if (currentRole !== editForm.role) {

@@ -22,17 +22,31 @@ const PremiumKitDetail = () => {
   const isAnnual = subscription?.plan_code === "anual" && subscription?.status === "active";
 
   useEffect(() => {
+    let cancelled = false;
     const fetchKit = async () => {
-      if (!id) return;
-      const [kitRes, designsRes] = await Promise.all([
-        db.from("premium_kits").select("*").eq("id", id).single(),
-        db.from("kit_designs").select("design_id").eq("kit_id", id),
-      ]);
-      setKit(kitRes.data);
-      setKitDesignIds((designsRes.data || []).map((d: any) => d.design_id));
-      setLoading(false);
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const [kitRes, designsRes] = await Promise.all([
+          db.from("premium_kits").select("*").eq("id", id).single(),
+          db.from("kit_designs").select("design_id").eq("kit_id", id),
+        ]);
+        if (cancelled) return;
+        setKit(kitRes.data);
+        setKitDesignIds((designsRes.data || []).map((d: any) => d.design_id));
+      } catch (err) {
+        console.error("[PremiumKitDetail] fetch error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     fetchKit();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const canDownload = () => {

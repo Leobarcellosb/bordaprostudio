@@ -8,12 +8,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import logoHorizontal from "@/assets/logo-horizontal.png";
 
-const LOGIN_TIMEOUT = 15000; // 15s max waiting for auth resolution
+const LOGIN_TIMEOUT = 15000;
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const loginTimeoutRef = useRef<number | null>(null);
   const {
@@ -25,6 +26,7 @@ const Login = () => {
     subscriptionResolved,
     needsOnboarding,
     onboardingResolved,
+    signOut,
   } = useAuth();
 
   const clearLoginTimeout = useCallback(() => {
@@ -38,7 +40,6 @@ const Login = () => {
     return () => clearLoginTimeout();
   }, [clearLoginTimeout]);
 
-  // Auto-redirect if already authenticated
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -46,19 +47,38 @@ const Login = () => {
       return;
     }
 
-    clearLoginTimeout();
-    setLoading(false);
-
-    if (isAdmin) { navigate("/dashboard", { replace: true }); return; }
-    if (!roleResolved) { navigate("/dashboard", { replace: true }); return; }
-    if (onboardingResolved && needsOnboarding) { navigate("/onboarding", { replace: true }); return; }
-    if (subscriptionResolved) {
-      if (hasActiveSubscription) { navigate("/dashboard", { replace: true }); return; }
-      navigate("/plans", { replace: true });
+    // Auth finished but role failed to resolve → don't redirect into the loop.
+    if (!roleResolved) {
+      console.warn("[LOGIN] user authenticated but role not resolved — showing recovery UI");
+      clearLoginTimeout();
+      setLoading(false);
+      setAuthError("Entramos na sua conta, mas não conseguimos carregar suas permissões. Verifique sua conexão.");
       return;
     }
 
-    navigate("/dashboard", { replace: true });
+    clearLoginTimeout();
+    setLoading(false);
+    setAuthError(null);
+
+    if (isAdmin) {
+      console.info("[LOGIN] redirect → /dashboard (admin)");
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    if (onboardingResolved && needsOnboarding) {
+      console.info("[LOGIN] redirect → /onboarding");
+      navigate("/onboarding", { replace: true });
+      return;
+    }
+    if (subscriptionResolved) {
+      const target = hasActiveSubscription ? "/dashboard" : "/plans";
+      console.info(`[LOGIN] redirect → ${target}`);
+      navigate(target, { replace: true });
+      return;
+    }
+
+    // Subscription not resolved yet — keep waiting briefly.
+    console.info("[LOGIN] role resolved but subscription pending — awaiting");
   }, [
     user,
     authLoading,
@@ -72,11 +92,21 @@ const Login = () => {
     clearLoginTimeout,
   ]);
 
+  const handleSignOutRetry = async () => {
+    try {
+      await signOut();
+    } finally {
+      setAuthError(null);
+      setEmail("");
+      setPassword("");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     setLoading(true);
 
-    // Safety timeout — if auth never resolves, re-enable the button
     clearLoginTimeout();
     loginTimeoutRef.current = window.setTimeout(() => {
       setLoading(false);
@@ -90,9 +120,8 @@ const Login = () => {
         toast.error(error.message);
         setLoading(false);
       }
-      // On success, don't setLoading(false) — AuthContext handles redirect.
-      // The timeout above is the safety net.
     } catch (err) {
+      console.error("[LOGIN] signIn threw:", err);
       clearLoginTimeout();
       toast.error("Erro inesperado ao fazer login.");
       setLoading(false);
@@ -112,6 +141,19 @@ const Login = () => {
             <CardDescription>Acesse sua conta para continuar</CardDescription>
           </CardHeader>
           <CardContent>
+            {authError && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                <p className="text-sm text-destructive font-medium">{authError}</p>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => window.location.reload()}>
+                    Recarregar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={handleSignOutRetry}>
+                    Sair e tentar de novo
+                  </Button>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Email</label>

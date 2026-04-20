@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 
@@ -36,14 +36,30 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const [hasIncompatible, setHasIncompatible] = useState(false);
   const [compatibleCount, setCompatibleCount] = useState(0);
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Load categories once
   useEffect(() => {
+    let cancelled = false;
     db.from("categories").select("*").eq("is_active", true).order("name")
-      .then(({ data }: any) => setCategories(data || []));
+      .then(({ data }: any) => {
+        if (!cancelled) setCategories(data || []);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchDesigns = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     try {
       let stitchMin: number | null = null;
@@ -68,6 +84,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
 
       if (error) throw error;
 
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+
       const results = data || [];
       const count = results.length > 0 ? Number(results[0].total_count) : 0;
 
@@ -76,12 +94,9 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         categories: r.category_name ? { name: r.category_name } : null,
       }));
 
-      // Track compatibility info
       const compatible = mapped.filter((d: any) => d.is_compatible !== false).length;
       setCompatibleCount(compatible);
       setHasIncompatible(mapped.some((d: any) => d.is_compatible === false));
-
-      console.log(`[library] ${count} total, ${compatible}/${mapped.length} compatible (format: ${machineFormat}, hoop: ${machineHoopSize})`);
 
       setDesigns(mapped);
       setTotalCount(count);
@@ -92,6 +107,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
           db.from("kit_arquivos").select("design_id, format").in("design_id", designIds),
           db.from("downloads").select("kit_id").in("kit_id", designIds),
         ]);
+
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
 
         const fileMap: Record<string, string[]> = {};
         (filesRes.data || []).forEach((f: any) => {
@@ -112,7 +129,9 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     } catch (err) {
       console.error("[useLibraryDesigns] error:", err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current && requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize]);
 
@@ -121,12 +140,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     return () => clearTimeout(timer);
   }, [fetchDesigns]);
 
-  const sortedDesigns = sortBy === "most_downloaded"
-    ? [...designs].sort((a, b) => (downloadCounts[b.id] || 0) - (downloadCounts[a.id] || 0))
-    : designs;
-
   return {
-    designs: sortedDesigns,
+    designs,
     totalCount,
     isLoading,
     categories,

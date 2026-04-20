@@ -12,28 +12,39 @@ const KitsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data: kitRows } = await db
-        .from("kits")
-        .select("*")
-        .order("created_at", { ascending: false });
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      try {
+        const { data: kitRows } = await db
+          .from("kits")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (cancelled) return;
 
-      if (kitRows && kitRows.length > 0) {
-        // Get design counts per kit
-        const { data: relations } = await db
-          .from("kit_designs")
-          .select("kit_id");
+        if (kitRows && kitRows.length > 0) {
+          const { data: relations } = await db
+            .from("kit_designs")
+            .select("kit_id");
+          if (cancelled) return;
 
-        const countMap: Record<string, number> = {};
-        (relations || []).forEach((r: any) => {
-          countMap[r.kit_id] = (countMap[r.kit_id] || 0) + 1;
-        });
+          const countMap: Record<string, number> = {};
+          (relations || []).forEach((r: any) => {
+            countMap[r.kit_id] = (countMap[r.kit_id] || 0) + 1;
+          });
 
-        setKits(kitRows.map((k: any) => ({ ...k, designCount: countMap[k.id] || 0 })));
+          setKits(kitRows.map((k: any) => ({ ...k, designCount: countMap[k.id] || 0 })));
+        }
+      } catch (err) {
+        console.error("[KitsPage] fetch error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
-    fetch();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

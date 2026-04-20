@@ -15,7 +15,7 @@ const plans = [
   {
     id: "mensal",
     name: "Mensal",
-    price: "R$ 79,90",
+    price: "R$ 49,90",
     period: "/mês",
     checkoutUrl: CHECKOUT_MENSAL,
     features: [
@@ -31,18 +31,18 @@ const plans = [
   {
     id: "anual",
     name: "Anual",
-    price: "R$ 597",
+    price: "R$ 397",
     period: "/ano",
-    subtitle: "equivalente a R$ 49,75/mês",
+    subtitle: "equivalente a R$ 33,08/mês",
     checkoutUrl: CHECKOUT_ANUAL,
     popular: true,
-    savings: "Economia de R$ 361,80",
+    savings: "Economia de R$ 201,80",
     features: [
       "Tudo do plano Mensal",
       "Prioridade em novos designs",
       "Suporte prioritário",
       "Acesso antecipado a recursos",
-      "Desconto de 38%",
+      "Desconto de 34%",
     ],
     cta: "Assinar Anual",
   },

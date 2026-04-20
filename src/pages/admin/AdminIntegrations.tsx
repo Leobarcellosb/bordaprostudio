@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { validateWebhookUrl } from "@/lib/urlValidation";
 
 interface Integration {
   id: string;
@@ -72,16 +73,21 @@ export const AdminIntegrations = () => {
   const available = INTEGRATIONS.filter((i) => !i.connected);
 
   useEffect(() => {
+    let cancelled = false;
     const loadLogs = async () => {
       const { data } = await db
         .from("integration_logs")
         .select("id, event_type, integration, email, status, message, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
+      if (cancelled) return;
       setLogs(data || []);
       setLoadingLogs(false);
     };
     loadLogs();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const lastEduzzEvent = logs.find((l) => l.integration === "eduzz");
@@ -265,12 +271,14 @@ function WebhookConfigPanel({ lastEvent }: { lastEvent?: LogEntry }) {
   const [testing, setTesting] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       const { data } = await db
         .from("webhook_configs")
         .select("*")
         .limit(1)
         .maybeSingle();
+      if (cancelled) return;
       if (data) {
         setWebhookUrl(data.url || "");
         setIsActive(data.is_active ?? true);
@@ -280,16 +288,20 @@ function WebhookConfigPanel({ lastEvent }: { lastEvent?: LogEntry }) {
       setLoading(false);
     };
     load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSave = async () => {
-    if (!webhookUrl.trim()) {
-      toast.error("Informe a URL do webhook.");
-      return;
+    const validation = validateWebhookUrl(webhookUrl);
+    if (!validation.ok) {
+      toast.error(validation.error);
+      return false;
     }
     setSaving(true);
     const payload = {
-      url: webhookUrl.trim(),
+      url: validation.url,
       is_active: isActive,
       events: enabledEvents,
       updated_at: new Date().toISOString(),
@@ -302,15 +314,12 @@ function WebhookConfigPanel({ lastEvent }: { lastEvent?: LogEntry }) {
     }
     setSaving(false);
     toast.success("Configuração salva!");
+    return true;
   };
 
   const handleTest = async () => {
-    if (!webhookUrl.trim()) {
-      toast.error("Informe a URL do webhook primeiro.");
-      return;
-    }
-    // Save first
-    await handleSave();
+    const saved = await handleSave();
+    if (!saved) return;
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke("dispatch-webhook", {

@@ -40,6 +40,7 @@ export function useInspiracaoDoDia() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const todayKey = getTodaySeed();
     const cacheKey = `${CACHE_KEY}_${machineFormat}_${machineHoopSize}`;
 
@@ -77,12 +78,15 @@ export function useInspiracaoDoDia() {
         const { data: rawDesigns } = await db
           .from("designs")
           .select("id, name, cover_image, category_id, tags_text, hoop_size, created_at, featured_for_daily_inspiration, categories(name)")
-          .eq("is_published", true);
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+          .limit(500);
 
+        if (cancelled) return;
         if (!rawDesigns || rawDesigns.length === 0) { setLoading(false); return; }
 
-        // Filter by machine settings
         const allDesigns = await filterDesignsByMachine(rawDesigns, machineHoopSize, machineFormat);
+        if (cancelled) return;
         if (allDesigns.length === 0) { setLoading(false); return; }
 
         const designMap = new Map<string, any>();
@@ -98,7 +102,8 @@ export function useInspiracaoDoDia() {
 
         if (user) {
           const { data: userDownloads } = await db
-            .from("downloads").select("kit_id").eq("user_id", user.id);
+            .from("downloads").select("kit_id").eq("user_id", user.id).limit(500);
+          if (cancelled) return;
 
           const downloadedCategoryIds = new Set<string>();
           const downloadedDesignIds = new Set<string>();
@@ -117,7 +122,8 @@ export function useInspiracaoDoDia() {
           seededShuffle(fromDownloadCategories, todayKey + "dl").forEach((d) => addDesign(d, "baseado_downloads"));
 
           const { data: userFavs } = await db
-            .from("favorites").select("kit_id").eq("user_id", user.id);
+            .from("favorites").select("kit_id").eq("user_id", user.id).limit(500);
+          if (cancelled) return;
 
           const favCategoryIds = new Set<string>();
           const favDesignIds = new Set<string>();
@@ -140,7 +146,8 @@ export function useInspiracaoDoDia() {
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           const { data: recentDl } = await db
-            .from("downloads").select("kit_id, created_at").gte("created_at", sevenDaysAgo.toISOString());
+            .from("downloads").select("kit_id, created_at").gte("created_at", sevenDaysAgo.toISOString()).limit(2000);
+          if (cancelled) return;
 
           const trendMap: Record<string, number> = {};
           (recentDl || []).forEach((d: any) => { trendMap[d.kit_id] = (trendMap[d.kit_id] || 0) + 1; });
@@ -164,6 +171,7 @@ export function useInspiracaoDoDia() {
           seededShuffle(allDesigns, todayKey + "rand").forEach((d) => addDesign(d, null));
         }
 
+        if (cancelled) return;
         setDesigns(result);
 
         try {
@@ -174,13 +182,16 @@ export function useInspiracaoDoDia() {
           }));
         } catch {}
       } catch (err) {
-        console.error("Inspiração do Dia error:", err);
+        if (!cancelled) console.error("Inspiração do Dia error:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     build();
+    return () => {
+      cancelled = true;
+    };
   }, [user, machineFormat, machineHoopSize]);
 
   return { designs, loading };

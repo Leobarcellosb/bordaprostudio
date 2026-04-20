@@ -308,7 +308,7 @@ export const SmartKitBuilder = ({ open, onOpenChange, onKitCreated }: SmartKitBu
                   <Input
                     type="number"
                     value={maxDesigns}
-                    onChange={e => setMaxDesigns(parseInt(e.target.value) || 30)}
+                    onChange={e => setMaxDesigns(parseInt(e.target.value, 10) || 30)}
                     min={5}
                     max={100}
                   />

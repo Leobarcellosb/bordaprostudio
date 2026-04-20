@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_URL } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,10 +16,18 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 8) {
+      toast.error("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (!/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+      toast.error("A senha precisa ter letras e números.");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+      options: { data: { full_name: fullName }, emailRedirectTo: APP_URL },
     });
     if (error) toast.error(error.message);
     else toast.success("Verifique seu email para confirmar a conta!");
@@ -46,7 +55,7 @@ const Signup = () => {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Senha</label>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres, letras e números" required minLength={8} />
               </div>
               <Button type="submit" className="w-full shadow-md shadow-primary/20" disabled={loading}>
                 {loading ? "Criando conta..." : "Criar conta"}

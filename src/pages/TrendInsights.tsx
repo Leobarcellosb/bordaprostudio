@@ -34,72 +34,85 @@ const TrendInsights = () => {
   const [topDownloaded, setTopDownloaded] = useState<any[]>([]);
   const [hotNow, setHotNow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const currentMonth = new Date().getMonth() + 1;
   const seasonalTrends = TRENDS.filter((t) => t.seasonal && t.month?.includes(currentMonth));
   const regularTrends = TRENDS.filter((t) => !t.seasonal);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchTrends = async () => {
       setLoading(true);
+      setError(null);
+      try {
+        const { data: allKits, error: kitsErr } = await db
+          .from("designs")
+          .select("*, categories(name)")
+          .eq("is_published", true)
+          .limit(1000);
 
-      const { data: allKits } = await db
-        .from("designs")
-        .select("*, categories(name)")
-        .eq("is_published", true);
+        if (cancelled) return;
+        if (kitsErr) throw kitsErr;
+        if (!allKits) return;
 
-      if (!allKits) {
-        setLoading(false);
-        return;
-      }
+        const { data: allDownloads, error: dlErr } = await db
+          .from("downloads")
+          .select("kit_id, created_at")
+          .limit(5000);
+        if (cancelled) return;
+        if (dlErr) throw dlErr;
 
-      // All-time download counts
-      const { data: allDownloads } = await db.from("downloads").select("kit_id, created_at");
-      const downloadCounts: Record<string, number> = {};
-      const recentCounts: Record<string, number> = {};
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const downloadCounts: Record<string, number> = {};
+        const recentCounts: Record<string, number> = {};
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      (allDownloads || []).forEach((d: any) => {
-        downloadCounts[d.kit_id] = (downloadCounts[d.kit_id] || 0) + 1;
-        if (new Date(d.created_at) >= sevenDaysAgo) {
-          recentCounts[d.kit_id] = (recentCounts[d.kit_id] || 0) + 1;
-        }
-      });
-
-      // Hot now — top 6 by downloads in last 7 days
-      const hotDesigns = [...allKits]
-        .map((k) => ({ ...k, recentDownloads: recentCounts[k.id] || 0, downloadCount: downloadCounts[k.id] || 0 }))
-        .filter((k) => k.recentDownloads > 0)
-        .sort((a, b) => b.recentDownloads - a.recentDownloads)
-        .slice(0, 6);
-      setHotNow(hotDesigns);
-
-      // Top downloaded all-time
-      const sorted = [...allKits]
-        .map((k) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
-        .sort((a, b) => b.downloadCount - a.downloadCount)
-        .slice(0, 6);
-      setTopDownloaded(sorted);
-
-      // Seasonal keyword matching
-      const trendResults: Record<string, any[]> = {};
-      for (const trend of TRENDS) {
-        const matches = allKits.filter((kit: any) => {
-          const text = `${kit.name} ${kit.tags_text || ""} ${kit.categories?.name || ""}`.toLowerCase();
-          return trend.keywords.some((kw) => text.includes(kw));
+        (allDownloads || []).forEach((d: any) => {
+          downloadCounts[d.kit_id] = (downloadCounts[d.kit_id] || 0) + 1;
+          if (new Date(d.created_at) >= sevenDaysAgo) {
+            recentCounts[d.kit_id] = (recentCounts[d.kit_id] || 0) + 1;
+          }
         });
-        trendResults[trend.id] = matches
-          .map((k: any) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
-          .sort((a: any, b: any) => b.downloadCount - a.downloadCount)
-          .slice(0, 4);
-      }
 
-      setTrendData(trendResults);
-      setLoading(false);
+        const hotDesigns = [...allKits]
+          .map((k) => ({ ...k, recentDownloads: recentCounts[k.id] || 0, downloadCount: downloadCounts[k.id] || 0 }))
+          .filter((k) => k.recentDownloads > 0)
+          .sort((a, b) => b.recentDownloads - a.recentDownloads)
+          .slice(0, 6);
+        setHotNow(hotDesigns);
+
+        const sorted = [...allKits]
+          .map((k) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
+          .sort((a, b) => b.downloadCount - a.downloadCount)
+          .slice(0, 6);
+        setTopDownloaded(sorted);
+
+        const trendResults: Record<string, any[]> = {};
+        for (const trend of TRENDS) {
+          const matches = allKits.filter((kit: any) => {
+            const text = `${kit.name} ${kit.tags_text || ""} ${kit.categories?.name || ""}`.toLowerCase();
+            return trend.keywords.some((kw) => text.includes(kw));
+          });
+          trendResults[trend.id] = matches
+            .map((k: any) => ({ ...k, downloadCount: downloadCounts[k.id] || 0 }))
+            .sort((a: any, b: any) => b.downloadCount - a.downloadCount)
+            .slice(0, 4);
+        }
+
+        if (!cancelled) setTrendData(trendResults);
+      } catch (err) {
+        console.error("[TrendInsights] fetch error:", err);
+        if (!cancelled) setError("Não foi possível carregar as tendências.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     fetchTrends();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const TrendSection = ({ trend, designs }: { trend: Trend; designs: any[] }) => {
@@ -169,7 +182,16 @@ const TrendInsights = () => {
           </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardContent className="p-6 text-center space-y-3">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                Tentar novamente
+              </Button>
+            </CardContent>
+          </Card>
+        ) : loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
               <Card key={i} className="animate-pulse">

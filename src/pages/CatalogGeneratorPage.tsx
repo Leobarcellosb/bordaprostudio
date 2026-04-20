@@ -46,36 +46,45 @@ const CatalogGeneratorPage = () => {
   const exportRefs = useRef<(CatalogTemplateHandle | null)[]>([]);
 
   const fetchData = useCallback(async () => {
-    if (!user || !id) return;
-    const [{ data: catData }, { data: itemsData }] = await Promise.all([
-      db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
-      db.from("catalog_items")
-        .select("*, designs(id, name, cover_image, hoop_size, width_mm, height_mm, stitch_count, category_id, categories(name))")
-        .eq("catalog_id", id)
-        .order("order_index", { ascending: true }),
-    ]);
-
-    if (catData) {
-      setCatalog(catData);
-      setTitle(catData.name);
-      setSubtitle(catData.subtitle || "");
+    if (!user || !id) {
+      setLoading(false);
+      return;
     }
+    setLoading(true);
+    try {
+      const [{ data: catData }, { data: itemsData }] = await Promise.all([
+        db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
+        db.from("catalog_items")
+          .select("*, designs(id, name, cover_image, hoop_size, width_mm, height_mm, stitch_count, category_id, categories(name))")
+          .eq("catalog_id", id)
+          .order("order_index", { ascending: true }),
+      ]);
 
-    const mapped: CatalogDesign[] = (itemsData || [])
-      .filter((i: any) => i.designs)
-      .map((i: any) => ({
-        id: i.designs.id,
-        name: i.designs.name,
-        cover_image: i.designs.cover_image,
-        hoop_size: i.designs.hoop_size,
-        width_mm: i.designs.width_mm,
-        height_mm: i.designs.height_mm,
-        stitch_count: i.designs.stitch_count,
-        category_name: i.designs.categories?.name || null,
-      }));
+      if (catData) {
+        setCatalog(catData);
+        setTitle(catData.name);
+        setSubtitle(catData.subtitle || "");
+      }
 
-    setDesigns(mapped);
-    setLoading(false);
+      const mapped: CatalogDesign[] = (itemsData || [])
+        .filter((i: any) => i.designs)
+        .map((i: any) => ({
+          id: i.designs.id,
+          name: i.designs.name,
+          cover_image: i.designs.cover_image,
+          hoop_size: i.designs.hoop_size,
+          width_mm: i.designs.width_mm,
+          height_mm: i.designs.height_mm,
+          stitch_count: i.designs.stitch_count,
+          category_name: i.designs.categories?.name || null,
+        }));
+
+      setDesigns(mapped);
+    } catch (err) {
+      console.error("[CatalogGenerator] fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [id, user]);
 
   useEffect(() => {

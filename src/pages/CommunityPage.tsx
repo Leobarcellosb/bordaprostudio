@@ -67,75 +67,85 @@ const CommunityPage = () => {
 
   const fetchPosts = async () => {
     setLoadingPosts(true);
-    const { data } = await db
-      .from("community_posts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    try {
+      const { data } = await db
+        .from("community_posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((p: any) => p.user_id))];
-      const { data: profiles } = await db
-        .from("profiles")
-        .select("id, name, avatar_url")
-        .in("id", userIds);
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((p: any) => p.user_id))];
+        const { data: profiles } = await db
+          .from("profiles")
+          .select("id, name, avatar_url")
+          .in("id", userIds);
+        const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
-      setPosts(
-        data.map((p: any) => {
-          const prof = profileMap.get(p.user_id) as any;
-          return {
-            ...p,
-            user_name: prof?.name || "Usuária",
-            avatar_url: prof?.avatar_url,
-          };
-        })
-      );
-    } else {
+        setPosts(
+          data.map((p: any) => {
+            const prof = profileMap.get(p.user_id) as any;
+            return {
+              ...p,
+              user_name: prof?.name || "Usuária",
+              avatar_url: prof?.avatar_url,
+            };
+          })
+        );
+      } else {
+        setPosts([]);
+      }
+    } catch (err) {
+      console.error("[Community] fetchPosts error:", err);
       setPosts([]);
+    } finally {
+      setLoadingPosts(false);
     }
-    setLoadingPosts(false);
   };
 
   const fetchRequests = async () => {
     setLoadingRequests(true);
-    const { data } = await db
-      .from("matrix_requests")
-      .select("*")
-      .order("votes_count", { ascending: false })
-      .limit(50);
+    try {
+      const { data } = await db
+        .from("matrix_requests")
+        .select("*")
+        .order("votes_count", { ascending: false })
+        .limit(50);
 
-    if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((r: any) => r.user_id))];
-      const { data: profiles } = await db
-        .from("profiles")
-        .select("id, name")
-        .in("id", userIds);
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((r: any) => r.user_id))];
+        const { data: profiles } = await db
+          .from("profiles")
+          .select("id, name")
+          .in("id", userIds);
+        const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
-      setRequests(
-        data.map((r: any) => {
-          const prof = profileMap.get(r.user_id) as any;
-          return {
-            ...r,
-            user_name: prof?.name || "Usuária",
-          };
-        })
-      );
-    } else {
+        setRequests(
+          data.map((r: any) => {
+            const prof = profileMap.get(r.user_id) as any;
+            return {
+              ...r,
+              user_name: prof?.name || "Usuária",
+            };
+          })
+        );
+      } else {
+        setRequests([]);
+      }
+
+      if (user) {
+        const { data: votes } = await db
+          .from("matrix_request_votes")
+          .select("request_id")
+          .eq("user_id", user.id);
+        setUserVotes(new Set((votes || []).map((v: any) => v.request_id)));
+      }
+    } catch (err) {
+      console.error("[Community] fetchRequests error:", err);
       setRequests([]);
+    } finally {
+      setLoadingRequests(false);
     }
-
-    // Fetch user votes
-    if (user) {
-      const { data: votes } = await db
-        .from("matrix_request_votes")
-        .select("request_id")
-        .eq("user_id", user.id);
-      setUserVotes(new Set((votes || []).map((v: any) => v.request_id)));
-    }
-
-    setLoadingRequests(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
