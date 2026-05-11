@@ -14,7 +14,9 @@ export function usePopularTags(limit = 20) {
           .select("tags_text")
           .eq("is_published", true)
           .not("tags_text", "is", null)
-          .not("tags_text", "eq", "");
+          .not("tags_text", "eq", "")
+          .order("created_at", { ascending: false })
+          .limit(200);
 
         if (error) throw error;
 

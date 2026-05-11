@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, ImagePlus, Lightbulb, ThumbsUp, MessageSquare, Camera, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/db";
+import { validateImageUpload } from "@/lib/validateUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -140,22 +141,39 @@ const CommunityPage = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setPostFile(file);
-      setPostPreview(URL.createObjectURL(file));
+    if (!file) return;
+    const validationError = validateImageUpload(file);
+    if (validationError) {
+      toast({ title: "Arquivo inválido", description: validationError, variant: "destructive" });
+      e.target.value = "";
+      return;
     }
+    setPostFile(file);
+    setPostPreview(URL.createObjectURL(file));
   };
 
   const handlePostSubmit = async () => {
     if (!postFile || !user) return;
+    // Re-validate (defense in depth)
+    const validationError = validateImageUpload(postFile);
+    if (validationError) {
+      toast({ title: "Arquivo inválido", description: validationError, variant: "destructive" });
+      return;
+    }
     setPostSubmitting(true);
 
     try {
-      const ext = postFile.name.split(".").pop();
+      const extMap: Record<string, string> = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+      };
+      const ext = extMap[postFile.type] ?? "bin";
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("community-photos")
-        .upload(path, postFile);
+        .upload(path, postFile, { contentType: postFile.type });
 
       if (uploadError) throw uploadError;
 

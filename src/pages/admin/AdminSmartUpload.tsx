@@ -119,9 +119,11 @@ export const AdminSmartUpload = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    db.from("categories").select("*").order("name").then(({ data }: any) => {
-      setCategories(data || []);
-    });
+    db.from("categories").select("*").order("name")
+      .then(({ data }: any) => {
+        setCategories(data || []);
+      })
+      .catch((err) => console.error("[AdminSmartUpload] categories load error:", err));
   }, []);
 
   const processFiles = useCallback(

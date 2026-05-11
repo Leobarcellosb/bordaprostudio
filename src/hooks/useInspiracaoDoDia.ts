@@ -77,7 +77,9 @@ export function useInspiracaoDoDia() {
         const { data: rawDesigns } = await db
           .from("designs")
           .select("id, name, cover_image, category_id, tags_text, hoop_size, created_at, featured_for_daily_inspiration, categories(name)")
-          .eq("is_published", true);
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+          .limit(500);
 
         if (!rawDesigns || rawDesigns.length === 0) { setLoading(false); return; }
 

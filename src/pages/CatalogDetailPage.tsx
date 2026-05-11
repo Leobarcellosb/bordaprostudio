@@ -16,16 +16,35 @@ const CatalogDetailPage = () => {
   const [catalog, setCatalog] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    if (!user || !id) return;
-    const [{ data: catData }, { data: itemsData }] = await Promise.all([
-      db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
-      db.from("catalog_items").select("*, designs(*, categories(name))").eq("catalog_id", id).order("created_at", { ascending: false }),
-    ]);
-    setCatalog(catData);
-    setItems(itemsData || []);
-    setLoading(false);
+    if (!user || !id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [{ data: catData, error: catErr }, { data: itemsData, error: itemsErr }] =
+        await Promise.all([
+          db.from("catalogs").select("*").eq("id", id).eq("user_id", user.id).single(),
+          db
+            .from("catalog_items")
+            .select("*, designs(*, categories(name))")
+            .eq("catalog_id", id)
+            .order("created_at", { ascending: false }),
+        ]);
+      if (catErr) throw catErr;
+      if (itemsErr) throw itemsErr;
+      setCatalog(catData);
+      setItems(itemsData || []);
+    } catch (err: any) {
+      console.error("[CatalogDetail] fetch error:", err);
+      setLoadError(err?.message || "Erro ao carregar catálogo");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, [id, user]);
@@ -40,6 +59,21 @@ const CatalogDetailPage = () => {
     <AppLayout>
       <div className="flex items-center justify-center py-20">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    </AppLayout>
+  );
+
+  if (loadError) return (
+    <AppLayout>
+      <div className="text-center py-20 space-y-4 max-w-md mx-auto">
+        <p className="text-destructive font-medium">Erro ao carregar catálogo</p>
+        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <div className="flex justify-center gap-2">
+          <Button onClick={fetchData}>Tentar novamente</Button>
+          <Button variant="outline" onClick={() => navigate("/catalogs")} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+        </div>
       </div>
     </AppLayout>
   );

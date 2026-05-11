@@ -46,15 +46,24 @@ const TrendInsights = () => {
       const { data: allKits } = await db
         .from("designs")
         .select("*, categories(name)")
-        .eq("is_published", true);
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       if (!allKits) {
         setLoading(false);
         return;
       }
 
-      // All-time download counts
-      const { data: allDownloads } = await db.from("downloads").select("kit_id, created_at");
+      // Recent downloads only (last 30 days) — limited to avoid loading millions
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { data: allDownloads } = await db
+        .from("downloads")
+        .select("kit_id, created_at")
+        .gte("created_at", thirtyDaysAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5000);
       const downloadCounts: Record<string, number> = {};
       const recentCounts: Record<string, number> = {};
       const sevenDaysAgo = new Date();

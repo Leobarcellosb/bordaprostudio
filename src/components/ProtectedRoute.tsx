@@ -1,65 +1,152 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
-const RouteLoader = () => (
+const SLOW_LOADER_MS = 15_000;
+
+const Spinner = () => (
   <div className="flex min-h-screen items-center justify-center">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
   </div>
 );
 
-const RouteRetryState = ({ title, description }: { title: string; description: string }) => (
+const RecoveryScreen = ({
+  title,
+  description,
+  onSignOut,
+}: {
+  title: string;
+  description: string;
+  onSignOut?: () => Promise<void> | void;
+}) => (
   <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-    <div className="space-y-1">
+    <div className="space-y-1 max-w-sm">
       <p className="font-medium">{title}</p>
       <p className="text-sm text-muted-foreground">{description}</p>
     </div>
-    <Button variant="outline" onClick={() => window.location.reload()}>
-      Verificar novamente
-    </Button>
+    <div className="flex gap-2">
+      <button
+        className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+        onClick={() => window.location.reload()}
+      >
+        Recarregar
+      </button>
+      {onSignOut && (
+        <button
+          className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
+          onClick={async () => {
+            try {
+              await onSignOut();
+            } finally {
+              window.location.assign("/login");
+            }
+          }}
+        >
+          Sair e entrar de novo
+        </button>
+      )}
+    </div>
   </div>
 );
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const SlowAwareSpinner = ({ onSignOut }: { onSignOut: () => Promise<void> }) => {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), SLOW_LOADER_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  if (slow) {
+    return (
+      <RecoveryScreen
+        title="Está demorando mais que o esperado"
+        description="Verifique sua conexão ou tente sair e entrar novamente."
+        onSignOut={onSignOut}
+      />
+    );
+  }
+  return <Spinner />;
+};
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+  /** When true, route requires admin role (and bypasses subscription checks). */
+  requireAdmin?: boolean;
+  /** When false, route does not require active subscription (e.g. /onboarding, /plans). */
+  requireSubscription?: boolean;
+}
+
+export const ProtectedRoute = ({
+  children,
+  requireAdmin = false,
+  requireSubscription = true,
+}: ProtectedRouteProps) => {
   const {
-    user,
-    loading,
-    hasActiveSubscription,
+    status,
     isAdmin,
     roleResolved,
     needsOnboarding,
     onboardingResolved,
+    hasActiveSubscription,
     subscriptionResolved,
+    signOut,
   } = useAuth();
 
-  if (loading) {
-    return <RouteLoader />;
+  if (status === "loading") return <SlowAwareSpinner onSignOut={signOut} />;
+  if (status === "unauthenticated") return <Navigate to="/login" replace />;
+
+  // Admin gate: only admins pass. Never blocked by subscription.
+  if (requireAdmin) {
+    if (!roleResolved) {
+      return (
+        <RecoveryScreen
+          title="Verificando permissões de administrador"
+          description="Não conseguimos confirmar suas permissões. Recarregue ou saia e entre novamente."
+          onSignOut={signOut}
+        />
+      );
+    }
+    if (!isAdmin) return <Navigate to="/dashboard" replace />;
+    console.info("[ROUTE] admin → children");
+    return <>{children}</>;
   }
 
-  if (!user) return <Navigate to="/login" replace />;
-  if (isAdmin) return <>{children}</>;
-  if (!roleResolved) return <>{children}</>;
-  if (onboardingResolved && needsOnboarding) return <Navigate to="/onboarding" replace />;
-  if (subscriptionResolved && !hasActiveSubscription) return <Navigate to="/plans" replace />;
-  return <>{children}</>;
-};
-
-export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading, isAdmin, roleResolved } = useAuth();
-
-  if (loading) {
-    return <RouteLoader />;
+  // User gate: admin bypasses subscription + onboarding entirely.
+  if (roleResolved && isAdmin) {
+    console.info("[ROUTE] protected → children (admin bypass)");
+    return <>{children}</>;
   }
 
-  if (!user) return <Navigate to="/login" replace />;
   if (!roleResolved) {
     return (
-      <RouteRetryState
-        title="Verificando permissões de administrador"
-        description="Seu acesso não será bloqueado incorretamente enquanto as permissões são confirmadas."
+      <RecoveryScreen
+        title="Não foi possível confirmar seu acesso"
+        description="Recarregue a página ou saia e entre novamente para continuar."
+        onSignOut={signOut}
       />
     );
   }
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
+  if (onboardingResolved && needsOnboarding) {
+    console.info("[ROUTE] protected → /onboarding");
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  if (requireSubscription && subscriptionResolved && !hasActiveSubscription) {
+    console.info("[ROUTE] protected → /plans");
+    return <Navigate to="/plans" replace />;
+  }
+
+  console.info("[ROUTE] protected → children", {
+    subscriptionResolved,
+    hasActiveSubscription,
+    onboardingResolved,
+    needsOnboarding,
+  });
   return <>{children}</>;
 };
+
+/** Backward-compatible alias used by the original App.tsx. */
+export const AdminRoute = ({ children }: { children: ReactNode }) => (
+  <ProtectedRoute requireAdmin>{children}</ProtectedRoute>
+);

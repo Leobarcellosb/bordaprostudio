@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { validateImageUpload, validateZipUpload } from "@/lib/validateUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,10 +65,21 @@ export const AdminPremiumKits = () => {
   const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>, type: "cover" | "zip") => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const validationError =
+      type === "cover" ? validateImageUpload(file) : validateZipUpload(file);
+    if (validationError) {
+      toast.error(validationError);
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
     const path = `${type}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("premium-kit-files").upload(path, file);
+    const { error } = await supabase.storage
+      .from("premium-kit-files")
+      .upload(path, file, { contentType: file.type });
     if (error) { toast.error("Erro no upload: " + error.message); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("premium-kit-files").getPublicUrl(path);
     if (type === "cover") setForm(prev => ({ ...prev, cover_image: urlData.publicUrl }));

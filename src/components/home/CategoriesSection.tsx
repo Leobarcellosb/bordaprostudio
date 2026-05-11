@@ -26,7 +26,8 @@ export const CategoriesSection = () => {
       .select("*")
       .eq("is_active", true)
       .order("name")
-      .then(({ data }: any) => setCategories(data || []));
+      .then(({ data }: any) => setCategories(data || []))
+      .catch((err) => console.error("[CategoriesSection] load error:", err));
   }, []);
 
   if (categories.length === 0) return null;

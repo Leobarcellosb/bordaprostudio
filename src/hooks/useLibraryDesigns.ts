@@ -40,7 +40,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   // Load categories once
   useEffect(() => {
     db.from("categories").select("*").eq("is_active", true).order("name")
-      .then(({ data }: any) => setCategories(data || []));
+      .then(({ data }: any) => setCategories(data || []))
+      .catch((err) => console.error("[useLibraryDesigns] categories load error:", err));
   }, []);
 
   const fetchDesigns = useCallback(async () => {

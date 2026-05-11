@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { db } from "@/lib/db";
+import { validateImageUpload } from "@/lib/validateUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Globe } from "lucide-react";
@@ -41,13 +42,26 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    const validationError = validateImageUpload(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     setUploading(true);
-    const fileExt = file.name.split(".").pop();
+    // Extension from MIME (not from filename) for safety
+    const extMap: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    };
+    const fileExt = extMap[file.type] ?? "bin";
     const filePath = `${user.id}/avatar.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
       toast.error(t("settings.uploadError"));
