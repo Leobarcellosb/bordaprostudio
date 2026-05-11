@@ -1,6 +1,7 @@
 // Async helpers with hard timeouts to prevent infinite loading states.
 
-export const DEFAULT_QUERY_TIMEOUT_MS = 8_000;
+// Bumped from 8s → 20s to accommodate Supabase NANO cold-start latency.
+export const DEFAULT_QUERY_TIMEOUT_MS = 20_000;
 
 type QueryStatus = "success" | "timeout" | "error";
 

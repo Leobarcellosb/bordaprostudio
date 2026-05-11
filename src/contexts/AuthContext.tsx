@@ -9,15 +9,16 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { safeQuery, withTimeout } from "@/lib/safeQuery";
+import { safeQuery } from "@/lib/safeQuery";
 import type {
   Profile,
   Subscription,
   UserPreferences,
 } from "@/types/database.types";
 
-const FETCH_TIMEOUT_MS = 8_000;
-const BOOT_TIMEOUT_MS = 12_000;
+// Bumped to accommodate Supabase NANO cold-start latency.
+const FETCH_TIMEOUT_MS = 20_000;
+const BOOT_TIMEOUT_MS = 30_000;
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -239,12 +240,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     (async () => {
       try {
-        const { data } = await withTimeout(
-          "getSession",
-          supabase.auth.getSession(),
-          FETCH_TIMEOUT_MS,
-          { data: { session: null } } as { data: { session: Session | null } },
-        );
+        // Auth is critical — no timeout wrapper, let supabase-js handle its own retries.
+        const { data } = await supabase.auth.getSession();
         if (!mountedRef.current) return;
         initDoneRef.current = true;
         await applySession(data.session, "init");

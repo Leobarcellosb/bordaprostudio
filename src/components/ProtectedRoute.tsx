@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-const SLOW_LOADER_MS = 15_000;
+// Bumped to accommodate Supabase NANO cold-start latency.
+const SLOW_LOADER_MS = 25_000;
 
 const Spinner = () => (
   <div className="flex min-h-screen items-center justify-center">
