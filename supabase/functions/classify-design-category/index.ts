@@ -2,10 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Official categories with their database IDs
 const CATEGORIES = [
   { id: "9ab5794d-87c3-4e25-b979-1822a280e72c", name: "Infantil", slug: "infantil" },
   { id: "7236cd41-45b1-424e-899a-4d83bb1e8c99", name: "Animais", slug: "animais" },
@@ -18,28 +18,9 @@ const CATEGORIES = [
   { id: "77bb1f7b-e11a-4043-aff8-f7cbdf2112a4", name: "Frases", slug: "frases" },
 ];
 
-const categoryNames = CATEGORIES.map(c => c.name).join(", ");
+const categoryNames = CATEGORIES.map((c) => c.name).join(", ");
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  try {
-    const { title, raw_filename, tags, image_url } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const contextParts: string[] = [];
-    if (title) contextParts.push(`Título: ${title}`);
-    if (raw_filename) contextParts.push(`Nome do arquivo: ${raw_filename}`);
-    if (tags) contextParts.push(`Tags: ${tags}`);
-
-    const contextStr = contextParts.join("\n");
-
-    const messages: any[] = [
-      {
-        role: "system",
-        content: `Você é um classificador de matrizes de bordado. Sua tarefa é classificar cada design em EXATAMENTE UMA das categorias oficiais.
+const SYSTEM_PROMPT = `Você é um classificador de matrizes de bordado. Sua tarefa é classificar cada design em EXATAMENTE UMA das categorias oficiais.
 
 Categorias disponíveis: ${categoryNames}
 
@@ -54,100 +35,118 @@ Regras de classificação:
 - Profissões: médico, advogado, professor, enfermeira, engenheiro, símbolos profissionais, ferramentas de trabalho
 - Frases: citações, palavras, frases motivacionais, textos decorativos, lettering
 
-IMPORTANTE: Sempre escolha a categoria mais específica. Se houver dúvida entre duas categorias, escolha a que melhor descreve o elemento PRINCIPAL do design.`,
-      },
-    ];
+IMPORTANTE: Sempre escolha a categoria mais específica. Se houver dúvida entre duas categorias, escolha a que melhor descreve o elemento PRINCIPAL do design.`;
 
-    const userContent: any[] = [];
-
-    if (image_url) {
-      userContent.push({
-        type: "image_url",
-        image_url: { url: image_url },
-      });
+async function fetchImageAsInlineData(
+  url: string,
+): Promise<{ inlineData: { mimeType: string; data: string } } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const mimeType = (res.headers.get("content-type") ?? "image/jpeg").split(";")[0];
+    let bin = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < buf.byteLength; i += chunkSize) {
+      bin += String.fromCharCode.apply(
+        null,
+        Array.from(buf.subarray(i, i + chunkSize)),
+      );
     }
+    return { inlineData: { mimeType, data: btoa(bin) } };
+  } catch (err) {
+    console.error("fetchImageAsInlineData error:", err);
+    return null;
+  }
+}
 
-    userContent.push({
-      type: "text",
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { title, raw_filename, tags, image_url } = await req.json();
+
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+
+    const contextParts: string[] = [];
+    if (title) contextParts.push(`Título: ${title}`);
+    if (raw_filename) contextParts.push(`Nome do arquivo: ${raw_filename}`);
+    if (tags) contextParts.push(`Tags: ${tags}`);
+    const contextStr = contextParts.join("\n");
+
+    const userParts: unknown[] = [];
+    if (image_url) {
+      const img = await fetchImageAsInlineData(image_url);
+      if (img) userParts.push(img);
+    }
+    userParts.push({
       text: `Classifique este design de bordado em uma das categorias oficiais.\n\n${contextStr}`,
     });
 
-    messages.push({ role: "user", content: userContent });
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "classify_category",
-              description: "Return the category classification for the embroidery design",
-              parameters: {
-                type: "object",
-                properties: {
-                  category_name: {
-                    type: "string",
-                    enum: CATEGORIES.map(c => c.name),
-                    description: "The official category name that best matches the design",
-                  },
-                  confidence: {
-                    type: "string",
-                    enum: ["high", "medium", "low"],
-                    description: "Confidence level of the classification",
-                  },
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: userParts }],
+          generationConfig: {
+            temperature: 0.3,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                category_name: {
+                  type: "STRING",
+                  enum: CATEGORIES.map((c) => c.name),
+                  description: "Nome da categoria oficial que melhor descreve o design",
                 },
-                required: ["category_name", "confidence"],
-                additionalProperties: false,
+                confidence: {
+                  type: "STRING",
+                  enum: ["high", "medium", "low"],
+                  description: "Confiança da classificação",
+                },
               },
+              required: ["category_name", "confidence"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "classify_category" } },
-      }),
-    });
+        }),
+      },
+    );
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited", category_id: null }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("Gemini error:", response.status, t);
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limited", category_id: null }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      throw new Error(`Gemini error ${response.status}`);
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const text: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
     let categoryId: string | null = null;
     let categoryName: string | null = null;
     let confidence: string | null = null;
 
-    if (toolCall?.function?.arguments) {
-      const parsed = JSON.parse(toolCall.function.arguments);
-      categoryName = parsed.category_name || null;
-      confidence = parsed.confidence || null;
-
-      if (categoryName) {
-        const match = CATEGORIES.find(c => c.name === categoryName);
-        if (match) categoryId = match.id;
-      }
-    }
-
-    // Fallback: try text response
-    if (!categoryId) {
-      const content = data.choices?.[0]?.message?.content;
-      if (content && typeof content === "string") {
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        categoryName = parsed.category_name || null;
+        confidence = parsed.confidence || null;
+        if (categoryName) {
+          const match = CATEGORIES.find((c) => c.name === categoryName);
+          if (match) categoryId = match.id;
+        }
+      } catch {
         for (const cat of CATEGORIES) {
-          if (content.includes(cat.name)) {
+          if (text.includes(cat.name)) {
             categoryId = cat.id;
             categoryName = cat.name;
             confidence = "low";
@@ -159,14 +158,15 @@ IMPORTANTE: Sempre escolha a categoria mais específica. Se houver dúvida entre
 
     console.log(`Classified: "${title}" → ${categoryName} (${confidence}), id: ${categoryId}`);
 
-    return new Response(JSON.stringify({ category_id: categoryId, category_name: categoryName, confidence }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ category_id: categoryId, category_name: categoryName, confidence }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("classify-design-category error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error", category_id: null }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

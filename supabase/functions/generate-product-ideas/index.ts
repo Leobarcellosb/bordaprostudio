@@ -2,16 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const SYSTEM_PROMPT =
+  "Você gera ideias de produtos bordados com preços realistas. Responda APENAS com JSON estruturado conforme o schema solicitado.";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { designName, category, tags, description } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const prompt = `Você é um especialista em produtos artesanais bordados no Brasil.
 
@@ -40,75 +45,69 @@ Use valores realistas do mercado brasileiro de bordado artesanal:
 - Kits de bebê: R$80-200
 - Jogos americanos: R$30-60 cada`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "Você gera ideias de produtos bordados com preços realistas. Use a função fornecida para retornar os dados." },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "return_product_ideas",
-              description: "Return product ideas for an embroidery design with pricing",
-              parameters: {
-                type: "object",
-                properties: {
-                  ideas: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string", description: "Nome curto do produto" },
-                        description: { type: "string", description: "Descrição curta para venda online" },
-                        price_range: { type: "string", description: "Faixa de preço sugerida ex: R$35 - R$60" },
-                        profit_example: { type: "string", description: "Exemplo de lucro ex: Custo ~R$15, venda por R$45 = lucro de R$30" },
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.8,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                ideas: {
+                  type: "ARRAY",
+                  minItems: 5,
+                  maxItems: 5,
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      title: { type: "STRING", description: "Nome curto do produto" },
+                      description: { type: "STRING", description: "Descrição curta para venda online" },
+                      price_range: { type: "STRING", description: "Faixa de preço ex: R$35 - R$60" },
+                      profit_example: {
+                        type: "STRING",
+                        description: "Exemplo de lucro ex: Custo ~R$15, venda por R$45 = lucro de R$30",
                       },
-                      required: ["title", "description", "price_range", "profit_example"],
-                      additionalProperties: false,
                     },
+                    required: ["title", "description", "price_range", "profit_example"],
                   },
                 },
-                required: ["ideas"],
-                additionalProperties: false,
               },
+              required: ["ideas"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "return_product_ideas" } },
-      }),
-    });
+        }),
+      },
+    );
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Muitas requisições. Tente novamente em alguns segundos." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("Gemini error:", response.status, t);
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Muitas requisições. Tente novamente em alguns segundos." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      throw new Error(`Gemini error ${response.status}`);
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let ideas = [];
+    const text: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (toolCall?.function?.arguments) {
-      const parsed = JSON.parse(toolCall.function.arguments);
-      ideas = parsed.ideas || [];
+    let ideas: unknown[] = [];
+    if (text) {
+      try {
+        const parsed = JSON.parse(text);
+        ideas = Array.isArray(parsed.ideas) ? parsed.ideas : [];
+      } catch (err) {
+        console.error("generate-product-ideas: failed to parse Gemini JSON", err, text);
+      }
     }
 
     return new Response(JSON.stringify({ ideas }), {
@@ -116,8 +115,9 @@ Use valores realistas do mercado brasileiro de bordado artesanal:
     });
   } catch (e) {
     console.error("generate-product-ideas error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
