@@ -55,37 +55,67 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         if (max) stitchMax = max;
       }
 
-      const { data, error } = await db.rpc("search_designs", {
-        search_term: search.trim(),
-        p_category_id: categoryFilter !== "all" ? categoryFilter : null,
-        p_hoop_size: machineHoopSize || null,
-        p_stitch_min: stitchMin,
-        p_stitch_max: stitchMax,
-        p_sort: sortBy,
-        p_offset: page * PAGE_SIZE,
-        p_limit: PAGE_SIZE,
-        p_machine_format: machineFormat || null,
-      });
+      // Direct SELECT (RPC search_designs não existe neste Supabase).
+      // Filtros/sort/paginação/count gerenciados pelo query builder.
+      let query = db
+        .from("designs")
+        .select("*, categories(name), kit_arquivos(format)", { count: "exact" })
+        .eq("is_published", true);
 
+      const term = search.trim();
+      if (term) query = query.ilike("name", `%${term}%`);
+      if (categoryFilter !== "all") query = query.eq("category_id", categoryFilter);
+      if (stitchMin !== null) query = query.gte("stitch_count", stitchMin);
+      if (stitchMax !== null) query = query.lte("stitch_count", stitchMax);
+
+      if (sortBy === "name_asc") {
+        query = query.order("name", { ascending: true });
+      } else {
+        // recent OR most_downloaded — most_downloaded é re-ordenado client-side abaixo
+        query = query.order("created_at", { ascending: false });
+      }
+
+      query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      const { data, error, count } = await query;
       if (error) throw error;
 
-      const results = data || [];
-      const count = results.length > 0 ? Number(results[0].total_count) : 0;
+      const machineFormatUpper = machineFormat?.toUpperCase() ?? null;
+      const rows = (data ?? []) as Array<Record<string, any>>;
 
-      const mapped = results.map((r: any) => ({
-        ...r,
-        categories: r.category_name ? { name: r.category_name } : null,
-      }));
+      // Computa is_compatible client-side (replaces RPC's soft compat logic)
+      const mapped = rows.map((r) => {
+        const formats = Array.from(
+          new Set(
+            ((r.kit_arquivos ?? []) as { format: string | null }[])
+              .map((f) => (f?.format ?? "").trim())
+              .filter((f) => f.length > 0),
+          ),
+        );
+        const formatMatch = !machineFormatUpper
+          || formats.some((f) => f.toUpperCase() === machineFormatUpper);
+        const hoopMatch = !machineHoopSize || r.hoop_size === machineHoopSize;
+        return {
+          ...r,
+          category_name: r.categories?.name ?? null,
+          availableFormats: formats,
+          is_compatible: formatMatch && hoopMatch,
+        };
+      });
 
-      // Track compatibility info
-      const compatible = mapped.filter((d: any) => d.is_compatible !== false).length;
+      // Compatíveis primeiro (replaces RPC's ORDER BY compatibility buckets)
+      mapped.sort((a, b) => Number(b.is_compatible) - Number(a.is_compatible));
+
+      const compatible = mapped.filter((d) => d.is_compatible).length;
       setCompatibleCount(compatible);
-      setHasIncompatible(mapped.some((d: any) => d.is_compatible === false));
+      setHasIncompatible(mapped.some((d) => !d.is_compatible));
 
-      console.log(`[library] ${count} total, ${compatible}/${mapped.length} compatible (format: ${machineFormat}, hoop: ${machineHoopSize})`);
+      console.log(
+        `[library] ${count ?? 0} total, ${compatible}/${mapped.length} compatible (format: ${machineFormat}, hoop: ${machineHoopSize})`,
+      );
 
       setDesigns(mapped);
-      setTotalCount(count);
+      setTotalCount(count ?? 0);
 
       const designIds = mapped.map((d: any) => d.id);
       if (designIds.length > 0) {
@@ -112,6 +142,10 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       }
     } catch (err) {
       console.error("[useLibraryDesigns] error:", err);
+      setDesigns([]);
+      setTotalCount(0);
+      setHasIncompatible(false);
+      setCompatibleCount(0);
     } finally {
       setIsLoading(false);
     }
