@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const CATEGORIES = [
@@ -18,7 +19,7 @@ const CATEGORIES = [
   { id: "77bb1f7b-e11a-4043-aff8-f7cbdf2112a4", name: "Frases" },
 ];
 
-const categoryNames = CATEGORIES.map(c => c.name).join(", ");
+const categoryNames = CATEGORIES.map((c) => c.name).join(", ");
 
 const SYSTEM_PROMPT = `Você é um classificador de matrizes de bordado. Classifique cada design em EXATAMENTE UMA das categorias: ${categoryNames}
 
@@ -34,77 +35,103 @@ Regras:
 - Frases: citações, palavras, frases motivacionais, textos decorativos
 
 Se o design inclui elementos de múltiplas categorias, escolha a categoria do elemento PRINCIPAL.
-Se não houver informação suficiente, classifique como "Flores" (mais comum em bordado).`;
+Se não houver informação suficiente, classifique como "Flores" (mais comum em bordado).
+Responda APENAS em JSON conforme o schema.`;
+
+async function fetchImageAsInlineData(
+  url: string,
+): Promise<{ inlineData: { mimeType: string; data: string } } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const mimeType = (res.headers.get("content-type") ?? "image/jpeg").split(";")[0];
+    let bin = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < buf.byteLength; i += chunkSize) {
+      bin += String.fromCharCode.apply(
+        null,
+        Array.from(buf.subarray(i, i + chunkSize)),
+      );
+    }
+    return { inlineData: { mimeType, data: btoa(bin) } };
+  } catch (err) {
+    console.error("fetchImageAsInlineData error:", err);
+    return null;
+  }
+}
 
 async function classifyDesign(
   apiKey: string,
-  design: { name: string; generated_title?: string; raw_filename?: string; tags_text?: string; cover_image?: string }
+  design: {
+    name: string;
+    generated_title?: string;
+    raw_filename?: string;
+    tags_text?: string;
+    cover_image?: string;
+  },
 ): Promise<{ category_id: string; category_name: string } | null> {
   const context = [
     design.generated_title ? `Título: ${design.generated_title}` : `Nome: ${design.name}`,
     design.raw_filename ? `Arquivo: ${design.raw_filename}` : null,
     design.tags_text ? `Tags: ${design.tags_text}` : null,
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  const userContent: any[] = [];
+  const userParts: unknown[] = [];
   if (design.cover_image) {
-    userContent.push({ type: "image_url", image_url: { url: design.cover_image } });
+    const img = await fetchImageAsInlineData(design.cover_image);
+    if (img) userParts.push(img);
   }
-  userContent.push({ type: "text", text: `Classifique este design de bordado:\n\n${context}` });
+  userParts.push({ text: `Classifique este design de bordado:\n\n${context}` });
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
-      tools: [{
-        type: "function",
-        function: {
-          name: "classify_category",
-          description: "Return the category for this embroidery design",
-          parameters: {
-            type: "object",
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: userParts }],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
             properties: {
               category_name: {
-                type: "string",
-                enum: CATEGORIES.map(c => c.name),
+                type: "STRING",
+                enum: CATEGORIES.map((c) => c.name),
+                description: "Nome exato de uma das categorias permitidas",
               },
             },
             required: ["category_name"],
-            additionalProperties: false,
           },
         },
-      }],
-      tool_choice: { type: "function", function: { name: "classify_category" } },
-    }),
-  });
+      }),
+    },
+  );
 
   if (!response.ok) {
-    console.error(`AI error ${response.status} for "${design.name}"`);
+    const t = await response.text();
+    console.error(`Gemini error ${response.status} for "${design.name}":`, t);
     return null;
   }
 
   const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-
-  if (toolCall?.function?.arguments) {
-    const parsed = JSON.parse(toolCall.function.arguments);
-    const match = CATEGORIES.find(c => c.name === parsed.category_name);
-    if (match) return { category_id: match.id, category_name: match.name };
-  }
-
-  // Fallback: search text response
-  const content = data.choices?.[0]?.message?.content;
-  if (content) {
+  const text: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (text) {
+    try {
+      const parsed = JSON.parse(text);
+      const match = CATEGORIES.find((c) => c.name === parsed.category_name);
+      if (match) return { category_id: match.id, category_name: match.name };
+    } catch (err) {
+      console.error("classifyDesign: failed to parse Gemini JSON", err, text);
+    }
+    // Fallback: search the raw text for a known category name
     for (const cat of CATEGORIES) {
-      if (content.includes(cat.name)) return { category_id: cat.id, category_name: cat.name };
+      if (text.includes(cat.name)) return { category_id: cat.id, category_name: cat.name };
     }
   }
   return null;
@@ -114,8 +141,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -133,9 +160,15 @@ serve(async (req) => {
 
     if (fetchErr) throw fetchErr;
     if (!designs || designs.length === 0) {
-      return new Response(JSON.stringify({ message: "No uncategorized designs found", classified: 0, failed: 0, remaining: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          message: "No uncategorized designs found",
+          classified: 0,
+          failed: 0,
+          remaining: 0,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     let classified = 0;
@@ -148,7 +181,7 @@ serve(async (req) => {
       const chunk = designs.slice(i, i + CONCURRENCY);
       const promises = chunk.map(async (design) => {
         try {
-          const result = await classifyDesign(LOVABLE_API_KEY, design);
+          const result = await classifyDesign(GEMINI_API_KEY, design);
           if (result) {
             const { error: updateErr } = await supabase
               .from("designs")
@@ -175,9 +208,9 @@ serve(async (req) => {
         }
       });
       await Promise.all(promises);
-      // Small delay between chunks
+      // Small delay between chunks to avoid rate limits
       if (i + CONCURRENCY < designs.length) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 500));
       }
     }
 
@@ -187,19 +220,20 @@ serve(async (req) => {
       .select("id", { count: "exact", head: true })
       .is("category_id", null);
 
-    return new Response(JSON.stringify({
-      classified,
-      failed,
-      remaining: count || 0,
-      results,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        classified,
+        failed,
+        remaining: count || 0,
+        results,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("bulk-classify error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
