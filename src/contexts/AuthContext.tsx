@@ -226,33 +226,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("[Auth] event:", event);
 
       if (event === "INITIAL_SESSION") {
-        // handled by bootstrap below
+        // Drives bootstrap: SIGNED_IN events that fire BEFORE this are duplicates
+        // (cached session events from the GoTrueClient) and are ignored to prevent
+        // duplicate fetchUserData runs eating 20s+ of timeouts.
+        initDoneRef.current = true;
+        await applySession(nextSession, "init");
         return;
       }
+
       if (event === "TOKEN_REFRESHED") {
         if (!initDoneRef.current) return;
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
         return;
       }
+
+      // Race-guard: a fresh boot fires SIGNED_IN with the cached session BEFORE
+      // INITIAL_SESSION on some Supabase JS versions. Ignore until bootstrap done.
+      if (event === "SIGNED_IN" && !initDoneRef.current) {
+        console.log("[Auth] SIGNED_IN antes de INITIAL_SESSION — ignorado (boot duplicate)");
+        return;
+      }
+
       await applySession(nextSession, `event:${event}`);
     });
-
-    (async () => {
-      try {
-        // Auth is critical — no timeout wrapper, let supabase-js handle its own retries.
-        const { data } = await supabase.auth.getSession();
-        if (!mountedRef.current) return;
-        initDoneRef.current = true;
-        await applySession(data.session, "init");
-      } catch (err) {
-        console.error("[Auth] bootstrap error:", err);
-      } finally {
-        if (mountedRef.current && statusRef.current === "loading") {
-          setStatus("unauthenticated");
-        }
-      }
-    })();
 
     return () => {
       mountedRef.current = false;
