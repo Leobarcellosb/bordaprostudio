@@ -259,16 +259,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [applySession]);
 
   const signOut = useCallback(async () => {
+    console.log("[Auth] signOut called");
+
+    // Cancel any in-flight fetches and clear in-memory state immediately so
+    // the UI reacts before the network call returns (or hangs).
+    currentUserIdRef.current = null;
+    fetchRequestIdRef.current += 1;
+    resetUserState();
+    setUser(null);
+    setSession(null);
+    setStatus("unauthenticated");
+
+    // Race the Supabase signOut against a 3s timeout. A slow/failed auth
+    // server (NANO cold-start) must not block the logout flow.
     try {
-      await supabase.auth.signOut();
-    } finally {
-      currentUserIdRef.current = null;
-      fetchRequestIdRef.current += 1;
-      resetUserState();
-      setUser(null);
-      setSession(null);
-      setStatus("unauthenticated");
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            console.warn("[Auth] supabase.auth.signOut timed out — proceeding");
+            resolve();
+          }, 3000),
+        ),
+      ]);
+    } catch (err) {
+      console.warn("[Auth] supabase.auth.signOut error:", err);
     }
+
+    // Belt-and-suspenders: if signOut hung, the SDK never cleared localStorage.
+    // Wipe Supabase auth keys ourselves so the next page load doesn't rehydrate
+    // the session.
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("sb-") && key.includes("auth")) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      /* ignore quota / access errors */
+    }
+
+    // Hard redirect to /login. Required because some routes (/, /plans,
+    // /onboarding, /signup) are NOT wrapped in ProtectedRoute and therefore
+    // do not auto-navigate when status flips to "unauthenticated".
+    window.location.replace("/login");
   }, [resetUserState]);
 
   const refresh = useCallback(async () => {
