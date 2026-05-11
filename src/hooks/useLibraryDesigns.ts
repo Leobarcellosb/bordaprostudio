@@ -55,12 +55,33 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         if (max) stitchMax = max;
       }
 
+      // Pré-filtragem por formato: o sort de compatibilidade não pode ser
+      // client-side porque a paginação corta antes. Sem isso, página 1 pode
+      // não ter NENHUM compatível mesmo com 200+ no banco.
+      // Estratégia: se o user tem formato configurado, buscar design_ids
+      // que têm esse formato em kit_arquivos. Se houver ao menos um, filtrar
+      // a query principal a esses IDs. Senão, mostra tudo (banner cuida).
+      let compatibleIds: string[] | null = null;
+      if (machineFormat) {
+        const { data: matching, error: matchErr } = await db
+          .from("kit_arquivos")
+          .select("design_id")
+          .ilike("format", machineFormat);
+        if (matchErr) throw matchErr;
+        const ids = Array.from(
+          new Set(((matching ?? []) as { design_id: string }[]).map((r) => r.design_id)),
+        );
+        if (ids.length > 0) compatibleIds = ids;
+      }
+
       // Direct SELECT (RPC search_designs não existe neste Supabase).
       // Filtros/sort/paginação/count gerenciados pelo query builder.
       let query = db
         .from("designs")
         .select("*, categories(name), kit_arquivos(format)", { count: "exact" })
         .eq("is_published", true);
+
+      if (compatibleIds) query = query.in("id", compatibleIds);
 
       const term = search.trim();
       if (term) query = query.ilike("name", `%${term}%`);
@@ -103,7 +124,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         };
       });
 
-      // Compatíveis primeiro (replaces RPC's ORDER BY compatibility buckets)
+      // Quando compatibleIds está set, todos da página já são format-compatible.
+      // Mas hoop_match ainda pode variar → mantém sort para hoop-compatible primeiro.
       mapped.sort((a, b) => Number(b.is_compatible) - Number(a.is_compatible));
 
       const compatible = mapped.filter((d) => d.is_compatible).length;
