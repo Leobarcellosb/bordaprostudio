@@ -163,6 +163,7 @@ const LibraryPage = () => {
           hasIncompatible={hasIncompatible}
           compatibleCount={compatibleCount}
           totalShown={designs.length}
+          isLoading={isLoading}
         />
 
         <LibraryFilters
