@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,52 +13,65 @@ serve(async (req) => {
   try {
     const { designId, designName, category, tags } = await req.json();
     if (!designId || !designName) {
-      return new Response(JSON.stringify({ error: "designId and designName are required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "designId and designName are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    const prompt = `Generate a clean, professional embroidery design preview image. The design is called "${designName}"${category ? `, category: ${category}` : ""}${tags ? `, style tags: ${tags}` : ""}. Show the embroidery pattern on a clean white fabric background, as if it were stitched on white cotton cloth. The design should look like a real machine embroidery with visible thread texture and stitches. No text overlays, no watermarks. On a solid white background.`;
+    const prompt =
+      `Generate a clean, professional embroidery design preview image. ` +
+      `The design is called "${designName}"${category ? `, category: ${category}` : ""}` +
+      `${tags ? `, style tags: ${tags}` : ""}. ` +
+      `Show the embroidery pattern on a clean white fabric background, as if it were stitched ` +
+      `on white cotton cloth. The design should look like a real machine embroidery with visible ` +
+      `thread texture and stitches. No text overlays, no watermarks. On a solid white background.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    // Gemini 2.5 Flash Image · API nativa do Google.
+    // responseModalities=["IMAGE","TEXT"] retorna imagem inline em parts[].inlineData.
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("Gemini API error:", response.status, t);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const parts = data.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find((p: { inlineData?: { mimeType?: string } }) =>
+      p.inlineData?.mimeType?.startsWith("image/"),
+    );
+    const base64 = imagePart?.inlineData?.data;
 
-    if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(data).slice(0, 500));
+    if (!base64) {
+      console.error("No image in Gemini response:", JSON.stringify(data).slice(0, 500));
       return new Response(JSON.stringify({ error: "No image generated" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Decode base64 and upload to storage
-    const base64 = imageData.replace(/^data:image\/\w+;base64,/, "");
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
@@ -78,14 +92,14 @@ serve(async (req) => {
       const { error: uploadError2 } = await supabase.storage
         .from("kit-covers")
         .upload(filePath, bytes, { contentType: "image/png", upsert: false });
-      
+
       if (uploadError2) {
         console.error("Storage upload failed:", uploadError2.message);
         throw new Error("Failed to upload preview image");
       }
-      
+
       const { data: urlData } = supabase.storage.from("kit-covers").getPublicUrl(filePath);
-      
+
       // Update design with the generated preview
       await supabase.from("designs").update({ cover_image: urlData.publicUrl }).eq("id", designId);
 
@@ -104,8 +118,9 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("generate-design-preview error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });

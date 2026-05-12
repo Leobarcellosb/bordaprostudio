@@ -1,73 +1,67 @@
-# Welcome to your Lovable project
+# Borda Pro
 
-## Project info
+Biblioteca de matrizes de bordado eletrônico · plataforma profissional para
+bordadeiras venderem, organizarem e visualizarem designs.
 
-**URL**: https://lovable.dev/projects/09cd175a-a194-4c33-8642-d1460c02f950
+## Stack
 
-## How can I edit this code?
+- Vite + React 18 + TypeScript
+- shadcn/ui + Tailwind CSS
+- Supabase (Postgres + Auth + Storage + Edge Functions)
+- Gemini 2.5 Flash (geração de previews e classificação de designs)
 
-There are several ways of editing your application.
+## Desenvolvimento local
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/09cd175a-a194-4c33-8642-d1460c02f950) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requer Node.js 20+ e npm (ou pnpm). Recomendo `nvm` para gerenciar versões.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+git clone <git@github.com:...>
+cd borda-final
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Variáveis de ambiente (copie `.env.example` para `.env.local`):
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
 
-**Use GitHub Codespaces**
+Para as Edge Functions:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+SUPABASE_SERVICE_ROLE_KEY=
+GEMINI_API_KEY=
+```
 
-## What technologies are used for this project?
+## Deploy
 
-This project is built with:
+Frontend via Vercel · Edge Functions via `supabase functions deploy`.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+supabase functions deploy generate-design-preview
+supabase functions deploy bulk-classify-designs
+supabase functions deploy build-kit-draft
+```
 
-## How can I deploy this project?
+## Scripts utilitários
 
-Simply open [Lovable](https://lovable.dev/projects/09cd175a-a194-4c33-8642-d1460c02f950) and click on Share -> Publish.
+```sh
+npm run generate:og     # regera public/og-image.png a partir do SVG inline
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Estrutura
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+src/
+  components/   → componentes de UI (shadcn + custom)
+  pages/        → rotas (Router DOM)
+  hooks/        → React hooks compartilhados
+  lib/          → utils e clients Supabase
+supabase/
+  functions/    → Edge Functions Deno
+  migrations/   → schema SQL
+public/         → assets estáticos (favicon, og-image, robots.txt)
+scripts/        → scripts de build/geração
+```

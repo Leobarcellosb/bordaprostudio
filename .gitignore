@@ -25,3 +25,4 @@ dist-ssr
 .env
 .env.deploy
 supabase/.temp/
+.env.functions
