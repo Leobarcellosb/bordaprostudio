@@ -1,19 +1,46 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AppLayout } from "@/components/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Library, MessageCircle, CheckSquare, X } from "lucide-react";
+import {
+  Library,
+  MessageCircle,
+  CheckSquare,
+  X,
+  FolderOpen,
+  LayoutGrid,
+  ChevronRight,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLibraryDesigns, PAGE_SIZE, SortOption } from "@/hooks/useLibraryDesigns";
+import { useLibraryCategories } from "@/hooks/useLibraryCategories";
 import { LibraryFilters } from "@/components/library/LibraryFilters";
 import { CompatibilityBanner } from "@/components/library/CompatibilityBanner";
 import { LibraryGrid } from "@/components/library/LibraryGrid";
 import { LibraryPagination } from "@/components/library/LibraryPagination";
+import { CategoryFolderGrid } from "@/components/library/CategoryFolderGrid";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { WhatsAppListModal } from "@/components/WhatsAppListModal";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+
+type ViewMode = "folders" | "all";
+
+// Versioned key keeps us free to change the stored shape later (rule:
+// client-localstorage-schema).
+const VIEW_STORAGE_KEY = "borda:library-view:v1";
+
+function readStoredView(): ViewMode {
+  if (typeof window === "undefined") return "folders";
+  try {
+    const raw = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (raw === "folders" || raw === "all") return raw;
+  } catch {
+    /* localStorage indisponível (private mode etc.) — usa default */
+  }
+  return "folders";
+}
 
 const LibraryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,6 +58,17 @@ const LibraryPage = () => {
   const { t } = useTranslation();
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
+  // View mode (folders by default). Lazy initialization avoids reading
+  // localStorage on every render (rule: rerender-lazy-state-init).
+  const [viewMode, setViewMode] = useState<ViewMode>(readStoredView);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
+    } catch {
+      /* ignore */
+    }
+  }, [viewMode]);
+
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -45,8 +83,22 @@ const LibraryPage = () => {
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
   });
 
+  const {
+    folders,
+    totalDesigns: foldersTotalDesigns,
+    totalCompatible: foldersTotalCompatible,
+    recentPreviews,
+    isLoading: foldersLoading,
+  } = useLibraryCategories();
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasActiveFilters = search !== "" || categoryFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
+
+  // Active category breadcrumb label (only matters in "all" view).
+  const activeCategoryName = useMemo(() => {
+    if (categoryFilter === "all") return null;
+    return categories.find((c: any) => c.id === categoryFilter)?.name ?? null;
+  }, [categoryFilter, categories]);
 
   // Sync URL params when tag changes
   useEffect(() => {
@@ -56,39 +108,55 @@ const LibraryPage = () => {
     setSearchParams(params, { replace: true });
   }, [search, selectedTags, setSearchParams]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch("");
     setCategoryFilter("all");
     setStitchRange("all");
     setSelectedTags([]);
     setPage(0);
-  };
+  }, []);
 
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+  const handleTagToggle = useCallback((tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
     setPage(0);
-  };
+  }, []);
 
   const handleFilterChange = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
     setPage(0);
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const exitSelectionMode = () => {
+  const exitSelectionMode = useCallback(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
-  };
+  }, []);
+
+  /**
+   * Click handler vindo do grid de "pastas". Aplica filtro de categoria
+   * (ou limpa para "Ver Tudo") e salta para a view de grid plana.
+   */
+  const handleSelectCategory = useCallback((catId: string | "all") => {
+    setCategoryFilter(catId === "all" ? "all" : catId);
+    setPage(0);
+    setSearch("");
+    setSelectedTags([]);
+    setStitchRange("all");
+    setViewMode("all");
+    // Limpa selection mode caso esteja ativo
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
 
   const selectedDesigns = useMemo(() => {
     return designs.filter((d: any) => selectedIds.has(d.id)).map((d: any) => ({
@@ -97,6 +165,15 @@ const LibraryPage = () => {
       hoop_size: d.hoop_size,
     }));
   }, [designs, selectedIds]);
+
+  const inFolders = viewMode === "folders";
+  // Header counter: em "folders" usa o total real do catálogo; em "all" usa
+  // o totalCount filtrado.
+  const headerCount = inFolders
+    ? machineFormat
+      ? foldersTotalCompatible
+      : foldersTotalDesigns
+    : totalCount;
 
   return (
     <AppLayout>
@@ -109,7 +186,7 @@ const LibraryPage = () => {
                 <Library className="h-5 w-5 text-primary" />
               </div>
               <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide uppercase">
-                {totalCount} {t("library.designs")}
+                {headerCount} {t("library.designs")}
               </Badge>
             </div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight">
@@ -134,79 +211,152 @@ const LibraryPage = () => {
           <div className="absolute bottom-0 left-1/2 w-48 h-48 opacity-8 blur-3xl bg-secondary rounded-full translate-y-1/2" />
         </div>
 
-        {/* Selection mode toggle */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant={selectionMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
-            className="gap-2 rounded-xl"
+        {/* View toggle (folders vs flat grid) */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="inline-flex items-center rounded-xl border border-border/40 bg-muted/30 p-1"
+            role="tablist"
+            aria-label="Modo de visualização da biblioteca"
           >
-            {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-            {selectionMode ? "Cancelar seleção" : "Selecionar matrizes"}
-          </Button>
-          {selectionMode && selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              onClick={() => setWhatsappModalOpen(true)}
-              className="gap-2 rounded-xl"
+            <button
+              type="button"
+              role="tab"
+              aria-selected={inFolders}
+              onClick={() => setViewMode("folders")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                inFolders
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <MessageCircle className="h-4 w-4" />
-              Gerar lista para cliente ({selectedIds.size})
-            </Button>
+              <FolderOpen className="h-4 w-4" />
+              Por Tema
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!inFolders}
+              onClick={() => setViewMode("all")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                !inFolders
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Todas
+            </button>
+          </div>
+
+          {/* Selection mode toggle — só faz sentido na view "Todas" */}
+          {!inFolders && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={selectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
+                className="gap-2 rounded-xl"
+              >
+                {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                {selectionMode ? "Cancelar seleção" : "Selecionar matrizes"}
+              </Button>
+              {selectionMode && selectedIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => setWhatsappModalOpen(true)}
+                  className="gap-2 rounded-xl"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Gerar lista para cliente ({selectedIds.size})
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
-        <CompatibilityBanner
-          machineFormat={machineFormat}
-          machineHoopSize={machineHoopSize}
-          hasIncompatible={hasIncompatible}
-          compatibleCount={compatibleCount}
-          totalShown={designs.length}
-          isLoading={isLoading}
-        />
-
-        <LibraryFilters
-          search={search}
-          onSearchChange={handleFilterChange(setSearch)}
-          categoryFilter={categoryFilter}
-          onCategoryChange={handleFilterChange(setCategoryFilter)}
-          stitchRange={stitchRange}
-          onStitchRangeChange={handleFilterChange(setStitchRange)}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          categories={categories}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-          totalCount={totalCount}
-          filteredCount={totalCount}
-          selectedTags={selectedTags}
-          onTagToggle={handleTagToggle}
-        />
-
-        <LibraryGrid
-          designs={designs}
-          downloadCounts={downloadCounts}
-          favoriteIds={favoriteIds}
-          onToggleFavorite={toggleFavorite}
-          onDesignClick={(id) => navigate(`/library/${id}`)}
-          isLoading={isLoading}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-          selectionMode={selectionMode}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-        />
-
-        {/* Smart Download */}
-        {designs.length > 0 && !selectionMode && (
-          <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} />
+        {/* Breadcrumb: aparece em "Todas" quando há uma categoria ativa,
+            permitindo voltar para o grid de pastas com um clique. */}
+        {!inFolders && activeCategoryName && (
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground"
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode("folders")}
+              className="hover:text-foreground transition-colors"
+            >
+              Biblioteca
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+            <span className="text-foreground font-medium">{activeCategoryName}</span>
+          </nav>
         )}
 
-        <LibraryPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        {inFolders ? (
+          <CategoryFolderGrid
+            folders={folders}
+            totalDesigns={foldersTotalDesigns}
+            totalCompatible={foldersTotalCompatible}
+            recentPreviews={recentPreviews}
+            machineFormat={machineFormat}
+            isLoading={foldersLoading}
+            onSelectCategory={handleSelectCategory}
+          />
+        ) : (
+          <>
+            <CompatibilityBanner
+              machineFormat={machineFormat}
+              machineHoopSize={machineHoopSize}
+              hasIncompatible={hasIncompatible}
+              compatibleCount={compatibleCount}
+              totalShown={designs.length}
+              isLoading={isLoading}
+            />
+
+            <LibraryFilters
+              search={search}
+              onSearchChange={handleFilterChange(setSearch)}
+              categoryFilter={categoryFilter}
+              onCategoryChange={handleFilterChange(setCategoryFilter)}
+              stitchRange={stitchRange}
+              onStitchRangeChange={handleFilterChange(setStitchRange)}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              categories={categories}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+              totalCount={totalCount}
+              filteredCount={totalCount}
+              selectedTags={selectedTags}
+              onTagToggle={handleTagToggle}
+            />
+
+            <LibraryGrid
+              designs={designs}
+              downloadCounts={downloadCounts}
+              favoriteIds={favoriteIds}
+              onToggleFavorite={toggleFavorite}
+              onDesignClick={(id) => navigate(`/library/${id}`)}
+              isLoading={isLoading}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
+
+            {/* Smart Download */}
+            {designs.length > 0 && !selectionMode && (
+              <SmartDownloadPanel designIds={designs.map((d: any) => d.id)} />
+            )}
+
+            <LibraryPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
+        )}
 
         {/* Floating selection bar */}
-        {selectionMode && selectedIds.size > 0 && (
+        {!inFolders && selectionMode && selectedIds.size > 0 && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-border/60 shadow-xl rounded-2xl px-5 py-3 flex items-center gap-3 animate-fade-in">
             <span className="text-sm font-medium">
               {selectedIds.size} {selectedIds.size === 1 ? "matriz" : "matrizes"}
