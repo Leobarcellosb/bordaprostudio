@@ -114,6 +114,18 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
+  // Eduzz envia ping de teste ao salvar a URL no painel — não vem com
+  // assinatura HMAC. Aceita silenciosamente sem processar nem gravar nada.
+  const isTestRequest = req.headers.get("x-eduzz-test") === "true"
+    || rawBody.includes('"event":"test"')
+    || rawBody === "{}"
+    || rawBody.trim() === "";
+
+  if (isTestRequest) {
+    console.log("[eduzz-webhook] test request received — responding 200 without processing");
+    return json(200, { ok: true, test: true });
+  }
+
   const provided =
     req.headers.get("x-eduzz-signature") ||
     req.headers.get("x-hub-signature-256") ||
