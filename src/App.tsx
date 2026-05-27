@@ -38,9 +38,30 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+// Loader cheio de viewport mostrado entre rotas lazy-loaded (Suspense
+// fallback). Usa inline styles + injeção de @keyframes via <style> pra
+// renderizar mesmo se o CSS principal ainda não tiver carregado.
 const PageLoader = () => (
-  <div className="flex min-h-screen items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100vh",
+      background: "#FAF7F2",
+    }}
+  >
+    <div
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        border: "3px solid #EDE3D4",
+        borderTopColor: "#7C3AED",
+        animation: "borda-spin 0.8s linear infinite",
+      }}
+    />
+    <style>{`@keyframes borda-spin { to { transform: rotate(360deg) } }`}</style>
   </div>
 );
 

@@ -141,3 +141,15 @@
     background-clip: text;
   }
 }
+
+/* Fade-in suave do conteúdo principal (executa no mount inicial de cada
+   subtree direto de #root — alivia o "pulo" da troca entre PageLoader
+   e a página real que vem do Suspense). */
+#root > * {
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
