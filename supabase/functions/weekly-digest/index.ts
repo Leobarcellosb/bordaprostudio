@@ -49,39 +49,25 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// ─── Auth check ────────────────────────────────────────────────────────
-// Aceita: (a) Bearer <SERVICE_ROLE_KEY> (cron job)
-//         (b) Bearer <JWT de user admin> (botão do AdminPanel)
-async function authorize(req: Request): Promise<{ ok: true } | { ok: false; reason: string; status: number }> {
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) {
-    return { ok: false, reason: "missing_auth", status: 401 };
-  }
-  const token = auth.slice("Bearer ".length).trim();
+// ─── Auth check (simplificada conforme spec do user) ──────────────────
+// Aceita SERVICE_ROLE_KEY (cron) ou ANON_KEY como bearer.
+//
+// ⚠️ TRADE-OFFS conhecidos (decisão de produto):
+// 1. ANON_KEY é pública (bundle JS do app) → endpoint efetivamente público.
+//    Qualquer um inspecionando o JS pode disparar digest manualmente.
+// 2. supabase.functions.invoke() do AdminDashboard envia session JWT, não
+//    anon — então o botão atual NÃO autentica com essa checagem.
+//    Pra fazer o botão funcionar, ou:
+//      (a) trocar invoke por fetch direto passando ANON_KEY no header
+//      (b) voltar pra autorização baseada em admin role
+function authorize(req: Request): { ok: true } | { ok: false; status: number; reason: string } {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace("Bearer ", "").trim();
 
-  if (token === SERVICE_ROLE_KEY) {
-    return { ok: true };
-  }
+  const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-  // Senão, tenta validar como JWT de usuário admin
-  const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data: userData, error: userErr } = await sb.auth.getUser(token);
-  if (userErr || !userData?.user) {
-    return { ok: false, reason: "invalid_jwt", status: 401 };
-  }
-
-  const { data: roles, error: rolesErr } = await sb
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userData.user.id);
-  if (rolesErr) {
-    return { ok: false, reason: "role_lookup_failed", status: 500 };
-  }
-  const isAdmin = (roles ?? []).some((r) => String(r.role).toLowerCase() === "admin");
-  if (!isAdmin) {
-    return { ok: false, reason: "not_admin", status: 403 };
+  if (token !== SERVICE_ROLE_KEY && token !== SUPABASE_ANON) {
+    return { ok: false, status: 401, reason: "unauthorized" };
   }
   return { ok: true };
 }
@@ -207,7 +193,7 @@ serve(async (req) => {
     return json(405, { error: "method_not_allowed" });
   }
 
-  const auth = await authorize(req);
+  const auth = authorize(req);
   if (!auth.ok) {
     console.error(`[weekly-digest] auth failed: ${auth.reason}`);
     return json(auth.status, { error: auth.reason });

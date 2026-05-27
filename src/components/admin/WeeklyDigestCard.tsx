@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface DigestResult {
@@ -15,6 +14,13 @@ interface DigestResult {
   error?: string;
 }
 
+// Function endpoint + anon key (público, mesma chave que vai no bundle JS).
+// A função weekly-digest aceita anon como bearer (auth simplificada per
+// decisão de produto); não dá pra usar supabase.functions.invoke() porque
+// ele anexa o session JWT do user logado, que a função rejeita.
+const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/weekly-digest`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
 export const WeeklyDigestCard = () => {
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<DigestResult | null>(null);
@@ -25,26 +31,37 @@ export const WeeklyDigestCard = () => {
     setSending(true);
     setLastResult(null);
 
-    // invoke() anexa o JWT do user logado — o weekly-digest valida que é admin
-    const { data, error } = await supabase.functions.invoke<DigestResult>("weekly-digest", {
-      body: {},
-    });
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+        body: "{}",
+      });
+      const data: DigestResult = await resp.json().catch(() => ({ ok: false, error: "invalid_response" }));
 
-    if (error) {
-      const msg = error.message || "Falha ao chamar weekly-digest";
+      if (!resp.ok) {
+        const msg = data?.error ?? `HTTP ${resp.status}`;
+        toast.error(msg);
+        setLastResult({ ok: false, error: msg });
+      } else {
+        setLastResult(data);
+        if (data.ok) {
+          if ((data.sent ?? 0) > 0) {
+            toast.success(`✅ ${data.sent} emails enviados (${data.designs} designs novos)`);
+          } else {
+            toast.info(`Nada enviado: ${data.reason ?? "sem motivo"}`);
+          }
+        } else {
+          toast.error(`Erro: ${data.error ?? "desconhecido"}`);
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro de rede";
       toast.error(msg);
       setLastResult({ ok: false, error: msg });
-    } else if (data) {
-      setLastResult(data);
-      if (data.ok) {
-        if ((data.sent ?? 0) > 0) {
-          toast.success(`✅ ${data.sent} emails enviados (${data.designs} designs novos)`);
-        } else {
-          toast.info(`Nada enviado: ${data.reason ?? "sem motivo"}`);
-        }
-      } else {
-        toast.error(`Erro: ${data.error ?? "desconhecido"}`);
-      }
     }
     setSending(false);
   };
