@@ -211,20 +211,27 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1. Find user by email — paginate through admin.listUsers if needed.
+  // 1. Find user by email — busca direta na tabela profiles em vez de
+  // listUsers (que tinha limite implícito de 200 e quebraria após
+  // ~200 cadastros). profiles.email é populada pelo trigger que dispara
+  // ao INSERT em auth.users; busca é O(1) com índice no email.
+  //
+  // Nota: supabase-js v2.x não tem auth.admin.getUserByEmail nem suporta
+  // filter em listUsers — esse approach via profiles é o jeito limpo
+  // hoje em Supabase. Se ainda precisar do auth.users diretamente
+  // (ex: campos do auth não duplicados no profile), dá pra adicionar
+  // uma RPC SECURITY DEFINER que consulta auth.users.
   let userId: string | null = null;
   try {
-    const { data, error } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (error) throw error;
-    const match = data?.users?.find(
-      (u) => (u.email ?? "").toLowerCase() === buyerEmail.toLowerCase(),
-    );
-    if (match) userId = match.id;
+    const { data: profileRow, error: lookupErr } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", buyerEmail) // case-insensitive
+      .maybeSingle();
+    if (lookupErr) throw lookupErr;
+    if (profileRow?.id) userId = profileRow.id;
   } catch (err) {
-    console.error("[eduzz-webhook] listUsers error:", err);
+    console.error("[eduzz-webhook] profile lookup error:", err);
   }
 
   // 2. Create user if not found.
