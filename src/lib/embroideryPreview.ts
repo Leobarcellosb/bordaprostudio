@@ -137,10 +137,10 @@ function fixColorCount(pattern: EmbroideryPattern) {
     if (s.color > maxColorIndex) maxColorIndex = s.color;
   }
   while (pattern.colors.length <= maxColorIndex) {
-    // Use catalog fallback palette for missing colors
-    const idx = pattern.colors.length % CATALOG_PALETTE.length;
-    const cp = CATALOG_PALETTE[idx];
-    pattern.colors.push(cp);
+    // Fallback palette setada pelo parser ativo (CATALOG p/ PES+JEF,
+    // MUTED p/ DST/EXP/XXX/VP3/HUS/EMB que não carregam cor real).
+    const idx = pattern.colors.length % _fallbackPalette.length;
+    pattern.colors.push(_fallbackPalette[idx]);
   }
   pattern.colors.splice(maxColorIndex + 1);
 }
@@ -179,6 +179,30 @@ const CATALOG_PALETTE: EmbroideryColor[] = [
   { r: 85, g: 139, b: 47, name: "Sage Green" },
   { r: 216, g: 67, b: 21, name: "Terra Cotta" },
 ];
+
+// ── Muted fallback palette ──────────────────────────────────────────────
+// Usada como cor "honesta" para formatos que NÃO carregam metadata real de
+// cor (DST, EXP, XXX, VP3, HUS, EMB). Em vez de inventar um carnaval de
+// cores vívidas que confunde o usuário (CATALOG_PALETTE), renderiza em
+// tons sóbrios de bordado profissional. Melhor admitir "não sei a cor"
+// com elegância do que mentir com Navy Blue + Rich Red aleatórios.
+const MUTED_PALETTE: EmbroideryColor[] = [
+  { r: 44, g: 44, b: 44, name: "Carvão" },
+  { r: 92, g: 64, b: 51, name: "Marrom Escuro" },
+  { r: 26, g: 58, b: 74, name: "Azul Petróleo" },
+  { r: 45, g: 74, b: 45, name: "Verde Musgo" },
+  { r: 74, g: 32, b: 64, name: "Vinho" },
+  { r: 58, g: 58, b: 26, name: "Oliva" },
+  { r: 26, g: 42, b: 58, name: "Azul Marinho" },
+  { r: 58, g: 26, b: 26, name: "Bordô" },
+  { r: 42, g: 58, b: 42, name: "Verde Escuro" },
+  { r: 58, g: 42, b: 26, name: "Terracota Escuro" },
+];
+
+// Paleta de fallback ativa — cada parser seta no início de acordo com o
+// formato. PES/JEF usam CATALOG_PALETTE (caso raro de cor faltando após ler
+// metadata real); os demais usam MUTED_PALETTE.
+let _fallbackPalette: EmbroideryColor[] = CATALOG_PALETTE;
 
 // ── PEC/PES Color Table (from embroidery-viewer) ────────────────────────
 
@@ -395,6 +419,7 @@ class EmbroideryFileView {
 // ── PES Parser (ported from embroidery-viewer) ──────────────────────────
 
 function parsePES(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = CATALOG_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -479,6 +504,7 @@ function readPecStitches(file: EmbroideryFileView, pattern: EmbroideryPattern) {
 // ── DST Parser (ported from embroidery-viewer) ──────────────────────────
 
 function parseDST(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -546,6 +572,7 @@ function expDecode(input: number): number {
 }
 
 function parseEXP(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
   let index = 0;
@@ -593,6 +620,7 @@ function jefDecode(byte: number): number {
 }
 
 function parseJEF(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = CATALOG_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -646,6 +674,7 @@ function parseJEF(buffer: ArrayBuffer): EmbroideryPattern {
 // ── XXX Parser (Singer) ─────────────────────────────────────────────────
 
 function parseXXX(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -703,6 +732,7 @@ function vp3ReadString(file: EmbroideryFileView): string {
 }
 
 function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -727,7 +757,7 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
   // Fallback: parse as raw signed byte pairs treating sections by STOP markers
   file.seek(pos);
   let currentColor = 0;
-  addColor(pattern, CATALOG_PALETTE[0]);
+  addColor(pattern, MUTED_PALETTE[0]);
 
   while (file.tell() + 1 < file.byteLength) {
     const b0 = file.getUint8();
@@ -746,7 +776,7 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
     if (b0 === 0x00 && (b1 === 0x03 || b1 === 0x01)) {
       currentColor++;
       if (currentColor >= pattern.colors.length) {
-        addColor(pattern, CATALOG_PALETTE[currentColor % CATALOG_PALETTE.length]);
+        addColor(pattern, MUTED_PALETTE[currentColor % MUTED_PALETTE.length]);
       }
       addStitchRel(pattern, 0, 0, STOP, false);
       pattern.currentColorIndex = currentColor;
@@ -772,6 +802,7 @@ function parseVP3(buffer: ArrayBuffer): EmbroideryPattern {
 // ── HUS Parser (Husqvarna) ───────────────────────────────────────────────
 
 function parseHUS(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -792,11 +823,11 @@ function parseHUS(buffer: ArrayBuffer): EmbroideryPattern {
   // Read color indices
   const colorOffset = file.tell();
   for (let i = 0; i < Math.min(numColors, 64); i++) {
-    const colorIdx = file.getUint8() % CATALOG_PALETTE.length;
-    addColor(pattern, CATALOG_PALETTE[colorIdx]);
+    const colorIdx = file.getUint8() % MUTED_PALETTE.length;
+    addColor(pattern, MUTED_PALETTE[colorIdx]);
   }
   if (pattern.colors.length === 0) {
-    addColor(pattern, CATALOG_PALETTE[0]);
+    addColor(pattern, MUTED_PALETTE[0]);
   }
 
   // Find stitch data — typically after header + color table
@@ -867,6 +898,7 @@ function parseHUS(buffer: ArrayBuffer): EmbroideryPattern {
 // embedded objects may not render perfectly.
 
 function parseEMB(buffer: ArrayBuffer): EmbroideryPattern {
+  _fallbackPalette = MUTED_PALETTE;
   const file = new EmbroideryFileView(buffer);
   const pattern = createPattern();
 
@@ -904,7 +936,7 @@ function parseEMB(buffer: ArrayBuffer): EmbroideryPattern {
     dataStart = Math.min(256, file.byteLength);
   }
 
-  addColor(pattern, CATALOG_PALETTE[0]);
+  addColor(pattern, MUTED_PALETTE[0]);
   file.seek(dataStart);
 
   let stitchesRead = 0;
@@ -1201,7 +1233,7 @@ export async function generateEmbroideryPreview(
       return null;
     }
 
-    const canvas = renderToCanvas(pattern, { mode: "commercial", size: imageSize });
+    const canvas = renderToCanvas(pattern, { mode: "technical", size: imageSize });
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png")
     );
