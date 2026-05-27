@@ -1,9 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Crown, Calendar, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Crown, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+
+// Portal de cliente da Eduzz onde a usuária gerencia o pagamento.
+// sun.eduzz.com é o portal "Minha conta" canônico do cliente.
+const EDUZZ_MANAGE_URL = "https://sun.eduzz.com/login";
 
 export const SubscriptionCard = () => {
   const { subscription } = useAuth();
@@ -54,6 +58,15 @@ export const SubscriptionCard = () => {
               <span className="text-sm text-muted-foreground">Provedor:</span>
               <span className="text-sm">Eduzz</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto gap-1.5 mt-2"
+              onClick={() => window.open(EDUZZ_MANAGE_URL, "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Gerenciar na Eduzz
+            </Button>
           </div>
         ) : (
           <div className="text-center py-4 space-y-3">
