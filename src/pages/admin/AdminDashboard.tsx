@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, Download, TrendingUp, FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { WeeklyDigestCard } from "@/components/admin/WeeklyDigestCard";
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState({ users: 0, downloads: 0, designs: 0, published: 0 });
@@ -81,6 +82,8 @@ export const AdminDashboard = () => {
           </Card>
         ))}
       </div>
+
+      <WeeklyDigestCard />
 
       <div>
         <h3 className="font-semibold mb-3">Matrizes Mais Baixadas</h3>
