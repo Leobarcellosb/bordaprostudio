@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,10 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, AdminRoute } from "@/components/ProtectedRoute";
-import Login from "./pages/Login";
-import LandingPage from "./pages/LandingPage";
 
-// Lazy-loaded pages — only downloaded when navigated to
+// Todas as páginas são lazy — cada uma vira um chunk separado. Vendor
+// libs (react, supabase, radix) são agrupadas em chunks dedicados via
+// vite.config.ts → rollupOptions.manualChunks pra caching estável.
+const Login = lazy(() => import("./pages/Login"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -65,7 +67,25 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
+const App = () => {
+  // Preload silencioso das rotas mais acessadas após o primeiro paint —
+  // navegação subsequente fica instantânea. requestIdleCallback espera o
+  // browser ficar ocioso; fallback de 2s pra Safari (que ainda não suporta).
+  useEffect(() => {
+    const preloadHotRoutes = () => {
+      void import("./pages/Dashboard");
+      void import("./pages/LibraryPage");
+    };
+    type WindowWithIdle = Window & { requestIdleCallback?: (cb: () => void) => number };
+    const w = window as WindowWithIdle;
+    if (typeof w.requestIdleCallback === "function") {
+      w.requestIdleCallback(preloadHotRoutes);
+    } else {
+      setTimeout(preloadHotRoutes, 2000);
+    }
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -122,6 +142,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
