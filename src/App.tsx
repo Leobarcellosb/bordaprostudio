@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, AdminRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
@@ -53,6 +53,21 @@ const App = () => (
         <AuthProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
+              {/* Redirects PT-BR — links de email, WhatsApp, marketing e
+                  qualquer URL em português caem nas rotas canônicas em EN.
+                  Preserva ?query e #hash via Navigate replace. Marketing
+                  pode usar borda.pro/biblioteca, borda.pro/favoritos, etc.
+                  /comunidade e /minha-conta já são canônicas em PT-BR. */}
+              <Route path="/biblioteca" element={<Navigate to="/library" replace />} />
+              <Route path="/favoritos" element={<Navigate to="/favorites" replace />} />
+              <Route path="/tendencias" element={<Navigate to="/trends" replace />} />
+              <Route path="/calculadora" element={<Navigate to="/profit-calculator" replace />} />
+              <Route path="/catalogos" element={<Navigate to="/catalogs" replace />} />
+              <Route path="/visualizador" element={<Navigate to="/embroidery-viewer" replace />} />
+              <Route path="/painel" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/ideias" element={<Navigate to="/product-ideas" replace />} />
+              <Route path="/configuracoes" element={<Navigate to="/settings" replace />} />
+
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />
