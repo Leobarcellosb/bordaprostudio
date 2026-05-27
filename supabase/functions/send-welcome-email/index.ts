@@ -12,7 +12,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL =
-  Deno.env.get("RESEND_FROM_EMAIL") ?? "Borda Pro <onboarding@resend.dev>";
+  Deno.env.get("RESEND_FROM_EMAIL") ?? "Borda Pro <oi@borda.pro>";
 const APP_URL =
   Deno.env.get("APP_URL") ?? "https://app.bordaprostudio.com";
 
