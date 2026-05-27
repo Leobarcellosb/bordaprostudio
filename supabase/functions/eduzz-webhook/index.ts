@@ -116,10 +116,21 @@ Deno.serve(async (req) => {
 
   // Eduzz envia ping de teste ao salvar a URL no painel — não vem com
   // assinatura HMAC. Aceita silenciosamente sem processar nem gravar nada.
-  const isTestRequest = req.headers.get("x-eduzz-test") === "true"
-    || rawBody.includes('"event":"test"')
-    || rawBody === "{}"
-    || rawBody.trim() === "";
+  // Match por header explícito + corpo vazio/{} + parse semântico de event:"test"
+  // (evita falso positivo de substring match em payloads reais).
+  let isTestRequest =
+    req.headers.get("x-eduzz-test") === "true" ||
+    rawBody === "{}" ||
+    rawBody.trim() === "";
+
+  if (!isTestRequest && rawBody.trim().startsWith("{")) {
+    try {
+      const probe = JSON.parse(rawBody);
+      if (probe?.event === "test") isTestRequest = true;
+    } catch {
+      /* não é JSON válido, segue pra validação HMAC normal */
+    }
+  }
 
   if (isTestRequest) {
     console.log("[eduzz-webhook] test request received — responding 200 without processing");
