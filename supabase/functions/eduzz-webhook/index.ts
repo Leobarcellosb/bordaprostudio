@@ -46,25 +46,41 @@ interface EduzzPayload {
   [key: string]: unknown;
 }
 
-const PAID_STATUSES = new Set([
+// B3: substring match contra prefixos. A Eduzz manda eventos no formato
+// "myeduzz.invoice_paid" / "sun.invoice_refunded" etc. — antes batia o
+// match exato e tudo caía em "pending" (subscription criada sem expira_at).
+// Agora normaliza removendo prefixo conhecido e usa .includes() pra tolerar
+// variantes futuras de naming.
+
+const PAID_KEYWORDS = [
+  "invoice_paid",
   "paid",
   "active",
   "purchase_complete",
-  "invoice_paid",
   "subscription_renewed",
-]);
-const CANCELED_STATUSES = new Set([
+  "contract_created",
+  "contract_updated",
+];
+const CANCELED_KEYWORDS = [
+  "invoice_refunded",
+  "refunded",
+  "chargeback",          // mantido do código original — sinal forte de cancelamento
   "cancelled",
   "canceled",
-  "refunded",
-  "chargeback",
   "subscription_canceled",
-]);
+  "subscription_cancelled",
+  "invoice_canceled",
+  "invoice_cancelled",
+];
 
-function detectStatus(raw: string): "active" | "canceled" | "pending" {
-  const norm = raw.toLowerCase().trim();
-  if (PAID_STATUSES.has(norm)) return "active";
-  if (CANCELED_STATUSES.has(norm)) return "canceled";
+function detectStatus(event: string): "active" | "canceled" | "pending" {
+  const e = event
+    .toLowerCase()
+    .trim()
+    .replace(/^myeduzz\./i, "")
+    .replace(/^sun\./i, "");
+  if (PAID_KEYWORDS.some((p) => e.includes(p))) return "active";
+  if (CANCELED_KEYWORDS.some((c) => e.includes(c))) return "canceled";
   return "pending";
 }
 
@@ -161,7 +177,17 @@ Deno.serve(async (req) => {
     return json(400, { error: "invalid_json" });
   }
 
-  const buyerEmail = pickString(payload.buyer?.email);
+  // B4: A Eduzz envia os dados aninhados em `data` (data.buyer.email etc.).
+  // Mantemos fallback pra payload.buyer no root (formato legado / outros
+  // gateways). Sempre tenta root primeiro, depois data.
+  const dataObj = (payload.data ?? {}) as Record<string, unknown>;
+  const dataBuyer = (dataObj.buyer ?? {}) as { email?: unknown; id?: unknown; name?: unknown };
+  const dataInvoice = (dataObj.invoice ?? {}) as { id?: unknown; status?: unknown };
+  const dataProduct = (dataObj.product ?? {}) as { id?: unknown; code?: unknown; name?: unknown };
+  const dataOffer = (dataObj.offer ?? {}) as { id?: unknown; code?: unknown };
+
+  const buyerEmail =
+    pickString(payload.buyer?.email) ?? pickString(dataBuyer.email);
   if (!buyerEmail) {
     return json(200, { ok: true, note: "no_email" });
   }
@@ -169,10 +195,17 @@ Deno.serve(async (req) => {
   const eventName = pickString(payload.event) ?? pickString(payload.status) ?? "unknown";
   const subscriptionStatus = detectStatus(eventName);
   const planCode = detectPlanCode(payload);
-  const providerBuyerId = pickString(payload.buyer?.id);
-  const providerInvoiceId = pickString(payload.invoice?.id);
+  const providerBuyerId =
+    pickString(payload.buyer?.id) ?? pickString(dataBuyer.id);
+  const providerInvoiceId =
+    pickString(payload.invoice?.id) ?? pickString(dataInvoice.id);
   const providerOfferId =
-    pickString(payload.offer?.id) ?? pickString(payload.product?.id);
+    pickString(payload.offer?.id) ??
+    pickString(dataOffer.id) ??
+    pickString(payload.product?.id) ??
+    pickString(dataProduct.id);
+  const buyerName =
+    pickString(payload.buyer?.name) ?? pickString(dataBuyer.name);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -200,7 +233,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.auth.admin.createUser({
         email: buyerEmail,
         email_confirm: true,
-        user_metadata: { name: payload.buyer?.name ?? null, source: "eduzz" },
+        user_metadata: { name: buyerName, source: "eduzz" },
       });
       if (error) throw error;
       userId = data.user?.id ?? null;

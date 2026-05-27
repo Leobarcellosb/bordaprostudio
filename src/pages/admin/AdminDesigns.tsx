@@ -4,7 +4,7 @@ import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { pickBestPreviewFile } from "@/lib/previewFormat";
-import { validateMatrixUpload } from "@/lib/validateUpload";
+import { validateMatrixUpload, validateImageUpload } from "@/lib/validateUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,6 +79,15 @@ export const AdminDesigns = () => {
   const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // B1: valida tipo/tamanho antes de subir (impede .exe, .zip 100MB,
+    // JS malicioso etc. virarem URL pública no bucket design-covers).
+    const validationError = validateImageUpload(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;

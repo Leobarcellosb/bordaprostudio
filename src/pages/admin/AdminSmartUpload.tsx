@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JSZip from "jszip";
+import { validateZipUpload } from "@/lib/validateUpload";
 import { db } from "@/lib/db";
 import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { classifyHoopSize } from "@/lib/hoopSize";
@@ -139,6 +140,12 @@ export const AdminSmartUpload = () => {
         if (ext === "zip") {
           // ZIP upload — try to extract embroidery files inside
           try {
+            // B2: valida tamanho do ZIP antes de descompactar (zip-bomb defense)
+            const zipErr = validateZipUpload(file);
+            if (zipErr) {
+              toast.error(`${file.name}: ${zipErr}`);
+              continue;
+            }
             const zip = await JSZip.loadAsync(file);
             const innerFiles: { name: string; blob: Blob; format: string }[] = [];
             let previewFile: { name: string; blob: Blob } | null = null;
