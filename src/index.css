@@ -149,6 +149,12 @@
   animation: fadeIn 0.15s ease-out;
 }
 
+/* Fade entre cada navegação de rota — disparado via key={pathname} no
+   AppLayout, que remonta o wrapper toda vez que pathname muda. */
+.route-content {
+  animation: fadeIn 0.12s ease-out;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
