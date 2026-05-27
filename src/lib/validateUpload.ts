@@ -1,24 +1,13 @@
-export const ALLOWED_IMAGE_TYPES = [
+// Constantes só são usadas pelas funções abaixo — não exportadas.
+const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
 ];
 
-export const ALLOWED_MATRIX_EXTENSIONS = [
-  "pes",
-  "jef",
-  "xxx",
-  "dst",
-  "exp",
-  "hus",
-  "vp3",
-  "emb",
-];
-
-export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-export const MAX_ZIP_SIZE = 100 * 1024 * 1024; // 100MB
-export const MAX_MATRIX_SIZE = 5 * 1024 * 1024; // 5MB (matriz individual)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_ZIP_SIZE = 100 * 1024 * 1024; // 100MB
 
 /** Returns an error message string, or null if upload is valid. */
 export function validateImageUpload(file: File): string | null {
@@ -38,22 +27,6 @@ export function validateZipUpload(file: File): string | null {
   const name = file.name.toLowerCase();
   if (!name.endsWith(".zip")) {
     return "Apenas arquivos .zip são aceitos.";
-  }
-  return null;
-}
-
-export function getExtension(filename: string): string {
-  const m = filename.toLowerCase().match(/\.([^.]+)$/);
-  return m ? m[1] : "";
-}
-
-export function validateMatrixUpload(file: File): string | null {
-  const ext = getExtension(file.name);
-  if (!ALLOWED_MATRIX_EXTENSIONS.includes(ext)) {
-    return `Formato não suportado (.${ext}). Aceitos: ${ALLOWED_MATRIX_EXTENSIONS.map((e) => "." + e).join(", ")}.`;
-  }
-  if (file.size > MAX_MATRIX_SIZE) {
-    return "Arquivo muito grande. Máximo 5MB por matriz.";
   }
   return null;
 }
