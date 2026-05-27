@@ -5,6 +5,7 @@ import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTag
 import { classifyHoopSize } from "@/lib/hoopSize";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
+import { pickBestPreviewFile } from "@/lib/previewFormat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -272,7 +273,13 @@ export const AdminSmartUpload = () => {
 
       for (const group of entries) {
         if (!group.previewFile && group.files.length > 0) {
-          const supportedFile = group.files.find(f => isPreviewSupported(f.format));
+          // Sempre prefere PES > JEF > EXP > DST... para gerar preview de
+          // boa qualidade (cores fiéis). Para DOWNLOAD a lógica é outra
+          // (formato da máquina do usuário) — esta escolha é só visual.
+          const supportedFile = pickBestPreviewFile(
+            group.files.filter((f) => isPreviewSupported(f.format)),
+            (f) => f.format,
+          );
           if (supportedFile) {
             try {
               console.log(`[UPLOAD] [${group.baseName}] PARSE_START`, { format: supportedFile.format, size: supportedFile.blob.size });

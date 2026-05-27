@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
+import { pickBestPreviewFile } from "@/lib/previewFormat";
 import { validateMatrixUpload } from "@/lib/validateUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,6 +148,57 @@ export const AdminDesigns = () => {
     const { error } = await db.from("kit_arquivos").delete().eq("id", fileId);
     if (error) toast.error(error.message);
     else { toast.success("Arquivo removido!"); if (editing?.id) fetchDesignDetails(editing.id); }
+  };
+
+  const [regeneratingPreview, setRegeneratingPreview] = useState(false);
+
+  /**
+   * Regenera a cover_image a partir do MELHOR arquivo de bordado disponível
+   * (PES > JEF > EXP > DST > ...). Resolve covers feias geradas a partir de
+   * JEF/DST sem perder a possibilidade do admin colocar uma capa manual.
+   */
+  const regeneratePreviewFromBestFile = async () => {
+    if (!editing?.id) return;
+    const eligible = designFiles.filter((f: any) => isPreviewSupported(f.format));
+    const best = pickBestPreviewFile<any>(eligible, (f) => f.format);
+    if (!best || !best.file_url) {
+      toast.error("Nenhum arquivo de bordado suportado disponível.");
+      return;
+    }
+    setRegeneratingPreview(true);
+    try {
+      const resp = await fetch(best.file_url);
+      if (!resp.ok) throw new Error(`Falha ao baixar arquivo (${resp.status})`);
+      const blob = await resp.blob();
+      const result = await generateEmbroideryPreview(blob, best.format);
+      if (!result || !result.blob) {
+        toast.error("Não foi possível interpretar o arquivo para gerar preview.");
+        return;
+      }
+      const previewPath = `auto/${editing.id}-${Date.now()}.png`;
+      const { error: upErr } = await supabase.storage
+        .from("design-covers")
+        .upload(previewPath, result.blob, { contentType: "image/png" });
+      if (upErr) throw upErr;
+      const { data: previewUrl } = supabase.storage.from("design-covers").getPublicUrl(previewPath);
+      await db.from("designs").update({
+        cover_image: previewUrl.publicUrl,
+        ...(result.metadata ? {
+          width_mm: result.metadata.widthMm,
+          height_mm: result.metadata.heightMm,
+          stitch_count: result.metadata.stitchCount,
+          colors_count: result.metadata.colorChanges,
+        } : {}),
+      }).eq("id", editing.id);
+      setForm((prev) => ({ ...prev, cover_image: previewUrl.publicUrl }));
+      toast.success(`Preview regerado a partir do arquivo ${best.format.toUpperCase()}.`);
+      fetchData();
+    } catch (err) {
+      console.error("regeneratePreview error:", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao regenerar preview.");
+    } finally {
+      setRegeneratingPreview(false);
+    }
   };
 
   const saveDesign = async () => {
@@ -415,6 +467,30 @@ export const AdminDesigns = () => {
                     className="text-xs h-8"
                   />
                 </div>
+
+                {editing && designFiles.some((f: any) => isPreviewSupported(f.format)) && (
+                  <div className="pt-2 border-t border-border/40">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={regeneratePreviewFromBestFile}
+                      disabled={regeneratingPreview}
+                      className="gap-1.5"
+                      title="Regenera a partir do arquivo de bordado (prioriza PES > JEF > EXP > DST)"
+                    >
+                      {regeneratingPreview ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3.5 w-3.5" />
+                      )}
+                      {regeneratingPreview ? "Regenerando..." : "Regenerar preview do arquivo de bordado"}
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      Usa PES quando disponível (preview mais bonito) — não muda o arquivo de download.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
