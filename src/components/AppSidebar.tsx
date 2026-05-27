@@ -1,6 +1,6 @@
 import { Home, Library, BookOpen, Settings, LogOut, Shield, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavoritesQuery } from "@/hooks/queries/useFavoritesQuery";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -49,7 +49,7 @@ const adminItems = [
 
 export const AppSidebar = () => {
   const { signOut, isAdmin, profile } = useAuth();
-  const { favoriteIds } = useFavorites();
+  const { favoriteIds } = useFavoritesQuery();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();

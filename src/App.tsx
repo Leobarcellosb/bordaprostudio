@@ -38,7 +38,16 @@ const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPanel = lazy(() => import("./pages/admin/AdminPanel"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,         // 1 min — evita refetch em navegação rápida
+      gcTime: 5 * 60 * 1000,        // 5 min — cache fica em memória
+      retry: 1,                      // 1 retry em erro de rede
+      refetchOnWindowFocus: false,   // não refetch ao voltar pra aba — UX melhor
+    },
+  },
+});
 
 // Loader cheio de viewport mostrado entre rotas lazy-loaded (Suspense
 // fallback). Usa inline styles + injeção de @keyframes via <style> pra

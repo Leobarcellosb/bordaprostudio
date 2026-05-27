@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavoritesQuery, useToggleFavorite } from "@/hooks/queries/useFavoritesQuery";
 import { AppLayout } from "@/components/AppLayout";
 import { DesignCard } from "@/components/cards/DesignCard";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,10 @@ import { useTranslation } from "@/hooks/useTranslation";
 const FavoritesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { favoriteIds, toggle } = useFavorites();
+  const { favoriteIds } = useFavoritesQuery();
+  const toggleMutation = useToggleFavorite();
+  const toggle = (kitId: string) =>
+    toggleMutation.mutate({ kitId, isFavorited: favoriteIds.has(kitId) });
   const [designs, setDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();

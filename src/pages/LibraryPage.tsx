@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useFavorites } from "@/hooks/useFavorites";
+import { useFavoritesQuery, useToggleFavorite } from "@/hooks/queries/useFavoritesQuery";
 import { AppLayout } from "@/components/AppLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -54,7 +54,10 @@ const LibraryPage = () => {
   const [page, setPage] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTag ? [initialTag] : []);
   const navigate = useNavigate();
-  const { favoriteIds, toggle: toggleFavorite } = useFavorites();
+  const { favoriteIds } = useFavoritesQuery();
+  const toggleFavoriteMutation = useToggleFavorite();
+  const toggleFavorite = (kitId: string) =>
+    toggleFavoriteMutation.mutate({ kitId, isFavorited: favoriteIds.has(kitId) });
   const { t } = useTranslation();
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
 
