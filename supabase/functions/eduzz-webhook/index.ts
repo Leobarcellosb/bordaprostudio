@@ -114,6 +114,11 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
+  // TEMP: log diagnóstico pra ver o que a Eduzz manda no ping de teste.
+  // Remover depois que a integração estiver funcionando.
+  console.log("[eduzz-test] headers:", JSON.stringify(Object.fromEntries(req.headers.entries())));
+  console.log("[eduzz-test] body:", rawBody.substring(0, 500));
+
   // Eduzz envia ping de teste ao salvar a URL no painel — não vem com
   // assinatura HMAC. Aceita silenciosamente sem processar nem gravar nada.
   // Match por header explícito + corpo vazio/{} + parse semântico de event:"test"
@@ -126,7 +131,11 @@ Deno.serve(async (req) => {
   if (!isTestRequest && rawBody.trim().startsWith("{")) {
     try {
       const probe = JSON.parse(rawBody);
-      if (probe?.event === "test") isTestRequest = true;
+      // Eduzz envia event: "ping" no health-check ao salvar a URL.
+      // "test" mantido por compatibilidade caso eles renomeiem.
+      if (probe?.event === "ping" || probe?.event === "test") {
+        isTestRequest = true;
+      }
     } catch {
       /* não é JSON válido, segue pra validação HMAC normal */
     }
@@ -138,6 +147,7 @@ Deno.serve(async (req) => {
   }
 
   const provided =
+    req.headers.get("x-signature") ||
     req.headers.get("x-eduzz-signature") ||
     req.headers.get("x-hub-signature-256") ||
     req.headers.get("x-hub-signature") ||
