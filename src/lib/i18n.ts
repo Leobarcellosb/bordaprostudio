@@ -129,8 +129,6 @@ const dict: Record<string, Record<Lang, string>> = {
   "nav.mobile.calculator": { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
 };
 
-export type TranslationKey = keyof typeof dict;
-
 export function getLanguage(): Lang {
   const stored = localStorage.getItem("app_language");
   if (stored === "en" || stored === "es" || stored === "pt") return stored;

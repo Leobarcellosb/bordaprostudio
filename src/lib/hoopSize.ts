@@ -12,12 +12,3 @@ export function classifyHoopSize(widthMm: number | null | undefined, heightMm: n
   if (maxSide <= 200) return "18cm";
   return "large";
 }
-
-export const HOOP_SIZE_OPTIONS = [
-  "10x10",
-  "13x18",
-  "14cm",
-  "16cm",
-  "18cm",
-  "large",
-] as const;

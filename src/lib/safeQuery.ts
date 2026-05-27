@@ -1,7 +1,7 @@
-// Async helpers with hard timeouts to prevent infinite loading states.
+// Async helper with a hard timeout to prevent infinite loading states.
 
 // Bumped from 8s → 20s to accommodate Supabase NANO cold-start latency.
-export const DEFAULT_QUERY_TIMEOUT_MS = 20_000;
+const DEFAULT_QUERY_TIMEOUT_MS = 20_000;
 
 type QueryStatus = "success" | "timeout" | "error";
 
@@ -9,28 +9,6 @@ export interface SafeQueryResult<T> {
   status: QueryStatus;
   data: T | null;
   error: unknown | null;
-}
-
-/** Race a promise against a timeout. If the promise rejects, the rejection propagates. */
-export function withTimeout<T>(
-  label: string,
-  promise: Promise<T>,
-  ms: number = DEFAULT_QUERY_TIMEOUT_MS,
-  fallback?: T,
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve, reject) =>
-      setTimeout(() => {
-        if (fallback !== undefined) {
-          console.warn(`[safeQuery] ${label} timed out after ${ms}ms; using fallback`);
-          resolve(fallback);
-        } else {
-          reject(new Error(`${label} timed out after ${ms}ms`));
-        }
-      }, ms),
-    ),
-  ]);
 }
 
 /**
