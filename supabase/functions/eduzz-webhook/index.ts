@@ -250,6 +250,7 @@ Deno.serve(async (req) => {
   const accessExpiresAt =
     subscriptionStatus === "active" ? computeExpiresAt(planCode) : null;
 
+  let subscriptionUpserted = false;
   try {
     const { error } = await supabase.from("subscriptions").upsert(
       {
@@ -269,8 +270,42 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,provider" },
     );
     if (error) throw error;
+    subscriptionUpserted = true;
   } catch (err) {
     console.error("[eduzz-webhook] upsert subscription error:", err);
+  }
+
+  // 3b. Trigger welcome email — fire-and-forget, não bloqueia o webhook.
+  // Roda só quando ativação acontece com sucesso (status active + upsert ok).
+  if (subscriptionUpserted && subscriptionStatus === "active") {
+    const welcomePromise = fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // service_role passa pelo verify_jwt da send-welcome-email
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        email: buyerEmail,
+        name: buyerName,
+        plan: planCode,
+      }),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const t = await r.text();
+          console.error("[eduzz-webhook] send-welcome-email failed:", r.status, t);
+        }
+      })
+      .catch((e) => console.error("[eduzz-webhook] send-welcome-email error:", e));
+
+    // EdgeRuntime.waitUntil mantém a function viva até a promise terminar
+    // mesmo depois de retornar a response pro Eduzz. Fallback silencioso se
+    // o global não existir (dev local).
+    const rt = (globalThis as unknown as {
+      EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void };
+    }).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(welcomePromise);
   }
 
   // 4. Log event.

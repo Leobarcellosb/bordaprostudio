@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.build-kit-draft]
 verify_jwt = true
+
+[functions.send-welcome-email]
+verify_jwt = true
