@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
+import { validateMatrixUpload } from "@/lib/validateUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +92,8 @@ export const AdminDesigns = () => {
   const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editing?.id) return;
+    const err = validateMatrixUpload(file);
+    if (err) { toast.error(err); if (fileInputRef.current) fileInputRef.current.value = ""; return; }
     setUploading(true);
     const ext = file.name.split(".").pop()?.toUpperCase() || "";
     const fileName = file.name;
