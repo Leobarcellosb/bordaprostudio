@@ -6,15 +6,17 @@
 //   RESEND_FROM_EMAIL     — opcional, default "onboarding@resend.dev"
 //                           (domínio Resend de testes; pra produção
 //                            verifique seu próprio domínio em resend.com/domains
-//                            e use ex: "Borda Pro <ola@bordapro.com.br>")
+//                            e use ex: "Borda Pro <contato@borda.pro>")
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL =
-  Deno.env.get("RESEND_FROM_EMAIL") ?? "Borda Pro <oi@borda.pro>";
+  Deno.env.get("RESEND_FROM_EMAIL") ?? "Borda Pro <contato@borda.pro>";
 const APP_URL =
-  Deno.env.get("APP_URL") ?? "https://app.bordaprostudio.com";
+  Deno.env.get("APP_URL") ?? "https://borda.pro";
+// Path do button — Português (rota /biblioteca no app)
+const LIBRARY_PATH = "/biblioteca";
 
 interface Payload {
   email: string;
@@ -74,7 +76,7 @@ function buildHtml(name: string, planLabel: string): string {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-radius:12px;background:#7C3AED;">
-                    <a href="${APP_URL}/library" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;border-radius:12px;">
+                    <a href="${APP_URL}${LIBRARY_PATH}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;border-radius:12px;">
                       Acessar minha biblioteca →
                     </a>
                   </td>
@@ -128,7 +130,7 @@ function buildHtml(name: string, planLabel: string): string {
           <!-- Footer -->
           <tr>
             <td style="padding:24px 32px;background:#fafafa;text-align:center;color:#999999;font-size:12px;line-height:1.5;">
-              <p style="margin:0 0 4px;">Borda Pro · <a href="https://bordapro.com.br" style="color:#7C3AED;text-decoration:none;">bordapro.com.br</a></p>
+              <p style="margin:0 0 4px;">Borda Pro · <a href="https://borda.pro" style="color:#7C3AED;text-decoration:none;">borda.pro</a></p>
               <p style="margin:0;">Dúvidas? É só responder este email.</p>
             </td>
           </tr>
@@ -146,7 +148,7 @@ function buildText(name: string, planLabel: string): string {
 
 Sua assinatura do ${planLabel} no Borda Pro está ativa. Você tem acesso a mais de 650 matrizes de bordado.
 
-Acessar a biblioteca: ${APP_URL}/library
+Acessar a biblioteca: ${APP_URL}${LIBRARY_PATH}
 
 Por onde começar:
 
@@ -162,7 +164,7 @@ Por onde começar:
 Dúvidas? Responda este email.
 
 — Borda Pro
-bordapro.com.br
+borda.pro
 `;
 }
 
