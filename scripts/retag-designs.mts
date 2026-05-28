@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Auto-tagueamento de designs via Gemini Vision.
+ * Auto-tagueamento de designs via Claude (Anthropic) Vision.
  *
  * Analisa a cover_image de cada design publicado e gera tags em português
  * (tema, estilo, público), salvando em designs.tags_text.
@@ -8,10 +8,10 @@
  * Requisitos:
  *   - Node 18+ (fetch + Buffer globais)
  *   - npx tsx
- *   - Env vars: SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY
+ *   - Env vars: SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY
  *
  * Uso:
- *   GEMINI_API_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
+ *   ANTHROPIC_API_KEY=... SUPABASE_SERVICE_ROLE_KEY=... \
  *     npx tsx scripts/retag-designs.mts [flags]
  *
  * Flags:
@@ -26,9 +26,10 @@
  *   Pra busca (ILIKE substring) o separador não importa; pra display, sim.
  *
  * IMPORTANTE sobre o modelo:
- *   Default gemini-2.5-flash. O gemini-2.0-flash retornou quota limit=0
- *   neste projeto Google (descoberto em sessão anterior). Override via
- *   env GEMINI_MODEL se quiser testar outro.
+ *   Usa Claude claude-haiku-4-5 (vision) via Anthropic API. Barato e
+ *   rápido pra classificação de imagem. Override via env ANTHROPIC_MODEL.
+ *   Sem prompt caching: cada chamada tem imagem única (não há prefixo
+ *   estável cacheável; o texto de instrução é < threshold de cache).
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -37,8 +38,8 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL ?? "https://mepvdblcphcgebsxpykk.supabase.co";
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const SKIP_EXISTING = process.argv.includes("--skip-existing");
@@ -52,8 +53,8 @@ if (!SERVICE_KEY) {
   console.error("❌ Falta SUPABASE_SERVICE_ROLE_KEY no env.");
   process.exit(1);
 }
-if (!GEMINI_API_KEY) {
-  console.error("❌ Falta GEMINI_API_KEY no env.");
+if (!ANTHROPIC_API_KEY) {
+  console.error("❌ Falta ANTHROPIC_API_KEY no env.");
   process.exit(1);
 }
 
@@ -73,21 +74,6 @@ Regras para as tags:
 - Tags curtas: 1-2 palavras cada
 - Exemplos bons: ["dinossauro", "infantil", "fofo", "colorido", "turma"]
 - Exemplos ruins: ["bordado bonito", "design para máquina", "matriz de bordado"]`;
-
-// Structured output: força JSON { tags: string[] } — mais robusto que
-// parsear texto livre.
-const RESPONSE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    tags: {
-      type: "ARRAY",
-      minItems: 3,
-      maxItems: 6,
-      items: { type: "STRING" },
-    },
-  },
-  required: ["tags"],
-};
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 interface DesignRow {
@@ -126,56 +112,70 @@ function normalizeTag(t: string): string {
     .replace(/\s+/g, " ");
 }
 
+// Anthropic só aceita estes media_types em image blocks.
+const ALLOWED_MEDIA = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
 async function generateTags(design: DesignRow): Promise<string[] | null> {
   const img = await imageToBase64(design.cover_image);
   if (!img) return null;
 
+  // Usa o mime REAL detectado (cover pode ser png). Se vier algo fora
+  // da lista da Anthropic, cai pra jpeg como último recurso.
+  const mediaType = ALLOWED_MEDIA.includes(img.mime) ? img.mime : "image/jpeg";
+
   let resp: Response;
   try {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { inline_data: { mime_type: img.mime, data: img.data } },
-                { text: PROMPT },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            responseMimeType: "application/json",
-            responseSchema: RESPONSE_SCHEMA,
-          },
-        }),
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 200,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: img.data },
+              },
+              {
+                type: "text",
+                text: `Nome do design: "${design.name}"\n\n${PROMPT}\n\nResponda APENAS o JSON {"tags": ["...", "..."]}, sem explicação.`,
+              },
+            ],
+          },
+        ],
+      }),
+    });
   } catch (err) {
-    console.error("  Gemini fetch error:", err);
+    console.error("  Anthropic fetch error:", err);
     return null;
   }
 
   if (!resp.ok) {
     const t = await resp.text();
-    console.error(`  Gemini ${resp.status}: ${t.slice(0, 200)}`);
+    console.error(`  Anthropic ${resp.status}: ${t.slice(0, 200)}`);
     return null;
   }
 
   const data = await resp.json();
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text: string | undefined = data?.content?.[0]?.text;
   if (!text) return null;
 
   try {
-    const parsed = JSON.parse(text);
+    // Tira fences ```json caso o modelo embrulhe o JSON
+    const cleaned = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed.tags)) return null;
-    const tags = parsed.tags
-      .map((t: unknown) => (typeof t === "string" ? normalizeTag(t) : ""))
-      .filter((t: string) => t.length > 0 && t.length <= 30);
-    // Dedup
+    const arr = parsed.tags as unknown[];
+    const tags: string[] = arr
+      .map((t) => (typeof t === "string" ? normalizeTag(t) : ""))
+      .filter((t) => t.length > 0 && t.length <= 30);
     return Array.from(new Set(tags)).slice(0, 6);
   } catch (err) {
     console.error("  parse error:", err, text.slice(0, 120));

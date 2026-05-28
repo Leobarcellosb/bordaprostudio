@@ -23,7 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.local
 .env.deploy
 supabase/.temp/
 .env.functions
 .vercel
+
+# Backups de tags gerados por scripts/backup-tags.mts (contêm catálogo inteiro)
+scripts/tags-backup-*.json
