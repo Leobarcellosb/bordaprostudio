@@ -83,8 +83,19 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
 
       if (compatibleIds) query = query.in("id", compatibleIds);
 
+      // Busca tokenizada em name OU tags_text. Cada token vira um .or()
+      // (name~tok OR tags_text~tok); múltiplos .or() são AND'd entre si,
+      // então "urso fofo" exige (name|tags ~ urso) E (name|tags ~ fofo).
+      // Corrige 2 bugs: (A) tag só era buscada em name, (B) multi-token
+      // virava ILIKE da frase contígua e sempre retornava zero.
       const term = search.trim();
-      if (term) query = query.ilike("name", `%${term}%`);
+      if (term) {
+        const tokens = term.split(/\s+/).filter(Boolean);
+        for (const tok of tokens) {
+          const safe = tok.replace(/[%,()]/g, "");
+          if (safe) query = query.or(`name.ilike.%${safe}%,tags_text.ilike.%${safe}%`);
+        }
+      }
       if (categoryFilter !== "all") query = query.eq("category_id", categoryFilter);
       if (stitchMin !== null) query = query.gte("stitch_count", stitchMin);
       if (stitchMax !== null) query = query.lte("stitch_count", stitchMax);
