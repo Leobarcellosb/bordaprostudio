@@ -10,7 +10,9 @@ import {
   FolderOpen,
   LayoutGrid,
   ChevronRight,
+  Eye,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -23,7 +25,7 @@ import { LibraryPagination } from "@/components/library/LibraryPagination";
 import { CategoryFolderGrid } from "@/components/library/CategoryFolderGrid";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { WhatsAppListModal } from "@/components/WhatsAppListModal";
-import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+import { useUserMachineSettings, MACHINE_FORMATS } from "@/hooks/useUserMachineSettings";
 
 type ViewMode = "folders" | "all";
 
@@ -60,6 +62,14 @@ const LibraryPage = () => {
     toggleFavoriteMutation.mutate({ kitId, isFavorited: favoriteIds.has(kitId) });
   const { t } = useTranslation();
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
+  const { isAdmin } = useAuth();
+
+  // Admin: ver todos os formatos (ignora filtro de máquina) + análise de
+  // lacuna (mostrar designs SEM um formato). effectiveShowAll garante que
+  // mesmo se o state for manipulado no client, só admin ativa de fato.
+  const [showAllFormats, setShowAllFormats] = useState(false);
+  const [gapFormat, setGapFormat] = useState("");
+  const effectiveShowAll = isAdmin && showAllFormats;
 
   // View mode (folders by default). Lazy initialization avoids reading
   // localStorage on every render (rule: rerender-lazy-state-init).
@@ -84,6 +94,8 @@ const LibraryPage = () => {
 
   const { designs, totalCount, isLoading, categories, downloadCounts, hasIncompatible, compatibleCount } = useLibraryDesigns({
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
+    showAllFormats: effectiveShowAll,
+    gapFormat: effectiveShowAll ? gapFormat : "",
   });
 
   const {
@@ -277,6 +289,59 @@ const LibraryPage = () => {
           )}
         </div>
 
+        {/* Controle admin: ver todos os formatos + análise de lacuna.
+            Só renderiza pra admin. effectiveShowAll garante segurança
+            mesmo se o state fosse forçado no client. */}
+        {isAdmin && !inFolders && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAllFormats((v) => !v);
+                setGapFormat("");
+                setPage(0);
+              }}
+              aria-pressed={showAllFormats}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                showAllFormats
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background border border-border/60 text-foreground hover:border-primary/40"
+              }`}
+            >
+              <Eye className="h-4 w-4" />
+              Ver todos os formatos (admin)
+            </button>
+
+            {showAllFormats && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Lacuna — designs sem:</span>
+                {MACHINE_FORMATS.map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    onClick={() => {
+                      setGapFormat((g) => (g === fmt ? "" : fmt));
+                      setPage(0);
+                    }}
+                    className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      gapFormat === fmt
+                        ? "bg-amber-500 text-white"
+                        : "bg-background border border-border/60 hover:border-amber-400"
+                    }`}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+                {gapFormat && (
+                  <span className="text-xs text-amber-600 font-medium ml-1">
+                    {totalCount} sem {gapFormat}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Breadcrumb: aparece em "Todas" quando há uma categoria ativa,
             permitindo voltar para o grid de pastas com um clique. */}
         {!inFolders && activeCategoryName && (
@@ -308,14 +373,18 @@ const LibraryPage = () => {
           />
         ) : (
           <>
-            <CompatibilityBanner
-              machineFormat={machineFormat}
-              machineHoopSize={machineHoopSize}
-              hasIncompatible={hasIncompatible}
-              compatibleCount={compatibleCount}
-              totalShown={designs.length}
-              isLoading={isLoading}
-            />
+            {/* No modo admin "ver todos", o banner de incompatibilidade
+                não faz sentido (admin está vendo tudo de propósito). */}
+            {!effectiveShowAll && (
+              <CompatibilityBanner
+                machineFormat={machineFormat}
+                machineHoopSize={machineHoopSize}
+                hasIncompatible={hasIncompatible}
+                compatibleCount={compatibleCount}
+                totalShown={designs.length}
+                isLoading={isLoading}
+              />
+            )}
 
             <LibraryFilters
               search={search}
@@ -347,6 +416,7 @@ const LibraryPage = () => {
               selectionMode={selectionMode}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
+              showFormats={effectiveShowAll}
             />
 
             {/* Smart Download */}

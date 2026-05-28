@@ -17,11 +17,14 @@ interface LibraryGridProps {
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  /** Admin: mostra badges com os formatos disponíveis em cada card. */
+  showFormats?: boolean;
 }
 
 export const LibraryGrid = ({
   designs, downloadCounts, favoriteIds, onToggleFavorite, onDesignClick,
   isLoading, hasActiveFilters, onClearFilters, selectionMode, selectedIds, onToggleSelect,
+  showFormats = false,
 }: LibraryGridProps) => {
   const { t } = useTranslation();
 
@@ -64,6 +67,27 @@ export const LibraryGrid = ({
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
       {designs.map((design: any) => (
         <div key={design.id} className="relative">
+          {/* Admin: badges de formato no topo do card (PES, JEF, DST...).
+              Se o design não tem arquivo, marca "sem arquivo" em âmbar —
+              útil pra análise de lacuna do catálogo. */}
+          {showFormats && (
+            <div className="absolute top-2 right-2 z-10 flex flex-wrap gap-1 justify-end max-w-[75%]">
+              {(design.availableFormats?.length ?? 0) > 0 ? (
+                design.availableFormats.map((fmt: string) => (
+                  <span
+                    key={fmt}
+                    className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide bg-background/90 backdrop-blur-sm border border-border/60 text-foreground shadow-sm"
+                  >
+                    {fmt}
+                  </span>
+                ))
+              ) : (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide bg-amber-500/90 text-white shadow-sm">
+                  sem arquivo
+                </span>
+              )}
+            </div>
+          )}
           {selectionMode && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleSelect?.(design.id); }}

@@ -12,6 +12,10 @@ interface UseLibraryDesignsOptions {
   stitchRange: string;
   sortBy: SortOption;
   page: number;
+  /** Admin only: ignora o filtro de machineFormat e mostra TODOS os designs. */
+  showAllFormats?: boolean;
+  /** Admin only: mostra só designs que NÃO têm este formato (análise de lacuna). */
+  gapFormat?: string;
 }
 
 interface DesignResult {
@@ -26,7 +30,15 @@ interface DesignResult {
 }
 
 export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResult {
-  const { search, categoryFilter, stitchRange, sortBy, page } = options;
+  const {
+    search,
+    categoryFilter,
+    stitchRange,
+    sortBy,
+    page,
+    showAllFormats = false,
+    gapFormat = "",
+  } = options;
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const [designs, setDesigns] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -61,8 +73,9 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       // Estratégia: se o user tem formato configurado, buscar design_ids
       // que têm esse formato em kit_arquivos. Se houver ao menos um, filtrar
       // a query principal a esses IDs. Senão, mostra tudo (banner cuida).
+      // Admin "ver todos os formatos" desliga o pré-filtro de compatibilidade.
       let compatibleIds: string[] | null = null;
-      if (machineFormat) {
+      if (machineFormat && !showAllFormats) {
         const { data: matching, error: matchErr } = await db
           .from("kit_arquivos")
           .select("design_id")
@@ -74,6 +87,22 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         if (ids.length > 0) compatibleIds = ids;
       }
 
+      // Admin análise de lacuna: design_ids que TÊM gapFormat → excluir,
+      // sobrando só os que NÃO têm aquele formato. Só vale no modo
+      // showAllFormats (senão conflita com o filtro de máquina).
+      let excludeIds: string[] | null = null;
+      if (showAllFormats && gapFormat) {
+        const { data: haveFmt, error: gapErr } = await db
+          .from("kit_arquivos")
+          .select("design_id")
+          .ilike("format", gapFormat);
+        if (gapErr) throw gapErr;
+        const ids = Array.from(
+          new Set(((haveFmt ?? []) as { design_id: string }[]).map((r) => r.design_id)),
+        );
+        if (ids.length > 0) excludeIds = ids;
+      }
+
       // Direct SELECT (RPC search_designs não existe neste Supabase).
       // Filtros/sort/paginação/count gerenciados pelo query builder.
       let query = db
@@ -82,6 +111,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         .eq("is_published", true);
 
       if (compatibleIds) query = query.in("id", compatibleIds);
+      if (excludeIds) query = query.not("id", "in", `(${excludeIds.join(",")})`);
 
       // Busca tokenizada em name OU tags_text. Cada token vira um .or()
       // (name~tok OR tags_text~tok); múltiplos .or() são AND'd entre si,
@@ -182,7 +212,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     } finally {
       setIsLoading(false);
     }
-  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize]);
+  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat]);
 
   useEffect(() => {
     const timer = setTimeout(fetchDesigns, search ? 300 : 0);
