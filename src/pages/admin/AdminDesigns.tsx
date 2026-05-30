@@ -36,7 +36,7 @@ export const AdminDesigns = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Folders dinâmicas (tabela folders). Substitui FOLDER_RULES estático.
-  const { data: folderList = [] } = useFolders();
+  const { data: folderList = [], error: foldersError } = useFolders();
 
   // Bulk select state — checkbox por linha + ação "atribuir pasta".
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -694,6 +694,16 @@ export const AdminDesigns = () => {
                 </p>
               </CardHeader>
               <CardContent>
+                {foldersError && (
+                  <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                    <strong>Erro ao carregar pastas:</strong> {foldersError.message}
+                    {(foldersError as { code?: string }).code === "42501" && (
+                      <span className="block mt-1 opacity-80">
+                        Rode <code className="px-1 rounded bg-destructive/10">20260530000000_grant_folders.sql</code>.
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {folderList.map((folder) => {
                     const active = form.manual_categories.includes(folder.slug);

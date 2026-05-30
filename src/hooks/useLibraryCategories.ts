@@ -19,6 +19,10 @@ interface UseLibraryCategoriesResult {
   totalCompatible: number;
   recentPreviews: string[];
   isLoading: boolean;
+  /** Erro REAL do useFolders ou do fetch de designs. UI deve mostrar
+   *  banner em vez de empty state — empty silencioso esconde bugs como
+   *  o GRANT faltando descoberto em 7848d2d. */
+  error: Error | null;
 }
 
 interface RawDesign {
@@ -41,12 +45,13 @@ interface RawDesign {
  */
 export function useLibraryCategories(): UseLibraryCategoriesResult {
   const { machineFormat } = useUserMachineSettings();
-  const { data: folderList = [], isLoading: foldersLoading } = useFolders();
+  const { data: folderList = [], isLoading: foldersLoading, error: foldersError } = useFolders();
   const [folders, setFolders] = useState<CategoryFolder[]>([]);
   const [totalDesigns, setTotalDesigns] = useState(0);
   const [totalCompatible, setTotalCompatible] = useState(0);
   const [recentPreviews, setRecentPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [designsError, setDesignsError] = useState<Error | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +65,7 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
       }
 
       setIsLoading(true);
+      setDesignsError(null);
       try {
         // Defensive: tenta com manual_categories; se a coluna ainda não
         // existir (migration não rodada), faz fallback sem ela.
@@ -161,6 +167,7 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
           setTotalDesigns(0);
           setTotalCompatible(0);
           setRecentPreviews([]);
+          setDesignsError(err instanceof Error ? err : new Error(String(err)));
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -172,5 +179,12 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
     };
   }, [machineFormat, folderList, foldersLoading]);
 
-  return { folders, totalDesigns, totalCompatible, recentPreviews, isLoading };
+  return {
+    folders,
+    totalDesigns,
+    totalCompatible,
+    recentPreviews,
+    isLoading,
+    error: (foldersError as Error | null) ?? designsError,
+  };
 }

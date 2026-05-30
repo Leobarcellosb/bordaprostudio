@@ -113,6 +113,7 @@ const LibraryPage = () => {
     totalCompatible: foldersTotalCompatible,
     recentPreviews,
     isLoading: foldersLoading,
+    error: foldersError,
   } = useLibraryCategories();
 
   // Pastas vazias só aparecem pra admin (sinal de lacuna de conteúdo).
@@ -383,15 +384,30 @@ const LibraryPage = () => {
         )}
 
         {inFolders ? (
-          <CategoryFolderGrid
-            folders={visibleFolders}
-            totalDesigns={foldersTotalDesigns}
-            totalCompatible={foldersTotalCompatible}
-            recentPreviews={recentPreviews}
-            machineFormat={machineFormat}
-            isLoading={foldersLoading}
-            onSelectCategory={handleSelectCategory}
-          />
+          <>
+            {foldersError && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <p className="font-semibold mb-1">Erro ao carregar pastas</p>
+                <p className="text-xs opacity-90">{foldersError.message}</p>
+                {isAdmin && (
+                  <p className="text-[11px] opacity-70 mt-1.5">
+                    {(foldersError as { code?: string }).code === "42501"
+                      ? "Permissão negada (GRANT faltando). Rode supabase/migrations/20260530000000_grant_folders.sql."
+                      : "Veja o console pro stack completo."}
+                  </p>
+                )}
+              </div>
+            )}
+            <CategoryFolderGrid
+              folders={visibleFolders}
+              totalDesigns={foldersTotalDesigns}
+              totalCompatible={foldersTotalCompatible}
+              recentPreviews={recentPreviews}
+              machineFormat={machineFormat}
+              isLoading={foldersLoading}
+              onSelectCategory={handleSelectCategory}
+            />
+          </>
         ) : (
           <>
             {/* No modo admin "ver todos", o banner de incompatibilidade

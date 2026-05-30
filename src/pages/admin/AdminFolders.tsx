@@ -57,7 +57,7 @@ interface FolderCount {
  * por queries de home/related). Pasta = ASSUNTO (não estilo).
  */
 export const AdminFolders = () => {
-  const { data: folders = [], isLoading: foldersLoading } = useFolders();
+  const { data: folders = [], isLoading: foldersLoading, error: foldersError } = useFolders();
   const invalidate = useInvalidateFolders();
 
   // Pra contar designs por pasta precisamos rodar a derivação aqui.
@@ -268,6 +268,23 @@ export const AdminFolders = () => {
           <FolderPlus className="h-4 w-4" /> Nova Pasta
         </Button>
       </div>
+
+      {/* Banner de erro — NÃO mostra empty state silencioso quando o
+          useFolders falha. Causa típica: GRANT faltando (42501). */}
+      {foldersError && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <p className="font-semibold mb-1">Não foi possível carregar as pastas</p>
+          <p className="text-xs opacity-90">{foldersError.message}</p>
+          {(foldersError as { code?: string }).code === "42501" && (
+            <p className="text-[11px] opacity-80 mt-1.5">
+              Permission denied no nível da tabela. Rode no SQL Editor:{" "}
+              <code className="px-1 py-0.5 rounded bg-destructive/10">
+                supabase/migrations/20260530000000_grant_folders.sql
+              </code>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="rounded-lg border overflow-hidden">
         <Table>

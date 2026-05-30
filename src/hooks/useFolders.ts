@@ -32,6 +32,16 @@ export function useFolders() {
           console.warn("[useFolders] tabela folders ausente — rode supabase/migrations/20260529000000_folders_table.sql");
           return [];
         }
+        // Permission denied (42501) é GRANT faltando — não é a mesma coisa
+        // que tabela ausente. Loga explícito pra próximo debug, e propaga
+        // pro React Query (isError=true) pra UI mostrar.
+        if (error.code === "42501" || /permission denied/i.test(error.message)) {
+          console.error(
+            "[useFolders] permission denied — rode supabase/migrations/20260530000000_grant_folders.sql " +
+            "(GRANT SELECT ON public.folders TO anon, authenticated).",
+            error,
+          );
+        }
         throw error;
       }
       return (data ?? []) as Folder[];
