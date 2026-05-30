@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+import { tagsForFolder } from "@/lib/folderRules";
 
 const PAGE_SIZE = 24;
 
@@ -16,6 +17,8 @@ interface UseLibraryDesignsOptions {
   showAllFormats?: boolean;
   /** Admin only: mostra só designs que NÃO têm este formato (análise de lacuna). */
   gapFormat?: string;
+  /** Filtro de pasta "Por Tema" (slug do folderRules). "" = sem filtro. */
+  folderFilter?: string;
 }
 
 interface DesignResult {
@@ -38,6 +41,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     page,
     showAllFormats = false,
     gapFormat = "",
+    folderFilter = "",
   } = options;
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const [designs, setDesigns] = useState<any[]>([]);
@@ -113,6 +117,26 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       if (compatibleIds) query = query.in("id", compatibleIds);
       if (excludeIds) query = query.not("id", "in", `(${excludeIds.join(",")})`);
 
+      // Filtro de pasta "Por Tema": OR entre (manual_categories contém o
+      // folderId) e (qualquer tag da pasta bate). Manual prevalece é
+      // garantido depois via filtro client-side (rows manual≠[folderFilter]
+      // são descartadas mesmo se tags bateram).
+      if (folderFilter) {
+        const folderTags = tagsForFolder(folderFilter);
+        const orParts: string[] = [`manual_categories.cs.{${folderFilter}}`];
+        for (const tag of folderTags) {
+          const safe = tag.replace(/[%,()]/g, "");
+          if (safe) orParts.push(`tags_text.ilike.%${safe}%`);
+        }
+        // Se a coluna manual_categories não existir ainda (migration não
+        // rodada), o .or() vai falhar — try/catch abaixo lida.
+        try {
+          query = query.or(orParts.join(","));
+        } catch {
+          // noop
+        }
+      }
+
       // Busca tokenizada em name OU tags_text. Cada token vira um .or()
       // (name~tok OR tags_text~tok); múltiplos .or() são AND'd entre si,
       // então "urso fofo" exige (name|tags ~ urso) E (name|tags ~ fofo).
@@ -143,7 +167,21 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       if (error) throw error;
 
       const machineFormatUpper = machineFormat?.toUpperCase() ?? null;
-      const rows = (data ?? []) as Array<Record<string, any>>;
+      const rawRows = (data ?? []) as Array<Record<string, any>>;
+
+      // Manual prevalece: se o design tem manual_categories ≠ vazio,
+      // SÓ pode aparecer nas pastas listadas lá — mesmo se as tags
+      // bateriam com outra pasta. Descarta linhas que vazaram pelo OR
+      // da query (tag bateu mas manual aponta pra outra pasta).
+      // Nota: o totalCount fica ligeiramente inflado nesses casos —
+      // aceitável em v1, manual override é minoria.
+      const rows = folderFilter
+        ? rawRows.filter((r) => {
+            const manual = (r.manual_categories as string[] | null) ?? [];
+            if (manual.length === 0) return true; // sem override, tag valeu
+            return manual.includes(folderFilter);
+          })
+        : rawRows;
 
       // Computa is_compatible client-side (replaces RPC's soft compat logic)
       const mapped = rows.map((r) => {
@@ -212,7 +250,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     } finally {
       setIsLoading(false);
     }
-  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat]);
+  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat, folderFilter]);
 
   useEffect(() => {
     const timer = setTimeout(fetchDesigns, search ? 300 : 0);

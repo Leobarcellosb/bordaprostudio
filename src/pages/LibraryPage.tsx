@@ -26,6 +26,7 @@ import { CategoryFolderGrid } from "@/components/library/CategoryFolderGrid";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { WhatsAppListModal } from "@/components/WhatsAppListModal";
 import { useUserMachineSettings, MACHINE_FORMATS } from "@/hooks/useUserMachineSettings";
+import { FOLDER_BY_ID } from "@/lib/folderRules";
 
 type ViewMode = "folders" | "all";
 
@@ -71,6 +72,11 @@ const LibraryPage = () => {
   const [gapFormat, setGapFormat] = useState("");
   const effectiveShowAll = isAdmin && showAllFormats;
 
+  // Filtro de pasta "Por Tema" (slug do folderRules — "animais", "infantil" etc).
+  // Separado do legacy categoryFilter (UUID da tabela categories), que ficou
+  // pro dropdown antigo de LibraryFilters. Folder cards usam folderFilter.
+  const [folderFilter, setFolderFilter] = useState("");
+
   // View mode (folders by default). Lazy initialization avoids reading
   // localStorage on every render (rule: rerender-lazy-state-init).
   const [viewMode, setViewMode] = useState<ViewMode>(readStoredView);
@@ -96,6 +102,7 @@ const LibraryPage = () => {
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
     showAllFormats: effectiveShowAll,
     gapFormat: effectiveShowAll ? gapFormat : "",
+    folderFilter,
   });
 
   const {
@@ -109,11 +116,13 @@ const LibraryPage = () => {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasActiveFilters = search !== "" || categoryFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
 
-  // Active category breadcrumb label (only matters in "all" view).
-  const activeCategoryName = useMemo(() => {
+  // Active breadcrumb label — folder slug (novo) tem prioridade sobre
+  // category UUID (legacy do dropdown). Só importa na view "Todas".
+  const activeFolderName = useMemo(() => {
+    if (folderFilter) return FOLDER_BY_ID.get(folderFilter)?.name ?? null;
     if (categoryFilter === "all") return null;
     return categories.find((c: any) => c.id === categoryFilter)?.name ?? null;
-  }, [categoryFilter, categories]);
+  }, [folderFilter, categoryFilter, categories]);
 
   // Sync URL params when tag changes
   useEffect(() => {
@@ -128,6 +137,7 @@ const LibraryPage = () => {
     setCategoryFilter("all");
     setStitchRange("all");
     setSelectedTags([]);
+    setFolderFilter("");
     setPage(0);
   }, []);
 
@@ -158,17 +168,19 @@ const LibraryPage = () => {
   }, []);
 
   /**
-   * Click handler vindo do grid de "pastas". Aplica filtro de categoria
-   * (ou limpa para "Ver Tudo") e salta para a view de grid plana.
+   * Click handler vindo do grid de "pastas". Agora recebe um SLUG de
+   * folderRules ("animais", "infantil") em vez de UUID da tabela
+   * categories. Aplica em folderFilter (não categoryFilter — esse
+   * continua sendo o dropdown legacy). "all" limpa.
    */
-  const handleSelectCategory = useCallback((catId: string | "all") => {
-    setCategoryFilter(catId === "all" ? "all" : catId);
+  const handleSelectCategory = useCallback((folderId: string | "all") => {
+    setFolderFilter(folderId === "all" ? "" : folderId);
+    setCategoryFilter("all"); // limpa filtro legacy pra evitar dupla restrição
     setPage(0);
     setSearch("");
     setSelectedTags([]);
     setStitchRange("all");
     setViewMode("all");
-    // Limpa selection mode caso esteja ativo
     setSelectionMode(false);
     setSelectedIds(new Set());
   }, []);
@@ -344,7 +356,7 @@ const LibraryPage = () => {
 
         {/* Breadcrumb: aparece em "Todas" quando há uma categoria ativa,
             permitindo voltar para o grid de pastas com um clique. */}
-        {!inFolders && activeCategoryName && (
+        {!inFolders && activeFolderName && (
           <nav
             aria-label="Breadcrumb"
             className="flex items-center gap-1.5 text-sm text-muted-foreground"
@@ -357,7 +369,7 @@ const LibraryPage = () => {
               Biblioteca
             </button>
             <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-            <span className="text-foreground font-medium">{activeCategoryName}</span>
+            <span className="text-foreground font-medium">{activeFolderName}</span>
           </nav>
         )}
 

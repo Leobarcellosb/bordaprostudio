@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { pickBestPreviewFile } from "@/lib/previewFormat";
 import { validateMatrixUpload, validateImageUpload } from "@/lib/validateUpload";
+import { FOLDER_RULES } from "@/lib/folderRules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,7 +55,7 @@ export const AdminDesigns = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "" });
+    setForm({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "", manual_categories: [] as string[] });
     setDesignFiles([]);
     setProductIdeas([]);
     setNewIdea({ title: "", description: "", image_url: "" });
@@ -70,6 +71,7 @@ export const AdminDesigns = () => {
       category_id: design.category_id || "",
       is_published: design.is_published ?? false,
       tags_text: design.tags_text || "",
+      manual_categories: Array.isArray(design.manual_categories) ? design.manual_categories : [],
     });
     setNewIdea({ title: "", description: "", image_url: "" });
     await fetchDesignDetails(design.id);
@@ -212,13 +214,14 @@ export const AdminDesigns = () => {
 
   const saveDesign = async () => {
     if (!form.name.trim()) { toast.error("Título é obrigatório"); return; }
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: form.name,
       description: form.description || null,
       cover_image: form.cover_image || null,
       category_id: form.category_id || null,
       is_published: form.is_published,
       tags_text: form.tags_text,
+      manual_categories: form.manual_categories,
     };
     let designId = editing?.id;
     if (editing) {
@@ -500,6 +503,64 @@ export const AdminDesigns = () => {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Pastas manuais — override sobre a derivação automática por tags.
+                Vazio = pastas derivadas das tags (folderRules.ts). Não vazio =
+                substitui inteiro. Cada toggle adiciona/remove uma pasta. */}
+            <Card className="border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Pastas manuais
+                </CardTitle>
+                <p className="text-[11px] text-muted-foreground">
+                  {form.manual_categories.length > 0 ? (
+                    <>
+                      <span className="font-semibold text-amber-600">Override ativo</span> — só as pastas
+                      selecionadas abaixo valem (ignora as tags).
+                    </>
+                  ) : (
+                    <>Vazio: as pastas vêm automaticamente das tags. Clique pra forçar pastas específicas.</>
+                  )}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {FOLDER_RULES.map((rule) => {
+                    const active = form.manual_categories.includes(rule.id);
+                    return (
+                      <button
+                        key={rule.id}
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            manual_categories: active
+                              ? prev.manual_categories.filter((id) => id !== rule.id)
+                              : [...prev.manual_categories, rule.id],
+                          }))
+                        }
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/50 hover:bg-muted text-foreground border border-border/60"
+                        }`}
+                      >
+                        {rule.name}
+                      </button>
+                    );
+                  })}
+                  {form.manual_categories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, manual_categories: [] }))}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Limpar (voltar pro automático)
+                    </button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
