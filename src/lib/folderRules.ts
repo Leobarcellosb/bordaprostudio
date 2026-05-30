@@ -49,7 +49,9 @@ export const FOLDER_RULES: FolderRule[] = [
     tags: [
       "flor","flores","floral","rosa","rosas","margarida","girassol",
       "folha","folhas","folhagem","jardim","botânico","botanico",
-      "buquê","buque","ramo","pétala","petala","tulipa","orquídea","orquidea","natureza",
+      "buquê","buque","ramo","pétala","petala","tulipa","orquídea","orquidea",
+      // "natureza" removida: Claude usa como bucket genérico (qualquer
+      // "ao ar livre"/elemento natural), pegava designs sem flor.
     ],
   },
   {
