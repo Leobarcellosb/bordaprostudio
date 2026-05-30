@@ -15,9 +15,12 @@ export interface Category {
  * componentes via React Query (LibraryFilters, CategoriesSection,
  * useLibraryCategories etc. — antes cada um fazia seu próprio SELECT).
  *
- * staleTime alto (30 min) porque categorias quase nunca mudam — admin
- * raramente cria/desativa. Mutações no AdminCategories devem invalidar
- * essa key via queryClient.invalidateQueries(CATEGORIES_QUERY_KEY).
+ * staleTime alto (30 min) porque categorias quase nunca mudam. A tabela
+ * `categories` ficou dormente após a migração pra `folders` (commit
+ * 7848d2d) — não há mais CRUD de categorias na UI. Esse hook segue
+ * vivo só por causa do legacy `CategoriesSection` da home.
+ * Se algum dia voltar a haver mutação, invalide via
+ * queryClient.invalidateQueries(CATEGORIES_QUERY_KEY).
  */
 export function useCategoriesQuery() {
   return useQuery<Category[]>({
