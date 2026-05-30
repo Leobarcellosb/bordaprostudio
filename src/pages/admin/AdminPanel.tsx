@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminDesigns } from "./AdminDesigns";
-import { AdminCategories } from "./AdminCategories";
+import { AdminFolders } from "./AdminFolders";
 import { AdminUsers } from "./AdminUsers";
 import { AdminDownloads } from "./AdminDownloads";
 import { AdminSmartUpload } from "./AdminSmartUpload";
@@ -34,7 +34,7 @@ const AdminPanel = () => {
               <TabsTrigger value="analytics" className="font-medium text-xs">Analytics</TabsTrigger>
               <TabsTrigger value="designs" className="font-medium text-xs">{t("admin.designs")}</TabsTrigger>
               <TabsTrigger value="import" className="font-medium text-xs">{t("admin.import")}</TabsTrigger>
-              <TabsTrigger value="categories" className="font-medium text-xs">{t("admin.categories")}</TabsTrigger>
+              <TabsTrigger value="folders" className="font-medium text-xs">Pastas</TabsTrigger>
               <TabsTrigger value="users" className="font-medium text-xs">{t("admin.users")}</TabsTrigger>
               <TabsTrigger value="downloads" className="font-medium text-xs">{t("admin.downloads")}</TabsTrigger>
               <TabsTrigger value="subscriptions" className="font-medium text-xs">{t("admin.subscriptions")}</TabsTrigger>
@@ -46,7 +46,7 @@ const AdminPanel = () => {
           <TabsContent value="analytics"><AdminAnalytics /></TabsContent>
           <TabsContent value="designs"><AdminDesigns /></TabsContent>
           <TabsContent value="import"><AdminSmartUpload /></TabsContent>
-          <TabsContent value="categories"><AdminCategories /></TabsContent>
+          <TabsContent value="folders"><AdminFolders /></TabsContent>
           <TabsContent value="users"><AdminUsers /></TabsContent>
           <TabsContent value="downloads"><AdminDownloads /></TabsContent>
           <TabsContent value="subscriptions"><AdminSubscriptions /></TabsContent>

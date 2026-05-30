@@ -5,18 +5,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { pickBestPreviewFile } from "@/lib/previewFormat";
 import { validateMatrixUpload, validateImageUpload } from "@/lib/validateUpload";
-import { FOLDER_RULES } from "@/lib/folderRules";
+import { useFolders } from "@/hooks/useFolders";
+import { deriveFoldersForDesign } from "@/lib/folderRules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2, Loader2, Tags } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Image, FileText, X, Lightbulb, Wand2, Loader2, Tags, FolderInput } from "lucide-react";
 
 const FILE_FORMATS = ["PES", "EXP", "DST", "JEF", "XXX", "VP3", "HUS", "EMB"];
 
@@ -25,13 +27,22 @@ export const AdminDesigns = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "" });
+  const [form, setForm] = useState({ name: "", description: "", cover_image: "", category_id: "", is_published: false, tags_text: "", manual_categories: [] as string[] });
   const [uploading, setUploading] = useState(false);
   const [designFiles, setDesignFiles] = useState<any[]>([]);
   const [productIdeas, setProductIdeas] = useState<any[]>([]);
   const [newIdea, setNewIdea] = useState({ title: "", description: "", image_url: "" });
   const coverInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Folders dinâmicas (tabela folders). Substitui FOLDER_RULES estático.
+  const { data: folderList = [] } = useFolders();
+
+  // Bulk select state — checkbox por linha + ação "atribuir pasta".
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkFolderSlug, setBulkFolderSlug] = useState<string>("");
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   const fetchData = async () => {
     const [{ data: designsData }, { data: catsData }] = await Promise.all([
@@ -291,6 +302,83 @@ export const AdminDesigns = () => {
 
   const tagsArray = (tagsText: string | null) => (tagsText || "").split(",").map(t => t.trim()).filter(Boolean);
 
+  // ─── Bulk select helpers ───
+  const allSelected = designs.length > 0 && selectedIds.size === designs.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < designs.length;
+  const toggleAll = () => {
+    if (selectedIds.size === designs.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(designs.map((d: any) => d.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  /**
+   * Ação em massa "Atribuir pasta aos selecionados".
+   *
+   * REGRA CRÍTICA: manual_categories é OVERRIDE total. Se a gente apenas
+   * appendasse o slug em design com manual=[], o design entraria em modo
+   * manual SÓ com essa pasta — sumiria de todas as pastas automáticas onde
+   * as tags o colocavam. Pra evitar isso:
+   *
+   *   - design em modo automático (manual=[]) → SEMEIA manual com as
+   *     pastas derivadas atuais + adiciona a nova. "Adicionar à pasta X"
+   *     = "mantém as automáticas + X", nunca "move exclusivo pra X".
+   *   - design já em modo manual (manual≠[]) → só adiciona o slug se
+   *     não estiver lá (dedup).
+   *
+   * Roda update por design (não bulk SQL) pra preservar o histórico de
+   * cada manual_categories — N viagens ao banco, mas N <= 100 na prática.
+   */
+  const bulkAssignFolder = async () => {
+    if (!bulkFolderSlug) { toast.error("Selecione uma pasta."); return; }
+    if (selectedIds.size === 0) { toast.error("Nenhum design selecionado."); return; }
+    const folder = folderList.find((f) => f.slug === bulkFolderSlug);
+    if (!folder) { toast.error("Pasta não encontrada."); return; }
+
+    setBulkRunning(true);
+    let updated = 0;
+    let unchanged = 0;
+    let failed = 0;
+
+    for (const id of selectedIds) {
+      const design = designs.find((d: any) => d.id === id);
+      if (!design) { failed++; continue; }
+      const current: string[] = Array.isArray(design.manual_categories) ? design.manual_categories : [];
+
+      let next: string[];
+      if (current.length === 0) {
+        // Auto mode → semeia derivadas + adiciona nova
+        const derived = deriveFoldersForDesign(design.tags_text, null, folderList);
+        next = Array.from(new Set([...derived, bulkFolderSlug]));
+      } else {
+        if (current.includes(bulkFolderSlug)) { unchanged++; continue; }
+        next = [...current, bulkFolderSlug];
+      }
+
+      const { error } = await db.from("designs").update({ manual_categories: next }).eq("id", id);
+      if (error) { console.error("[bulkAssign]", id, error); failed++; }
+      else updated++;
+    }
+
+    setBulkRunning(false);
+    setBulkOpen(false);
+    setBulkFolderSlug("");
+    clearSelection();
+    await fetchData();
+
+    const parts = [`${updated} atribuído(s) a "${folder.name}"`];
+    if (unchanged > 0) parts.push(`${unchanged} já estavam lá`);
+    if (failed > 0) parts.push(`${failed} falharam`);
+    toast.success(parts.join(" · "));
+  };
+
   const [classifying, setClassifying] = useState(false);
   const [classifyProgress, setClassifyProgress] = useState("");
 
@@ -347,10 +435,38 @@ export const AdminDesigns = () => {
          </div>
        </div>
 
+      {/* Barra de ação em massa — só aparece quando há seleção */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 animate-fade-in">
+          <span className="text-sm font-semibold">
+            {selectedIds.size} {selectedIds.size === 1 ? "matriz selecionada" : "matrizes selecionadas"}
+          </span>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => { setBulkFolderSlug(""); setBulkOpen(true); }}
+          >
+            <FolderInput className="h-3.5 w-3.5" />
+            Atribuir pasta aos selecionados
+          </Button>
+          <Button variant="ghost" size="sm" onClick={clearSelection} className="gap-1.5 text-muted-foreground">
+            <X className="h-3.5 w-3.5" />
+            Limpar seleção
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={toggleAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
               <TableHead>Preview</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Categoria</TableHead>
@@ -361,7 +477,14 @@ export const AdminDesigns = () => {
           </TableHeader>
           <TableBody>
             {designs.map((design: any) => (
-              <TableRow key={design.id}>
+              <TableRow key={design.id} data-state={selectedIds.has(design.id) ? "selected" : undefined}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(design.id)}
+                    onCheckedChange={() => toggleOne(design.id)}
+                    aria-label={`Selecionar ${design.name}`}
+                  />
+                </TableCell>
                 <TableCell>
                   {design.cover_image ? (
                     <img src={design.cover_image} alt="" className="w-10 h-10 rounded object-cover" />
@@ -398,6 +521,51 @@ export const AdminDesigns = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Dialog de bulk-assign — pasta + confirmação. Aplica regra
+          seed-then-add (vide comentário em bulkAssignFolder). */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Atribuir pasta a {selectedIds.size} {selectedIds.size === 1 ? "matriz" : "matrizes"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Pasta de destino</label>
+              <Select value={bulkFolderSlug} onValueChange={setBulkFolderSlug}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma pasta" /></SelectTrigger>
+                <SelectContent>
+                  {folderList.map((f) => (
+                    <SelectItem key={f.id} value={f.slug}>
+                      {f.name} {!f.is_active && " (inativa)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg border border-amber-300/40 bg-amber-50/60 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+              <p className="font-semibold">Comportamento da atribuição</p>
+              <p>
+                Matrizes em modo automático (manual vazio) primeiro recebem as pastas
+                derivadas das tags + esta nova pasta — não perdem as pastas auto.
+              </p>
+              <p>
+                Matrizes que já têm override manual recebem só a nova pasta no topo das
+                atuais (dedup).
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)}>Cancelar</Button>
+            <Button onClick={bulkAssignFolder} disabled={bulkRunning || !bulkFolderSlug}>
+              {bulkRunning && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Atribuir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -527,30 +695,57 @@ export const AdminDesigns = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {FOLDER_RULES.map((rule) => {
-                    const active = form.manual_categories.includes(rule.id);
+                  {folderList.map((folder) => {
+                    const active = form.manual_categories.includes(folder.slug);
                     return (
                       <button
-                        key={rule.id}
+                        key={folder.id}
                         type="button"
                         onClick={() =>
-                          setForm((prev) => ({
-                            ...prev,
-                            manual_categories: active
-                              ? prev.manual_categories.filter((id) => id !== rule.id)
-                              : [...prev.manual_categories, rule.id],
-                          }))
+                          setForm((prev) => {
+                            const current = prev.manual_categories;
+                            if (active) {
+                              // OFF: só remove. Se array virar [] o design
+                              // volta pro modo automático (deriva das tags).
+                              return {
+                                ...prev,
+                                manual_categories: current.filter((s) => s !== folder.slug),
+                              };
+                            }
+                            // ON: se está em auto mode (manual vazio),
+                            // SEMEIA com as pastas derivadas atuais antes
+                            // de adicionar a nova — senão a atribuição
+                            // expulsaria o design das pastas automáticas.
+                            if (current.length === 0) {
+                              const derived = deriveFoldersForDesign(prev.tags_text, null, folderList);
+                              return {
+                                ...prev,
+                                manual_categories: Array.from(new Set([...derived, folder.slug])),
+                              };
+                            }
+                            return {
+                              ...prev,
+                              manual_categories: [...current, folder.slug],
+                            };
+                          })
                         }
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                           active
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted/50 hover:bg-muted text-foreground border border-border/60"
-                        }`}
+                        } ${!folder.is_active ? "opacity-60" : ""}`}
+                        title={!folder.is_active ? "Pasta inativa (escondida do cliente)" : undefined}
                       >
-                        {rule.name}
+                        {folder.name}
+                        {!folder.is_active && " ·"}
                       </button>
                     );
                   })}
+                  {folderList.length === 0 && (
+                    <span className="text-[11px] text-muted-foreground italic">
+                      Nenhuma pasta configurada. Crie em Admin → Pastas.
+                    </span>
+                  )}
                   {form.manual_categories.length > 0 && (
                     <button
                       type="button"

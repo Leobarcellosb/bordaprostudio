@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+import { useFolders } from "@/hooks/useFolders";
 import { tagsForFolder } from "@/lib/folderRules";
 
 const PAGE_SIZE = 24;
@@ -44,6 +45,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     folderFilter = "",
   } = options;
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
+  const { data: folderList = [] } = useFolders();
   const [designs, setDesigns] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +124,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       // garantido depois via filtro client-side (rows manual≠[folderFilter]
       // são descartadas mesmo se tags bateram).
       if (folderFilter) {
-        const folderTags = tagsForFolder(folderFilter);
+        const folderTags = tagsForFolder(folderFilter, folderList);
         const orParts: string[] = [`manual_categories.cs.{${folderFilter}}`];
         for (const tag of folderTags) {
           const safe = tag.replace(/[%,()]/g, "");
@@ -250,7 +252,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     } finally {
       setIsLoading(false);
     }
-  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat, folderFilter]);
+  }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat, folderFilter, folderList]);
 
   useEffect(() => {
     const timer = setTimeout(fetchDesigns, search ? 300 : 0);

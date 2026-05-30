@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
-import {
-  FOLDER_RULES,
-  deriveFoldersForDesign,
-} from "@/lib/folderRules";
+import { useFolders } from "@/hooks/useFolders";
+import { deriveFoldersForDesign } from "@/lib/folderRules";
 
 export interface CategoryFolder {
-  id: string;
+  id: string;          // slug — match contra manual_categories
   name: string;
   totalCount: number;
   compatibleCount: number;
   previewImages: string[];
+  isActive: boolean;
 }
 
 interface UseLibraryCategoriesResult {
@@ -31,18 +30,18 @@ interface RawDesign {
 }
 
 /**
- * Agrupa o catálogo nas pastas "Por Tema" (lib/folderRules.ts).
+ * Agrupa o catálogo nas pastas "Por Tema" lidas da tabela folders.
  *
- * Pastas derivam das TAGS de cada design (match exato de tag inteira,
- * não substring) ou de manual_categories quando o admin sobrescreve.
- * Um design pode aparecer em N pastas — mais permissivo que o sistema
- * antigo de 1 category_id por design (que classificou metade do catálogo
- * errado, post-mortem em diagnose-categories.mts).
+ * Auto-match (deriveFoldersForDesign) roda contra TODAS as pastas
+ * (incluindo is_active=false) pra que pasta nova/inativa já apareça
+ * com volume real quando admin ativar. Filtro de is_active no display
+ * acontece em LibraryPage.
  *
- * Pastas vazias APARECEM (sinalizam lacuna de conteúdo, não bug).
+ * Pastas vazias APARECEM (admin vê como lacuna de conteúdo).
  */
 export function useLibraryCategories(): UseLibraryCategoriesResult {
   const { machineFormat } = useUserMachineSettings();
+  const { data: folderList = [], isLoading: foldersLoading } = useFolders();
   const [folders, setFolders] = useState<CategoryFolder[]>([]);
   const [totalDesigns, setTotalDesigns] = useState(0);
   const [totalCompatible, setTotalCompatible] = useState(0);
@@ -53,6 +52,13 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
     let cancelled = false;
 
     (async () => {
+      // Espera o catálogo de folders antes de agrupar — sem ele a
+      // derivação retorna [] e a tela fica falsamente vazia.
+      if (foldersLoading) {
+        setIsLoading(true);
+        return;
+      }
+
       setIsLoading(true);
       try {
         // Defensive: tenta com manual_categories; se a coluna ainda não
@@ -98,12 +104,12 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
           ? new Set(((formatRes.data ?? []) as { design_id: string }[]).map((r) => r.design_id))
           : null;
 
-        // Acumulador por folder ID. Pre-popula com TODAS as pastas
+        // Acumulador por folder slug. Pre-popula com TODAS as pastas
         // (incluindo as que ficarem em zero — sinalizam lacuna).
         type Acc = { total: number; compatible: number; previews: string[] };
         const acc = new Map<string, Acc>();
-        FOLDER_RULES.forEach((f) =>
-          acc.set(f.id, { total: 0, compatible: 0, previews: [] }),
+        folderList.forEach((f) =>
+          acc.set(f.slug, { total: 0, compatible: 0, previews: [] }),
         );
 
         let globalCompatible = 0;
@@ -116,12 +122,13 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
           if (isCompatible) globalCompatible++;
 
           // Um design pode entrar em várias pastas — loop todas elas.
-          const folderIds = deriveFoldersForDesign(
+          const folderSlugs = deriveFoldersForDesign(
             d.tags_text,
             d.manual_categories ?? null,
+            folderList,
           );
-          for (const fid of folderIds) {
-            const entry = acc.get(fid);
+          for (const slug of folderSlugs) {
+            const entry = acc.get(slug);
             if (!entry) continue;
             entry.total++;
             if (isCompatible) entry.compatible++;
@@ -131,18 +138,18 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
           }
         }
 
-        const built: CategoryFolder[] = FOLDER_RULES.map((rule) => {
-          const entry = acc.get(rule.id)!;
+        const built: CategoryFolder[] = folderList.map((f) => {
+          const entry = acc.get(f.slug)!;
           return {
-            id: rule.id,
-            name: rule.name,
+            id: f.slug,
+            name: f.name,
             totalCount: entry.total,
             compatibleCount: entry.compatible,
             previewImages: entry.previews,
+            isActive: f.is_active,
           };
         });
 
-        // NÃO filtra vazias — pasta zerada vira flag pra curadora.
         setFolders(built);
         setTotalDesigns(designs.length);
         setTotalCompatible(globalCompatible);
@@ -163,7 +170,7 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
     return () => {
       cancelled = true;
     };
-  }, [machineFormat]);
+  }, [machineFormat, folderList, foldersLoading]);
 
   return { folders, totalDesigns, totalCompatible, recentPreviews, isLoading };
 }

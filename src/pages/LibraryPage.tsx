@@ -26,7 +26,8 @@ import { CategoryFolderGrid } from "@/components/library/CategoryFolderGrid";
 import { SmartDownloadPanel } from "@/components/SmartDownloadPanel";
 import { WhatsAppListModal } from "@/components/WhatsAppListModal";
 import { useUserMachineSettings, MACHINE_FORMATS } from "@/hooks/useUserMachineSettings";
-import { FOLDER_BY_ID } from "@/lib/folderRules";
+import { useFolders } from "@/hooks/useFolders";
+import { findFolderBySlug } from "@/lib/folderRules";
 
 type ViewMode = "folders" | "all";
 
@@ -64,6 +65,7 @@ const LibraryPage = () => {
   const { t } = useTranslation();
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const { isAdmin } = useAuth();
+  const { data: folderList = [] } = useFolders();
 
   // Admin: ver todos os formatos (ignora filtro de máquina) + análise de
   // lacuna (mostrar designs SEM um formato). effectiveShowAll garante que
@@ -126,10 +128,10 @@ const LibraryPage = () => {
   // Active breadcrumb label — folder slug (novo) tem prioridade sobre
   // category UUID (legacy do dropdown). Só importa na view "Todas".
   const activeFolderName = useMemo(() => {
-    if (folderFilter) return FOLDER_BY_ID.get(folderFilter)?.name ?? null;
+    if (folderFilter) return findFolderBySlug(folderFilter, folderList)?.name ?? null;
     if (categoryFilter === "all") return null;
     return categories.find((c: any) => c.id === categoryFilter)?.name ?? null;
-  }, [folderFilter, categoryFilter, categories]);
+  }, [folderFilter, categoryFilter, categories, folderList]);
 
   // Sync URL params when tag changes
   useEffect(() => {
