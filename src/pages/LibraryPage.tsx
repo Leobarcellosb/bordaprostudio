@@ -113,6 +113,13 @@ const LibraryPage = () => {
     isLoading: foldersLoading,
   } = useLibraryCategories();
 
+  // Pastas vazias só aparecem pra admin (sinal de lacuna de conteúdo).
+  // User comum vê só pastas com pelo menos 1 design.
+  const visibleFolders = useMemo(
+    () => (isAdmin ? folders : folders.filter((f) => f.totalCount > 0)),
+    [folders, isAdmin],
+  );
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasActiveFilters = search !== "" || categoryFilter !== "all" || stitchRange !== "all" || selectedTags.length > 0;
 
@@ -375,7 +382,7 @@ const LibraryPage = () => {
 
         {inFolders ? (
           <CategoryFolderGrid
-            folders={folders}
+            folders={visibleFolders}
             totalDesigns={foldersTotalDesigns}
             totalCompatible={foldersTotalCompatible}
             recentPreviews={recentPreviews}

@@ -123,12 +123,27 @@ export function parseTagsText(tagsText: string | null | undefined): string[] {
   );
 }
 
+/** Tokens ignorados no split por palavra (preposições/artigos comuns que não
+ *  carregam assunto). NÃO é uma filtro de stopwords completo — só pra evitar
+ *  ruído óbvio caso tag tenha conectivos. */
+const MIN_TOKEN_LEN = 3;
+
 /**
  * Pastas em que o design deve aparecer.
  *
  * - Se manual_categories tem ≥1 ID válido, usa SÓ esses (override total).
- * - Senão, deriva das tags: match exato (tag inteira) contra rule.tags.
- *   Um design pode cair em N pastas se múltiplas regras baterem.
+ * - Senão, deriva das tags. Match contra rule.tags acontece se a keyword
+ *   for igual a:
+ *     (a) uma tag INTEIRA do design (já normalizada), OU
+ *     (b) qualquer PALAVRA (≥3 letras) dentro de uma tag composta do
+ *         design (split por espaço).
+ *
+ *   Isso captura "moldura floral" tanto em Molduras quanto em Florais
+ *   sem reabrir o risco de substring fortuita (ex: "sapato" não casa com
+ *   "pato" porque o split é por palavra, não por substring).
+ *
+ *   Keywords multi-palavra como "dia das mães" continuam casando via
+ *   tag-inteira match (caminho a).
  */
 export function deriveFoldersForDesign(
   tagsText: string | null | undefined,
@@ -137,11 +152,23 @@ export function deriveFoldersForDesign(
   if (manualCategories && manualCategories.length > 0) {
     return manualCategories.filter((id) => FOLDER_BY_ID.has(id));
   }
-  const designTags = new Set(parseTagsText(tagsText));
-  if (designTags.size === 0) return [];
+  const designTags = parseTagsText(tagsText);
+  if (designTags.length === 0) return [];
+
+  // Constrói o conjunto de "alvos de match" do design: tags inteiras +
+  // palavras ≥3 letras dentro das tags compostas.
+  const targets = new Set<string>();
+  for (const tag of designTags) {
+    targets.add(tag);
+    for (const word of tag.split(/\s+/)) {
+      const w = word.trim().toLowerCase();
+      if (w.length >= MIN_TOKEN_LEN) targets.add(w);
+    }
+  }
+
   const matched: string[] = [];
   for (const rule of FOLDER_RULES) {
-    if (rule.tags.some((kw) => designTags.has(kw.toLowerCase()))) {
+    if (rule.tags.some((kw) => targets.has(kw.toLowerCase()))) {
       matched.push(rule.id);
     }
   }
