@@ -7,6 +7,7 @@ import { pickBestPreviewFile } from "@/lib/previewFormat";
 import { validateMatrixUpload, validateImageUpload } from "@/lib/validateUpload";
 import { useFolders } from "@/hooks/useFolders";
 import { deriveFoldersForDesign } from "@/lib/folderRules";
+import { FolderPickerPopover, FolderCountBadge } from "@/components/admin/FolderPickerPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -469,7 +470,7 @@ export const AdminDesigns = () => {
               </TableHead>
               <TableHead>Preview</TableHead>
               <TableHead>Título</TableHead>
-              <TableHead>Categoria</TableHead>
+              <TableHead>Pastas</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Ações</TableHead>
@@ -493,7 +494,29 @@ export const AdminDesigns = () => {
                   )}
                 </TableCell>
                 <TableCell className="font-medium">{design.name}</TableCell>
-                <TableCell>{design.categories?.name || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    <FolderCountBadge
+                      tagsText={design.tags_text}
+                      manualCategories={Array.isArray(design.manual_categories) ? design.manual_categories : []}
+                    />
+                    <FolderPickerPopover
+                      designId={design.id}
+                      designName={design.name}
+                      tagsText={design.tags_text}
+                      manualCategories={Array.isArray(design.manual_categories) ? design.manual_categories : []}
+                      onChange={(next) => {
+                        // Atualiza só essa linha (sem refetch da tabela inteira)
+                        setDesigns((prev) =>
+                          prev.map((d: any) =>
+                            d.id === design.id ? { ...d, manual_categories: next } : d,
+                          ),
+                        );
+                      }}
+                      align="start"
+                    />
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {tagsArray(design.tags_text).slice(0, 3).map((t: string) => (
@@ -674,23 +697,16 @@ export const AdminDesigns = () => {
               </CardContent>
             </Card>
 
-            {/* Pastas manuais — override sobre a derivação automática por tags.
-                Vazio = pastas derivadas das tags (folderRules.ts). Não vazio =
-                substitui inteiro. Cada toggle adiciona/remove uma pasta. */}
+            {/* Pastas desta matriz — sempre mostra o conjunto EFETIVO
+                pré-marcado (manual se !=[], senão derivadas das tags).
+                Marca/desmarca livre. Vazio = volta pro auto-match puro. */}
             <Card className="border-border/60">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" /> Pastas manuais
+                  <FileText className="h-4 w-4 text-primary" /> Pastas desta matriz
                 </CardTitle>
                 <p className="text-[11px] text-muted-foreground">
-                  {form.manual_categories.length > 0 ? (
-                    <>
-                      <span className="font-semibold text-amber-600">Override ativo</span> — só as pastas
-                      selecionadas abaixo valem (ignora as tags).
-                    </>
-                  ) : (
-                    <>Vazio: as pastas vêm automaticamente das tags. Clique pra forçar pastas específicas.</>
-                  )}
+                  Marque todas as pastas onde essa matriz deve aparecer.
                 </p>
               </CardHeader>
               <CardContent>
@@ -704,68 +720,94 @@ export const AdminDesigns = () => {
                     )}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2">
-                  {folderList.map((folder) => {
-                    const active = form.manual_categories.includes(folder.slug);
-                    return (
-                      <button
-                        key={folder.id}
-                        type="button"
-                        onClick={() =>
-                          setForm((prev) => {
-                            const current = prev.manual_categories;
-                            if (active) {
-                              // OFF: só remove. Se array virar [] o design
-                              // volta pro modo automático (deriva das tags).
-                              return {
-                                ...prev,
-                                manual_categories: current.filter((s) => s !== folder.slug),
-                              };
-                            }
-                            // ON: se está em auto mode (manual vazio),
-                            // SEMEIA com as pastas derivadas atuais antes
-                            // de adicionar a nova — senão a atribuição
-                            // expulsaria o design das pastas automáticas.
-                            if (current.length === 0) {
-                              const derived = deriveFoldersForDesign(prev.tags_text, null, folderList);
-                              return {
-                                ...prev,
-                                manual_categories: Array.from(new Set([...derived, folder.slug])),
-                              };
-                            }
-                            return {
-                              ...prev,
-                              manual_categories: [...current, folder.slug],
-                            };
-                          })
-                        }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                          active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/50 hover:bg-muted text-foreground border border-border/60"
-                        } ${!folder.is_active ? "opacity-60" : ""}`}
-                        title={!folder.is_active ? "Pasta inativa (escondida do cliente)" : undefined}
-                      >
-                        {folder.name}
-                        {!folder.is_active && " ·"}
-                      </button>
-                    );
-                  })}
-                  {folderList.length === 0 && (
-                    <span className="text-[11px] text-muted-foreground italic">
-                      Nenhuma pasta configurada. Crie em Admin → Pastas.
-                    </span>
-                  )}
-                  {form.manual_categories.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setForm((prev) => ({ ...prev, manual_categories: [] }))}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Limpar (voltar pro automático)
-                    </button>
-                  )}
-                </div>
+                {(() => {
+                  // Conjunto efetivo: manual (se !=[]) ou derivadas das tags.
+                  // Pré-marca o que está hoje, mostra a realidade.
+                  const isAuto = form.manual_categories.length === 0;
+                  const derived = deriveFoldersForDesign(form.tags_text, null, folderList);
+                  const effective = isAuto ? derived : form.manual_categories;
+                  const effectiveSet = new Set(effective);
+                  const derivedNames = derived
+                    .map((s) => folderList.find((f) => f.slug === s)?.name)
+                    .filter(Boolean) as string[];
+
+                  return (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {folderList.map((folder) => {
+                          const active = effectiveSet.has(folder.slug);
+                          return (
+                            <button
+                              key={folder.id}
+                              type="button"
+                              onClick={() =>
+                                setForm((prev) => {
+                                  const inAuto = prev.manual_categories.length === 0;
+                                  // Em auto: materializa derivadas pra poder add/remove.
+                                  // Em manual: usa o array atual direto.
+                                  const base = inAuto
+                                    ? deriveFoldersForDesign(prev.tags_text, null, folderList)
+                                    : prev.manual_categories;
+                                  const next = active
+                                    ? base.filter((s) => s !== folder.slug)
+                                    : Array.from(new Set([...base, folder.slug]));
+                                  return { ...prev, manual_categories: next };
+                                })
+                              }
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                active
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/50 hover:bg-muted text-foreground border border-border/60"
+                              } ${!folder.is_active ? "opacity-60" : ""}`}
+                              title={!folder.is_active ? "Pasta inativa (escondida do cliente)" : undefined}
+                            >
+                              {folder.name}
+                              {!folder.is_active && " ·"}
+                            </button>
+                          );
+                        })}
+                        {folderList.length === 0 && (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            Nenhuma pasta configurada. Crie em Admin → Pastas.
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Comunica o modo atual — explícito pra não ser silencioso */}
+                      <div className="mt-3 pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
+                        {isAuto ? (
+                          derivedNames.length > 0 ? (
+                            <p>
+                              <span className="font-semibold text-foreground">Modo automático</span>{" "}
+                              · vem das tags: {derivedNames.join(", ")}
+                            </p>
+                          ) : (
+                            <p className="text-amber-700 dark:text-amber-300">
+                              <span className="font-semibold">Modo automático mas SEM match.</span>{" "}
+                              As tags não batem com nenhuma keyword — design fica órfão.
+                              Marque uma pasta acima ou ajuste as tags.
+                            </p>
+                          )
+                        ) : (
+                          <div className="flex items-center justify-between gap-2">
+                            <p>
+                              <span className="font-semibold text-foreground">Override manual</span>{" "}
+                              · {form.manual_categories.length} pasta
+                              {form.manual_categories.length === 1 ? "" : "s"}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setForm((prev) => ({ ...prev, manual_categories: [] }))}
+                              className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                            >
+                              Voltar pro automático
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
 

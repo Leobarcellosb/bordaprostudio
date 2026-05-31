@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/contexts/AuthContext";
+import { FolderPickerPopover, FolderCountBadge } from "@/components/admin/FolderPickerPopover";
+import { useState, useCallback } from "react";
 
 interface LibraryGridProps {
   designs: any[];
@@ -27,6 +30,17 @@ export const LibraryGrid = ({
   showFormats = false,
 }: LibraryGridProps) => {
   const { t } = useTranslation();
+  // Gate ESTRITO: cliente NUNCA vê o overlay de pastas. isAdmin é boolean
+  // do AuthContext (server-checked via user_roles); não dá pra forçar
+  // pelo client.
+  const { isAdmin } = useAuth();
+
+  // Mantém estado local das manual_categories por design id (otimista,
+  // populado pelo onChange do popover sem refetch da query principal).
+  const [manualOverrides, setManualOverrides] = useState<Record<string, string[]>>({});
+  const handleFolderChange = useCallback((id: string, next: string[]) => {
+    setManualOverrides((prev) => ({ ...prev, [id]: next }));
+  }, []);
 
   if (isLoading) {
     return (
@@ -65,8 +79,34 @@ export const LibraryGrid = ({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-      {designs.map((design: any) => (
-        <div key={design.id} className="relative">
+      {designs.map((design: any) => {
+        // Manual categories: usa override otimista se houver, senão o
+        // valor do banco. Pra cliente isso nem chega a ser computado
+        // (não há overlay).
+        const manualCats: string[] = manualOverrides[design.id]
+          ?? (Array.isArray(design.manual_categories) ? design.manual_categories : []);
+        return (
+        <div key={design.id} className="relative group/grid">
+          {/* Admin only: overlay discreto de pastas no canto inferior-esquerdo.
+              Click stoppropaga pra não abrir o detalhe da matriz. Estado em
+              manualOverrides[id] é local-otimista (popover salva no banco
+              direto). Cliente nunca vê nada disso. */}
+          {isAdmin && (
+            <div
+              className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 opacity-0 group-hover/grid:opacity-100 transition-opacity duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FolderCountBadge tagsText={design.tags_text} manualCategories={manualCats} />
+              <FolderPickerPopover
+                designId={design.id}
+                designName={design.name}
+                tagsText={design.tags_text}
+                manualCategories={manualCats}
+                onChange={(next) => handleFolderChange(design.id, next)}
+                align="start"
+              />
+            </div>
+          )}
           {/* Admin: badges de formato no topo do card (PES, JEF, DST...).
               Se o design não tem arquivo, marca "sem arquivo" em âmbar —
               útil pra análise de lacuna do catálogo. */}
@@ -116,7 +156,8 @@ export const LibraryGrid = ({
             onClick={() => selectionMode ? onToggleSelect?.(design.id) : onDesignClick(design.id)}
           />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
