@@ -44,6 +44,8 @@ export const AdminDesigns = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkFolderSlug, setBulkFolderSlug] = useState<string>("");
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const fetchData = async () => {
     const [{ data: designsData }, { data: catsData }] = await Promise.all([
@@ -320,6 +322,21 @@ export const AdminDesigns = () => {
   };
   const clearSelection = () => setSelectedIds(new Set());
 
+  const bulkDelete = async () => {
+    setBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await db.from("designs").delete().in("id", ids);
+    setBulkDeleting(false);
+    setBulkDeleteOpen(false);
+    if (error) {
+      toast.error("Erro ao deletar: " + error.message);
+    } else {
+      toast.success(`${ids.length} ${ids.length === 1 ? "matriz deletada" : "matrizes deletadas"}!`);
+      clearSelection();
+      fetchData();
+    }
+  };
+
   /**
    * Ação em massa "Atribuir pasta aos selecionados".
    *
@@ -449,6 +466,15 @@ export const AdminDesigns = () => {
           >
             <FolderInput className="h-3.5 w-3.5" />
             Atribuir pasta aos selecionados
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-1.5"
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Deletar {selectedIds.size} selecionada{selectedIds.size !== 1 ? "s" : ""}
           </Button>
           <Button variant="ghost" size="sm" onClick={clearSelection} className="gap-1.5 text-muted-foreground">
             <X className="h-3.5 w-3.5" />
@@ -585,6 +611,29 @@ export const AdminDesigns = () => {
             <Button onClick={bulkAssignFolder} disabled={bulkRunning || !bulkFolderSlug}>
               {bulkRunning && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
               Atribuir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação — deletar em lote */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão em lote</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja deletar{" "}
+            <strong>{selectedIds.size} {selectedIds.size === 1 ? "matriz" : "matrizes"}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)} disabled={bulkDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={bulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              Sim, deletar
             </Button>
           </DialogFooter>
         </DialogContent>
