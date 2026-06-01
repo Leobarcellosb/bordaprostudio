@@ -325,15 +325,22 @@ export const AdminDesigns = () => {
   const bulkDelete = async () => {
     setBulkDeleting(true);
     const ids = Array.from(selectedIds);
-    const { error } = await db.from("designs").delete().in("id", ids);
-    setBulkDeleting(false);
-    setBulkDeleteOpen(false);
-    if (error) {
-      toast.error("Erro ao deletar: " + error.message);
-    } else {
+    try {
+      // Deleta registros filhos antes (FK constraints)
+      for (const table of ["product_ideas", "kit_arquivos", "kit_designs"] as const) {
+        const { error } = await db.from(table).delete().in("design_id", ids);
+        if (error) throw error;
+      }
+      const { error } = await db.from("designs").delete().in("id", ids);
+      if (error) throw error;
       toast.success(`${ids.length} ${ids.length === 1 ? "matriz deletada" : "matrizes deletadas"}!`);
       clearSelection();
       fetchData();
+    } catch (err: any) {
+      toast.error("Erro ao deletar: " + (err?.message ?? err));
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteOpen(false);
     }
   };
 
