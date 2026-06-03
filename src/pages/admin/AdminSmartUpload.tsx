@@ -4,6 +4,8 @@ import { validateZipUpload } from "@/lib/validateUpload";
 import { db } from "@/lib/db";
 import { generateTagsFromName, suggestCategoryFromName } from "@/lib/generateTags";
 import { classifyHoopSize } from "@/lib/hoopSize";
+import { useFolders } from "@/hooks/useFolders";
+import { deriveFoldersForDesign, type Folder } from "@/lib/folderRules";
 import { supabase } from "@/integrations/supabase/client";
 import { generateEmbroideryPreview, isPreviewSupported } from "@/lib/embroideryPreview";
 import { pickBestPreviewFile } from "@/lib/previewFormat";
@@ -61,21 +63,11 @@ function cleanTitle(name: string) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function suggestCategory(name: string, categories: any[]): string | null {
-  const lower = name.toLowerCase();
-  // Direct match on category name
-  for (const cat of categories) {
-    if (lower.includes(cat.name.toLowerCase())) return cat.id;
-  }
-  // Use the smart suggestion from generateTags
-  const suggested = suggestCategoryFromName(name);
-  if (suggested) {
-    const match = categories.find(
-      (c: any) => c.name.toLowerCase() === suggested.toLowerCase()
-    );
-    if (match) return match.id;
-  }
-  return null;
+function suggestFolder(name: string, folders: Folder[]): string {
+  const tags = generateTagsFromName(name);
+  const tagsText = tags.join(", ");
+  const matches = deriveFoldersForDesign(tagsText, null, folders);
+  return matches[0] ?? "";
 }
 
 interface PipelineStep {
@@ -100,7 +92,7 @@ interface DesignGroup {
   generatedTitle: string | null;
   titleSource: "ai" | "filename";
   tags: string;
-  categoryId: string;
+  folderSlug: string;
   files: { name: string; blob: Blob; format: string }[];
   previewFile: { name: string; blob: Blob } | null;
   autoPreview: boolean;
@@ -115,18 +107,10 @@ interface DesignGroup {
 
 export const AdminSmartUpload = () => {
   const [groups, setGroups] = useState<DesignGroup[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const { data: folders = [] } = useFolders();
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    db.from("categories").select("*").order("name")
-      .then(({ data }: any) => {
-        setCategories(data || []);
-      })
-      .catch((err) => console.error("[AdminSmartUpload] categories load error:", err));
-  }, []);
 
   const processFiles = useCallback(
     async (fileList: FileList) => {
@@ -169,7 +153,7 @@ export const AdminSmartUpload = () => {
 
             const title = cleanTitle(baseName);
             const tags = generateTagsFromName(title);
-            const categoryId = suggestCategory(baseName, categories) || "";
+            const folderSlug = suggestFolder(baseName, folders) || "";
 
             if (innerFiles.length > 0) {
               const groupId = crypto.randomUUID();
@@ -181,7 +165,7 @@ export const AdminSmartUpload = () => {
                 generatedTitle: null,
                 titleSource: "filename",
                 tags: tags.join(", "),
-                categoryId,
+                folderSlug,
                 files: innerFiles,
                 previewFile,
                 autoPreview: false,
@@ -201,7 +185,7 @@ export const AdminSmartUpload = () => {
                 generatedTitle: null,
                 titleSource: "filename",
                 tags: tags.join(", "),
-                categoryId,
+                folderSlug,
                 files: [{ name: file.name, blob: file, format: "ZIP" }],
                 previewFile,
                 autoPreview: false,
@@ -224,7 +208,7 @@ export const AdminSmartUpload = () => {
           if (!newGroups.has(key)) {
             const title = cleanTitle(baseName);
             const tags = generateTagsFromName(title);
-            const categoryId = suggestCategory(baseName, categories) || "";
+            const folderSlug = suggestFolder(baseName, folders) || "";
             newGroups.set(key, {
               id: crypto.randomUUID(),
               baseName,
@@ -233,7 +217,7 @@ export const AdminSmartUpload = () => {
               generatedTitle: null,
               titleSource: "filename",
               tags: tags.join(", "),
-              categoryId,
+              folderSlug,
               files: [],
               previewFile: null,
               autoPreview: false,
@@ -333,24 +317,17 @@ export const AdminSmartUpload = () => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [categories]
+    [folders]
   );
 
-  const classifyCategory = useCallback(async (groupId: string, title: string, rawFilename: string, tags: string, imageUrl: string | null) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("classify-design-category", {
-        body: { title, raw_filename: rawFilename, tags, image_url: imageUrl },
-      });
-      if (error) throw error;
-      const categoryId = data?.category_id;
-      if (categoryId) {
-        setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, categoryId } : g));
-        console.log(`[CLASSIFY] "${title}" → ${data.category_name} (${data.confidence})`);
-      }
-    } catch (err) {
-      console.warn("AI category classification failed for", title, err);
+  const classifyCategory = useCallback(async (groupId: string, title: string, _rawFilename: string, _tags: string, _imageUrl: string | null) => {
+    // Sugere pasta localmente pelas tags — sem edge function de categoria antiga
+    const suggested = suggestFolder(title, folders);
+    if (suggested) {
+      setGroups((prev) => prev.map((g) => g.id === groupId ? { ...g, folderSlug: suggested } : g));
+      console.log(`[CLASSIFY] "${title}" → pasta "${suggested}"`);
     }
-  }, []);
+  }, [folders]);
 
   const generateAITitle = useCallback(async (group: DesignGroup) => {
     setGroups((prev) => prev.map((g) => g.id === group.id ? { ...g, generatingTitle: true } : g));
@@ -540,7 +517,7 @@ export const AdminSmartUpload = () => {
               raw_filename: group.rawFilename,
               generated_title: group.generatedTitle,
               cover_image: previewUrl,
-              category_id: group.categoryId || null,
+              manual_categories: group.folderSlug ? [group.folderSlug] : [],
               tags_text: group.tags,
               is_published: true,
               hoop_size: hoopSize,
@@ -774,7 +751,7 @@ export const AdminSmartUpload = () => {
               <DesignGroupCard
                 key={group.id}
                 group={group}
-                categories={categories}
+                folders={folders}
                 onUpdate={updateGroup}
                 onRemove={removeGroup}
               />
@@ -788,12 +765,12 @@ export const AdminSmartUpload = () => {
 
 function DesignGroupCard({
   group,
-  categories,
+  folders,
   onUpdate,
   onRemove,
 }: {
   group: DesignGroup;
-  categories: any[];
+  folders: Folder[];
   onUpdate: (id: string, updates: Partial<DesignGroup>) => void;
   onRemove: (id: string) => void;
 }) {
@@ -920,13 +897,13 @@ function DesignGroupCard({
               <div className="space-y-2 pt-2 border-t border-border/40">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Categoria</label>
-                  <Select value={group.categoryId} onValueChange={(v) => onUpdate(group.id, { categoryId: v })}>
+                  <Select value={group.folderSlug || ""} onValueChange={(v) => onUpdate(group.id, { folderSlug: v })}>
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Auto-detectar ou selecione" />
+                      <SelectValue placeholder="Selecione uma pasta" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
+                      {folders.filter(f => f.is_active).map((f) => (
+                        <SelectItem key={f.id} value={f.slug} className="text-xs">{f.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -961,9 +938,9 @@ function DesignGroupCard({
             {/* Category & tags summary when not editing */}
             {!editing && !isFinished && (
               <div className="flex flex-wrap gap-1">
-                {group.categoryId && (
+                {group.folderSlug && (
                   <Badge variant="outline" className="text-[10px]">
-                    {categories.find((c: any) => c.id === group.categoryId)?.name || "Categoria"}
+                    {folders.find((f) => f.slug === group.folderSlug)?.name || "Pasta"}
                   </Badge>
                 )}
                 {group.tags &&
