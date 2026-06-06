@@ -26,7 +26,7 @@ const PremiumKitDetail = () => {
       if (!id) return;
       const [kitRes, designsRes] = await Promise.all([
         db.from("premium_kits").select("*").eq("id", id).single(),
-        db.from("kit_designs").select("design_id").eq("kit_id", id),
+        db.from("premium_kit_designs").select("design_id").eq("premium_kit_id", id),
       ]);
       setKit(kitRes.data);
       setKitDesignIds((designsRes.data || []).map((d: any) => d.design_id));

@@ -183,17 +183,20 @@ export const SmartKitBuilder = ({ open, onOpenChange, onKitCreated }: SmartKitBu
 
     setPublishing(true);
     try {
-      const payload = {
-        title: draftTitle.trim(),
-        description: draftDescription.trim() || null,
-        cover_image: draftCover || null,
-        designs_count: draftDesigns.length,
-        access_rule: "included_in_annual",
-        is_published: true,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await db.from("premium_kits").insert(payload);
+      // RPC transacional: cria o premium_kit + as linhas em premium_kit_designs
+      // numa só transação. Antes só inseria premium_kits e NUNCA persistia os
+      // designs → kit aparecia com contagem mas vinha vazio no detalhe.
+      const { error } = await db.rpc("create_premium_kit_with_designs", {
+        p_kit: {
+          title: draftTitle.trim(),
+          description: draftDescription.trim() || null,
+          cover_image: draftCover || null,
+          designs_count: draftDesigns.length,
+          access_rule: "included_in_annual",
+          is_published: true,
+        },
+        p_design_ids: draftDesigns.map((d) => d.id),
+      });
       if (error) throw error;
 
       toast.success("Kit publicado com sucesso!");
@@ -214,17 +217,19 @@ export const SmartKitBuilder = ({ open, onOpenChange, onKitCreated }: SmartKitBu
 
     setPublishing(true);
     try {
-      const payload = {
-        title: draftTitle.trim(),
-        description: draftDescription.trim() || null,
-        cover_image: draftCover || null,
-        designs_count: draftDesigns.length,
-        access_rule: "included_in_annual",
-        is_published: false,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await db.from("premium_kits").insert(payload);
+      // Mesma RPC transacional do publishKit (kit + junção atômicos), só que
+      // is_published=false. Rascunho pode ter 0 designs — a RPC lida com array vazio.
+      const { error } = await db.rpc("create_premium_kit_with_designs", {
+        p_kit: {
+          title: draftTitle.trim(),
+          description: draftDescription.trim() || null,
+          cover_image: draftCover || null,
+          designs_count: draftDesigns.length,
+          access_rule: "included_in_annual",
+          is_published: false,
+        },
+        p_design_ids: draftDesigns.map((d) => d.id),
+      });
       if (error) throw error;
 
       toast.success("Rascunho salvo!");
