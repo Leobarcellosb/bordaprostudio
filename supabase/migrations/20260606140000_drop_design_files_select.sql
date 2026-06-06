@@ -1,0 +1,14 @@
+-- Fecha o "trap" do bucket design-files.
+--
+-- Havia (criada no dashboard, fora das migrations) a policy permissiva
+-- "design_files_select" liberando SELECT em design-files pra qualquer
+-- authenticated (OR'd com a policy de assinatura). Como o editor single-design
+-- (AdminDesigns) ainda faz upload pra design-files, se alguém usá-lo o arquivo
+-- cairia num bucket lido por usuário FREE — vazamento de produto pago.
+--
+-- Removendo essa policy, design-files passa a depender só da policy de
+-- assinatura (private_files_read), igual a kit-files. Hoje o bucket está VAZIO
+-- → impacto funcional zero; isto só fecha o risco latente.
+--
+-- Idempotente: IF EXISTS (no-op se já não existir).
+DROP POLICY IF EXISTS "design_files_select" ON storage.objects;
