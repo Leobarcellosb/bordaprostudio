@@ -6,6 +6,7 @@ import { Download, Loader2, Filter, AlertCircle } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
+import { downloadFromStorage } from "@/lib/storageDownload";
 import JSZip from "jszip";
 
 const FORMAT_OPTIONS = ["PES", "JEF", "DST", "EXP", "XXX", "VP3", "HUS", "EMB"] as const;
@@ -82,20 +83,32 @@ export const SmartDownloadPanel = ({ designIds, title }: SmartDownloadPanelProps
         return;
       }
 
-      // Generate ZIP
+      // Generate ZIP — baixa cada arquivo pelo endpoint AUTENTICADO do storage
+      // (buckets privados). Erros NÃO são engolidos: junta os que falharam.
       const zip = new JSZip();
+      const failed: string[] = [];
+      let ok = 0;
       const fetchPromises = filteredFiles.map(async (file) => {
         try {
-          const response = await fetch(file.file_url);
-          if (!response.ok) return;
-          const blob = await response.blob();
+          const blob = await downloadFromStorage(file.file_url);
           zip.file(file.file_name, blob);
-        } catch {
-          console.warn(`Failed to fetch: ${file.file_name}`);
+          ok++;
+        } catch (err) {
+          console.warn(`Falha ao baixar: ${file.file_name}`, err);
+          failed.push(file.file_name);
         }
       });
 
       await Promise.all(fetchPromises);
+
+      // Nada baixou → não gera um ZIP vazio; avisa o motivo provável.
+      if (ok === 0) {
+        toast.error(
+          `Nenhum arquivo pôde ser baixado (${failed.length} falha(s)). Verifique sua assinatura.`,
+        );
+        setDownloading(false);
+        return;
+      }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(zipBlob);
@@ -113,7 +126,12 @@ export const SmartDownloadPanel = ({ designIds, title }: SmartDownloadPanelProps
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success(`Download de ${filteredFiles.length} arquivo(s) iniciado!`);
+      toast.success(`Download de ${ok} arquivo(s) iniciado!`);
+      if (failed.length) {
+        toast.error(
+          `${failed.length} não baixaram: ${failed.slice(0, 3).join(", ")}${failed.length > 3 ? "…" : ""}`,
+        );
+      }
     } catch (err) {
       console.error("[SmartDownload] error:", err);
       toast.error("Erro ao preparar o download.");

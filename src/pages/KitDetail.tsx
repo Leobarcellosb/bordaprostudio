@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
+import { downloadFromStorage, triggerBlobDownload, filenameFromStorageUrl } from "@/lib/storageDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
@@ -182,7 +183,18 @@ const DesignDetail = () => {
     fetchDesign();
   }, [id, user]);
 
-  const trackAndDownload = async (url: string, label: string) => {
+  const trackAndDownload = async (url: string, label: string, filename: string) => {
+    // Baixa via endpoint autenticado do storage (bucket privado). Só registra
+    // o download e dispara webhook se os bytes vierem de fato.
+    let blob: Blob;
+    try {
+      blob = await downloadFromStorage(url);
+    } catch (err) {
+      console.error("[KitDetail] download error:", err);
+      toast.error(`Falha ao baixar ${label}. Verifique sua assinatura.`);
+      return;
+    }
+    triggerBlobDownload(blob, filename);
     if (user && id) {
       await db.from("downloads").insert({ user_id: user.id, kit_id: id });
       setDownloadCount(prev => prev + 1);
@@ -191,20 +203,23 @@ const DesignDetail = () => {
         dispatchWebhook({ event_name: "design_downloaded", user_email: user.email || undefined, user_id: user.id, design_id: id });
       });
     }
-    window.open(url, "_blank");
     toast.success(`Download de ${label} iniciado!`);
   };
 
   const handleDownload = async (file: any) => {
     setDownloading(file.id);
-    await trackAndDownload(file.file_url, file.format || file.file_format);
+    await trackAndDownload(
+      file.file_url,
+      file.format || file.file_format,
+      file.file_name || filenameFromStorageUrl(file.file_url),
+    );
     setTimeout(() => setDownloading(null), 1500);
   };
 
   const handleDownloadZip = async () => {
     if (!design?.zip_url) return;
     setDownloading("zip");
-    await trackAndDownload(design.zip_url, "ZIP");
+    await trackAndDownload(design.zip_url, "ZIP", filenameFromStorageUrl(design.zip_url));
     setTimeout(() => setDownloading(null), 1500);
   };
 

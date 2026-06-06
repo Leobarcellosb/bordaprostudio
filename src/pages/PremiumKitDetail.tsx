@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "@/lib/db";
+import { downloadFromStorage, triggerBlobDownload, filenameFromStorageUrl } from "@/lib/storageDownload";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -42,13 +43,19 @@ const PremiumKitDetail = () => {
     return false;
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!kit?.zip_url) {
       toast.error("Arquivo não disponível para download");
       return;
     }
-    window.open(kit.zip_url, "_blank");
-    toast.success("Download iniciado!");
+    try {
+      const blob = await downloadFromStorage(kit.zip_url);
+      triggerBlobDownload(blob, filenameFromStorageUrl(kit.zip_url));
+      toast.success("Download iniciado!");
+    } catch (err) {
+      console.error("[PremiumKitDetail] download error:", err);
+      toast.error("Falha ao baixar o arquivo. Verifique sua assinatura.");
+    }
   };
 
   const handlePurchase = () => {
