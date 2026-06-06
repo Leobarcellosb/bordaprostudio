@@ -84,21 +84,16 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       // URL fica constante (~200 chars), escala pra qualquer tamanho de acervo.
       const useFormatFilter = !!machineFormat && !showAllFormats;
 
-      // Admin análise de lacuna: design_ids que TÊM gapFormat → excluir,
-      // sobrando só os que NÃO têm aquele formato. Só vale no modo
-      // showAllFormats (senão conflita com o filtro de máquina).
-      let excludeIds: string[] | null = null;
-      if (showAllFormats && gapFormat) {
-        const { data: haveFmt, error: gapErr } = await db
-          .from("kit_arquivos")
-          .select("design_id")
-          .ilike("format", gapFormat);
-        if (gapErr) throw gapErr;
-        const ids = Array.from(
-          new Set(((haveFmt ?? []) as { design_id: string }[]).map((r) => r.design_id)),
-        );
-        if (ids.length > 0) excludeIds = ids;
-      }
+      // Admin análise de lacuna (gapFormat): designs que NÃO têm aquele formato.
+      // ANTES: pré-buscava todos os design_id COM o formato e fazia
+      // .not("id","in",[milhares de UUIDs]) — mesma URL-bomb do filtro de formato
+      // (~40KB → HTTP 400) + truncação silenciosa em 1000 linhas (excludeIds
+      // incompleto → designs que TINHAM o formato vazavam pra view "sem formato",
+      // resultado errado sem erro). AGORA: anti-join server-side — embed LEFT
+      // aliasado "gap" filtrado pro formato + is null no pai. URL O(200 chars),
+      // correto pra qualquer acervo — verificado contra o banco (sem X == total −
+      // com X em 6 formatos, count exato = distintos, sem duplicação).
+      const useGapFilter = showAllFormats && !!gapFormat;
 
       // Direct SELECT (RPC search_designs não existe neste Supabase).
       // Filtros/sort/paginação/count gerenciados pelo query builder.
@@ -108,18 +103,24 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         // O embed plano kit_arquivos(format) traz TODOS os formatos (badge
         // is_compatible client-side); o embed inner aliasado "compat" só
         // existe quando filtramos por formato e restringe os designs no JOIN.
-        const selectCols = applyFormatFilter
-          ? "*, categories(name), kit_arquivos(format), compat:kit_arquivos!inner(format)"
-          : "*, categories(name), kit_arquivos(format)";
+        const selectParts = ["*", "categories(name)", "kit_arquivos(format)"];
+        if (applyFormatFilter) selectParts.push("compat:kit_arquivos!inner(format)");
+        if (useGapFilter) selectParts.push("gap:kit_arquivos!left(format)");
 
         let query = db
           .from("designs")
-          .select(selectCols, { count: "exact" })
+          .select(selectParts.join(", "), { count: "exact" })
           .eq("is_published", true);
 
         // Filtro namespaced no embed inner — só toca "compat", não o embed plano.
         if (applyFormatFilter) query = query.ilike("compat.format", machineFormat!);
-        if (excludeIds) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+        // Anti-join de lacuna: mantém só designs SEM gapFormat (embed gap
+        // filtrado pro formato + is null = nenhum filho casou). Server-side,
+        // sem materializar lista de IDs.
+        if (useGapFilter) {
+          query = query.ilike("gap.format", gapFormat);
+          query = query.is("gap", null);
+        }
 
         // Filtro de pasta "Por Tema": OR entre (manual_categories contém o
         // folderId) e (qualquer tag da pasta bate). Manual prevalece é
