@@ -100,7 +100,7 @@ const LibraryPage = () => {
     ? [search, ...selectedTags].filter(Boolean).join(" ")
     : search;
 
-  const { designs, totalCount, isLoading, categories, downloadCounts, hasIncompatible, compatibleCount } = useLibraryDesigns({
+  const { designs, totalCount, isLoading, categories, downloadCounts, hasIncompatible, compatibleCount, error: designsError } = useLibraryDesigns({
     search: effectiveSearch, categoryFilter, stitchRange, sortBy, page,
     showAllFormats: effectiveShowAll,
     gapFormat: effectiveShowAll ? gapFormat : "",
@@ -410,6 +410,22 @@ const LibraryPage = () => {
           </>
         ) : (
           <>
+            {/* Erro real de fetch (RLS/infra) — banner vermelho em vez de
+                "Nenhuma matriz encontrada" silencioso. Espelha o foldersError. */}
+            {designsError && (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <p className="font-semibold mb-1">Erro ao carregar matrizes</p>
+                <p className="text-xs opacity-90">{designsError.message}</p>
+                {isAdmin && (
+                  <p className="text-[11px] opacity-70 mt-1.5">
+                    {(designsError as { code?: string }).code === "42501"
+                      ? "Permissão negada (GRANT faltando). Confira os GRANTs das tabelas designs/kit_arquivos."
+                      : "Veja o console pro stack completo."}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* No modo admin "ver todos", o banner de incompatibilidade
                 não faz sentido (admin está vendo tudo de propósito). */}
             {!effectiveShowAll && (

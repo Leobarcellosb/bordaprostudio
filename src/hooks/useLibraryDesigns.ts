@@ -31,6 +31,9 @@ interface DesignResult {
   designFiles: Record<string, string[]>;
   hasIncompatible: boolean;
   compatibleCount: number;
+  /** Erro REAL do fetch (RLS/infra). UI mostra banner em vez de empty state
+   *  silencioso — empty esconde bugs (ex.: GRANT faltando = 42501). */
+  error: Error | null;
 }
 
 export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResult {
@@ -54,6 +57,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   const [designFiles, setDesignFiles] = useState<Record<string, string[]>>({});
   const [hasIncompatible, setHasIncompatible] = useState(false);
   const [compatibleCount, setCompatibleCount] = useState(0);
+  const [designsError, setDesignsError] = useState<Error | null>(null);
 
   // Load categories once
   useEffect(() => {
@@ -64,6 +68,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
 
   const fetchDesigns = useCallback(async () => {
     setIsLoading(true);
+    setDesignsError(null);
     try {
       let stitchMin: number | null = null;
       let stitchMax: number | null = null;
@@ -264,6 +269,10 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       setTotalCount(0);
       setHasIncompatible(false);
       setCompatibleCount(0);
+      // Propaga o erro pra UI mostrar banner vermelho — antes zerava a lista
+      // em silêncio e o usuário via "Nenhuma matriz encontrada" no lugar de
+      // uma falha real de RLS/infra (anti-padrão do useFolders original).
+      setDesignsError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setIsLoading(false);
     }
@@ -287,6 +296,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
     designFiles,
     hasIncompatible,
     compatibleCount,
+    error: designsError,
   };
 }
 
