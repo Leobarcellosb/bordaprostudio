@@ -73,25 +73,16 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         if (max) stitchMax = max;
       }
 
-      // Pré-filtragem por formato: o sort de compatibilidade não pode ser
-      // client-side porque a paginação corta antes. Sem isso, página 1 pode
-      // não ter NENHUM compatível mesmo com 200+ no banco.
-      // Estratégia: se o user tem formato configurado, buscar design_ids
-      // que têm esse formato em kit_arquivos. Se houver ao menos um, filtrar
-      // a query principal a esses IDs. Senão, mostra tudo (banner cuida).
-      // Admin "ver todos os formatos" desliga o pré-filtro de compatibilidade.
-      let compatibleIds: string[] | null = null;
-      if (machineFormat && !showAllFormats) {
-        const { data: matching, error: matchErr } = await db
-          .from("kit_arquivos")
-          .select("design_id")
-          .ilike("format", machineFormat);
-        if (matchErr) throw matchErr;
-        const ids = Array.from(
-          new Set(((matching ?? []) as { design_id: string }[]).map((r) => r.design_id)),
-        );
-        if (ids.length > 0) compatibleIds = ids;
-      }
+      // Filtro de formato (compatibilidade da máquina) via INNER JOIN no
+      // servidor — NÃO via .in("id", [milhares de UUIDs]). O .in() antigo
+      // montava uma URL de ~40KB (1104 UUIDs PES) que o PostgREST rejeitava
+      // com HTTP 400 → o catch zerava a lista → "Nenhuma matriz encontrada".
+      // O embed aliasado "compat" com !inner filtra os designs no JOIN;
+      // PostgREST ANINHA filhos to-many (não duplica o pai), então count
+      // exato = designs DISTINTOS e a paginação 24/página fica correta —
+      // verificado contra o banco real (design com 2 linhas PES → 1 linha).
+      // URL fica constante (~200 chars), escala pra qualquer tamanho de acervo.
+      const useFormatFilter = !!machineFormat && !showAllFormats;
 
       // Admin análise de lacuna: design_ids que TÊM gapFormat → excluir,
       // sobrando só os que NÃO têm aquele formato. Só vale no modo
@@ -111,62 +102,85 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
 
       // Direct SELECT (RPC search_designs não existe neste Supabase).
       // Filtros/sort/paginação/count gerenciados pelo query builder.
-      let query = db
-        .from("designs")
-        .select("*, categories(name), kit_arquivos(format)", { count: "exact" })
-        .eq("is_published", true);
+      // Encapsulado num builder pra poder rodar 2x: com e sem o filtro de
+      // formato (fallback formato-órfão, ver abaixo).
+      const buildQuery = (applyFormatFilter: boolean) => {
+        // O embed plano kit_arquivos(format) traz TODOS os formatos (badge
+        // is_compatible client-side); o embed inner aliasado "compat" só
+        // existe quando filtramos por formato e restringe os designs no JOIN.
+        const selectCols = applyFormatFilter
+          ? "*, categories(name), kit_arquivos(format), compat:kit_arquivos!inner(format)"
+          : "*, categories(name), kit_arquivos(format)";
 
-      if (compatibleIds) query = query.in("id", compatibleIds);
-      if (excludeIds) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+        let query = db
+          .from("designs")
+          .select(selectCols, { count: "exact" })
+          .eq("is_published", true);
 
-      // Filtro de pasta "Por Tema": OR entre (manual_categories contém o
-      // folderId) e (qualquer tag da pasta bate). Manual prevalece é
-      // garantido depois via filtro client-side (rows manual≠[folderFilter]
-      // são descartadas mesmo se tags bateram).
-      if (folderFilter) {
-        const folderTags = tagsForFolder(folderFilter, folderList);
-        const orParts: string[] = [`manual_categories.cs.{${folderFilter}}`];
-        for (const tag of folderTags) {
-          const safe = tag.replace(/[%,()]/g, "");
-          if (safe) orParts.push(`tags_text.ilike.%${safe}%`);
+        // Filtro namespaced no embed inner — só toca "compat", não o embed plano.
+        if (applyFormatFilter) query = query.ilike("compat.format", machineFormat!);
+        if (excludeIds) query = query.not("id", "in", `(${excludeIds.join(",")})`);
+
+        // Filtro de pasta "Por Tema": OR entre (manual_categories contém o
+        // folderId) e (qualquer tag da pasta bate). Manual prevalece é
+        // garantido depois via filtro client-side (rows manual≠[folderFilter]
+        // são descartadas mesmo se tags bateram).
+        if (folderFilter) {
+          const folderTags = tagsForFolder(folderFilter, folderList);
+          const orParts: string[] = [`manual_categories.cs.{${folderFilter}}`];
+          for (const tag of folderTags) {
+            const safe = tag.replace(/[%,()]/g, "");
+            if (safe) orParts.push(`tags_text.ilike.%${safe}%`);
+          }
+          // Se a coluna manual_categories não existir ainda (migration não
+          // rodada), o .or() vai falhar — try/catch abaixo lida.
+          try {
+            query = query.or(orParts.join(","));
+          } catch {
+            // noop
+          }
         }
-        // Se a coluna manual_categories não existir ainda (migration não
-        // rodada), o .or() vai falhar — try/catch abaixo lida.
-        try {
-          query = query.or(orParts.join(","));
-        } catch {
-          // noop
+
+        // Busca tokenizada em name OU tags_text. Cada token vira um .or()
+        // (name~tok OR tags_text~tok); múltiplos .or() são AND'd entre si,
+        // então "urso fofo" exige (name|tags ~ urso) E (name|tags ~ fofo).
+        // Corrige 2 bugs: (A) tag só era buscada em name, (B) multi-token
+        // virava ILIKE da frase contígua e sempre retornava zero.
+        const term = search.trim();
+        if (term) {
+          const tokens = term.split(/\s+/).filter(Boolean);
+          for (const tok of tokens) {
+            const safe = tok.replace(/[%,()]/g, "");
+            if (safe) query = query.or(`name.ilike.%${safe}%,tags_text.ilike.%${safe}%`);
+          }
         }
-      }
+        if (categoryFilter !== "all") query = query.eq("category_id", categoryFilter);
+        if (stitchMin !== null) query = query.gte("stitch_count", stitchMin);
+        if (stitchMax !== null) query = query.lte("stitch_count", stitchMax);
 
-      // Busca tokenizada em name OU tags_text. Cada token vira um .or()
-      // (name~tok OR tags_text~tok); múltiplos .or() são AND'd entre si,
-      // então "urso fofo" exige (name|tags ~ urso) E (name|tags ~ fofo).
-      // Corrige 2 bugs: (A) tag só era buscada em name, (B) multi-token
-      // virava ILIKE da frase contígua e sempre retornava zero.
-      const term = search.trim();
-      if (term) {
-        const tokens = term.split(/\s+/).filter(Boolean);
-        for (const tok of tokens) {
-          const safe = tok.replace(/[%,()]/g, "");
-          if (safe) query = query.or(`name.ilike.%${safe}%,tags_text.ilike.%${safe}%`);
+        if (sortBy === "name_asc") {
+          query = query.order("name", { ascending: true });
+        } else {
+          // recent OR most_downloaded — most_downloaded é re-ordenado client-side abaixo
+          query = query.order("created_at", { ascending: false });
         }
-      }
-      if (categoryFilter !== "all") query = query.eq("category_id", categoryFilter);
-      if (stitchMin !== null) query = query.gte("stitch_count", stitchMin);
-      if (stitchMax !== null) query = query.lte("stitch_count", stitchMax);
 
-      if (sortBy === "name_asc") {
-        query = query.order("name", { ascending: true });
-      } else {
-        // recent OR most_downloaded — most_downloaded é re-ordenado client-side abaixo
-        query = query.order("created_at", { ascending: false });
-      }
+        return query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      };
 
-      query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      const { data, error, count } = await query;
+      let { data, error, count } = await buildQuery(useFormatFilter);
       if (error) throw error;
+
+      // Fallback formato-órfão: se o user tem formato configurado mas NENHUM
+      // design publicado o possui (hoje VP3/HUS/EMB têm 0), o !inner zeraria
+      // a lista → "Nenhuma matriz encontrada". Em vez disso refaz SEM o filtro
+      // de formato (mostra o acervo inteiro) e deixa o CompatibilityBanner
+      // explicar. Restaura o comportamento pré-inner-join ("mostra tudo, banner
+      // cuida"). Round-trip extra só no caso raro de formato sem cobertura.
+      if (useFormatFilter && (count ?? 0) === 0) {
+        ({ data, error, count } = await buildQuery(false));
+        if (error) throw error;
+      }
 
       const machineFormatUpper = machineFormat?.toUpperCase() ?? null;
       const rawRows = (data ?? []) as Array<Record<string, any>>;
