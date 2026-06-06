@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import { useFolders } from "@/hooks/useFolders";
+import { notifyDesignsMutated } from "@/lib/designsMutationEvent";
 import { deriveFoldersForDesign, type Folder } from "@/lib/folderRules";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +95,7 @@ export const FolderPickerPopover = ({
       return;
     }
     onChange?.(next);
+    notifyDesignsMutated();
   };
 
   const handleToggle = async (folder: Folder) => {
@@ -136,6 +138,7 @@ export const FolderPickerPopover = ({
     }
 
     onChange?.(next);
+    notifyDesignsMutated();
   };
 
   const trigger = children ?? (
