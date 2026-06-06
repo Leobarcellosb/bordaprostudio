@@ -75,6 +75,8 @@ const dict: Record<string, Record<Lang, string>> = {
   "library.clearAllFilters": { pt: "Limpar todos os filtros", en: "Clear all filters", es: "Limpiar todos los filtros" },
   "library.noResults": { pt: "Nenhuma matriz encontrada", en: "No designs found", es: "Ninguna matriz encontrada" },
   "library.noResultsHint": { pt: "Tente usar outras palavras-chave ou ajustar os filtros para encontrar o que procura.", en: "Try using other keywords or adjusting filters to find what you're looking for.", es: "Intente usar otras palabras clave o ajustar los filtros para encontrar lo que busca." },
+  "library.formatFilterNote": { pt: "As matrizes são filtradas pelo formato {format} da sua máquina.", en: "Designs are filtered by your machine's {format} format.", es: "Las matrices se filtran por el formato {format} de tu máquina." },
+  "library.changeFormatCta": { pt: "Trocar formato nas configurações", en: "Change format in settings", es: "Cambiar formato en ajustes" },
   "library.designs": { pt: "matrizes", en: "designs", es: "matrices" },
   "library.allHoops": { pt: "Todos os bastidores", en: "All hoops", es: "Todos los bastidores" },
 

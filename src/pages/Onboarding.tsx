@@ -19,7 +19,7 @@ const STEPS = [
     required: true,
     locked: true,
     options: [...MACHINE_FORMATS],
-    hint: "Este formato será usado para filtrar os designs compatíveis. Não poderá ser alterado depois.",
+    hint: "Este formato será usado para filtrar os designs compatíveis. Você pode alterá-lo depois nas Configurações.",
   },
   {
     key: "machine_hoop_size",

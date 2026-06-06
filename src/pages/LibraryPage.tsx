@@ -454,6 +454,7 @@ const LibraryPage = () => {
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               showFormats={effectiveShowAll}
+              machineFormat={machineFormat}
             />
 
             {/* Smart Download */}

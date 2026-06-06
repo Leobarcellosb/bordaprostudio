@@ -7,6 +7,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/contexts/AuthContext";
 import { FolderPickerPopover, FolderCountBadge } from "@/components/admin/FolderPickerPopover";
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 
 interface LibraryGridProps {
   designs: any[];
@@ -22,12 +23,14 @@ interface LibraryGridProps {
   onToggleSelect?: (id: string) => void;
   /** Admin: mostra badges com os formatos disponíveis em cada card. */
   showFormats?: boolean;
+  /** Formato de máquina do user — pro empty-state explicar o filtro. */
+  machineFormat?: string | null;
 }
 
 export const LibraryGrid = ({
   designs, downloadCounts, favoriteIds, onToggleFavorite, onDesignClick,
   isLoading, hasActiveFilters, onClearFilters, selectionMode, selectedIds, onToggleSelect,
-  showFormats = false,
+  showFormats = false, machineFormat = null,
 }: LibraryGridProps) => {
   const { t } = useTranslation();
   // Gate ESTRITO: cliente NUNCA vê o overlay de pastas. isAdmin é boolean
@@ -71,6 +74,21 @@ export const LibraryGrid = ({
             <Button variant="outline" className="mt-5 rounded-xl" onClick={onClearFilters}>
               {t("library.clearAllFilters")}
             </Button>
+          )}
+          {/* Contexto de formato: a biblioteca filtra pelo formato da máquina
+              do user. Quando o grid zera, lembra disso + oferece o caminho de
+              troca (Settings). Suprimido no modo admin "ver todos os formatos"
+              (showFormats), onde o filtro de formato não está ativo. */}
+          {machineFormat && !showFormats && (
+            <p className="text-xs text-muted-foreground mt-4 max-w-sm mx-auto leading-relaxed">
+              {t("library.formatFilterNote").replace("{format}", machineFormat)}{" "}
+              <Link
+                to="/settings"
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                {t("library.changeFormatCta")}
+              </Link>
+            </p>
           )}
         </CardContent>
       </Card>
