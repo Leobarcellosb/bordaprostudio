@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { DESIGNS_MUTATED } from "@/lib/designsMutationEvent";
+import { useEffect, useState } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
@@ -53,15 +52,6 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
   const [recentPreviews, setRecentPreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [designsError, setDesignsError] = useState<Error | null>(null);
-  // Incrementado pelo evento DESIGNS_MUTATED — força re-run do effect.
-  const [refreshTick, setRefreshTick] = useState(0);
-  const refreshRef = useRef(() => setRefreshTick((n) => n + 1));
-
-  useEffect(() => {
-    const handler = refreshRef.current;
-    window.addEventListener(DESIGNS_MUTATED, handler);
-    return () => window.removeEventListener(DESIGNS_MUTATED, handler);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,7 +177,7 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
     return () => {
       cancelled = true;
     };
-  }, [machineFormat, folderList, foldersLoading, refreshTick]);
+  }, [machineFormat, folderList, foldersLoading]);
 
   return {
     folders,

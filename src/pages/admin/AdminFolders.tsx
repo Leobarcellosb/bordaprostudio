@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { DESIGNS_MUTATED } from "@/lib/designsMutationEvent";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/db";
 import { useFolders, useInvalidateFolders } from "@/hooks/useFolders";
@@ -66,27 +65,28 @@ export const AdminFolders = () => {
   const [designs, setDesigns] = useState<DesignRow[]>([]);
   const [designsLoading, setDesignsLoading] = useState(true);
 
-  const loadDesigns = useCallback(async () => {
-    setDesignsLoading(true);
-    const { data, error } = await db
-      .from("designs")
-      .select("id, tags_text, manual_categories")
-      .eq("is_published", true);
-    if (error) {
-      console.error("[AdminFolders] load designs:", error);
-      toast.error("Erro ao carregar designs pra contagem.");
-      setDesigns([]);
-    } else {
-      setDesigns((data ?? []) as DesignRow[]);
-    }
-    setDesignsLoading(false);
-  }, []);
-
   useEffect(() => {
-    loadDesigns();
-    window.addEventListener(DESIGNS_MUTATED, loadDesigns);
-    return () => window.removeEventListener(DESIGNS_MUTATED, loadDesigns);
-  }, [loadDesigns]);
+    let cancelled = false;
+    (async () => {
+      setDesignsLoading(true);
+      const { data, error } = await db
+        .from("designs")
+        .select("id, tags_text, manual_categories")
+        .eq("is_published", true);
+      if (cancelled) return;
+      if (error) {
+        console.error("[AdminFolders] load designs:", error);
+        toast.error("Erro ao carregar designs pra contagem.");
+        setDesigns([]);
+      } else {
+        setDesigns((data ?? []) as DesignRow[]);
+      }
+      setDesignsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Contagem por pasta = quantos designs caem nela após derivação.
   const counts = useMemo<Map<string, FolderCount>>(() => {
