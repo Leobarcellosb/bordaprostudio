@@ -14,11 +14,13 @@ import { toast } from "sonner";
 import { Camera, Globe, User, Cog, Loader2 } from "lucide-react";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
 import { useTranslation } from "@/hooks/useTranslation";
-import { MACHINE_FORMATS } from "@/hooks/useUserMachineSettings";
+import { MACHINE_FORMATS, MACHINE_HOOP_SIZES } from "@/hooks/useUserMachineSettings";
 
-// Tamanhos visíveis no grid — "large" fica fora pra forçar migração suave
-// dos users antigos que tinham essa opção genérica.
-const HOOP_SIZES_UI = ["10x10", "13x18", "14cm", "16cm", "18cm", "20cm", "23cm"] as const;
+// Derivado da fonte única MACHINE_HOOP_SIZES (que bate com classifyHoopSize).
+// "large" fica fora pra forçar migração suave dos users antigos que tinham essa
+// opção genérica. NÃO relistar valores aqui — senão volta a divergir do que o
+// classifier emite (foi o que criou o bug do 20cm/23cm = zero compatíveis).
+const HOOP_SIZES_UI = MACHINE_HOOP_SIZES.filter((s) => s !== "large");
 
 const Settings = () => {
   const { profile, user, refresh } = useAuth();
