@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { notifyDesignsMutated } from "@/lib/designsMutationEvent";
 import { db } from "@/lib/db";
 import { generateTagsFromName } from "@/lib/generateTags";
 import { supabase } from "@/integrations/supabase/client";
@@ -336,6 +337,7 @@ export const AdminDesigns = () => {
       toast.success(`${ids.length} ${ids.length === 1 ? "matriz deletada" : "matrizes deletadas"}!`);
       clearSelection();
       fetchData();
+      notifyDesignsMutated();
     } catch (err: any) {
       toast.error("Erro ao deletar: " + (err?.message ?? err));
     } finally {
@@ -397,6 +399,7 @@ export const AdminDesigns = () => {
     setBulkFolderSlug("");
     clearSelection();
     await fetchData();
+    notifyDesignsMutated();
 
     const parts = [`${updated} atribuído(s) a "${folder.name}"`];
     if (unchanged > 0) parts.push(`${unchanged} já estavam lá`);

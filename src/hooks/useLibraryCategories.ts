@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DESIGNS_MUTATED } from "@/lib/designsMutationEvent";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
@@ -53,10 +54,21 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
   const [isLoading, setIsLoading] = useState(true);
   const [designsError, setDesignsError] = useState<Error | null>(null);
 
+  // Ref que sempre aponta pra função de fetch atual — permite que o
+  // event listener (deps=[]) chame o fetch sem re-subscrever.
+  const runRef = useRef<(() => void) | null>(null);
+
+  // Listener ADICIONAL ao fetch inicial — nunca o substitui.
+  useEffect(() => {
+    const handle = () => runRef.current?.();
+    window.addEventListener(DESIGNS_MUTATED, handle);
+    return () => window.removeEventListener(DESIGNS_MUTATED, handle);
+  }, []); // estável: adicionado uma vez, removido no unmount
+
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    const run = async () => {
       // Espera o catálogo de folders antes de agrupar — sem ele a
       // derivação retorna [] e a tela fica falsamente vazia.
       if (foldersLoading) {
@@ -172,12 +184,16 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
       } finally {
         if (!cancelled) setIsLoading(false);
       }
-    })();
+    };
+
+    runRef.current = run; // registra para o event listener
+    run();
 
     return () => {
       cancelled = true;
+      runRef.current = null;
     };
-  }, [machineFormat, folderList, foldersLoading]);
+  }, [machineFormat, folderList, foldersLoading]); // deps INALTERADOS
 
   return {
     folders,
