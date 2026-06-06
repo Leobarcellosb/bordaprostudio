@@ -286,37 +286,83 @@ Deno.serve(async (req) => {
     console.error("[eduzz-webhook] upsert subscription error:", err);
   }
 
-  // 3b. Trigger welcome email — fire-and-forget, não bloqueia o webhook.
-  // Roda só quando ativação acontece com sucesso (status active + upsert ok).
+  // 3b. Boas-vindas — fire-and-forget (não bloqueia a resposta pro Eduzz), mas
+  // NADA falha em silêncio: erro de generateLink ou de envio vai pra integration_logs.
+  // A conta criada pelo webhook NÃO tem senha → sem um link de definir senha o
+  // cliente não consegue logar (o CTA não pode apontar pro /biblioteca protegido).
   if (subscriptionUpserted && subscriptionStatus === "active") {
-    const welcomePromise = fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // service_role passa pelo verify_jwt da send-welcome-email
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({
-        email: buyerEmail,
-        name: buyerName,
-        plan: planCode,
-      }),
-    })
-      .then(async (r) => {
+    const logErr = async (eventType: string, message: string) => {
+      try {
+        await supabase.from("integration_logs").insert({
+          integration: "eduzz",
+          event_type: eventType,
+          email: buyerEmail,
+          user_id: userId,
+          status: "error",
+          message: message.slice(0, 500),
+          payload,
+        });
+      } catch (e) {
+        console.error("[eduzz-webhook] integration_logs insert error:", e);
+      }
+    };
+
+    const welcomeFlow = (async () => {
+      // 1) Link de definir senha (recovery). Sem isso o pagante fica preso no login.
+      let actionLink: string | null = null;
+      try {
+        const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+          type: "recovery",
+          email: buyerEmail,
+        });
+        if (linkErr) throw linkErr;
+        actionLink = linkData?.properties?.action_link ?? null;
+        if (!actionLink) throw new Error("generateLink retornou sem action_link");
+      } catch (err) {
+        console.error("[eduzz-webhook] generateLink error:", err);
+        await logErr(
+          "welcome_link_error",
+          `Falha ao gerar link de senha: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        // Segue mesmo assim: o email cai no fallback /forgot-password.
+      }
+
+      // 2) Envia o welcome email com o action_link (ou fallback de recuperação).
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            email: buyerEmail,
+            name: buyerName,
+            plan: planCode,
+            action_link: actionLink,
+          }),
+        });
         if (!r.ok) {
           const t = await r.text();
           console.error("[eduzz-webhook] send-welcome-email failed:", r.status, t);
+          await logErr("welcome_email_error", `send-welcome-email HTTP ${r.status}: ${t}`);
         }
-      })
-      .catch((e) => console.error("[eduzz-webhook] send-welcome-email error:", e));
+      } catch (e) {
+        console.error("[eduzz-webhook] send-welcome-email error:", e);
+        await logErr(
+          "welcome_email_error",
+          `send-welcome-email exception: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    })();
 
-    // EdgeRuntime.waitUntil mantém a function viva até a promise terminar
-    // mesmo depois de retornar a response pro Eduzz. Fallback silencioso se
-    // o global não existir (dev local).
+    // EdgeRuntime.waitUntil mantém a function viva até a promise terminar mesmo
+    // depois de retornar a response. Em dev local (sem o global), aguarda inline.
     const rt = (globalThis as unknown as {
       EdgeRuntime?: { waitUntil: (p: Promise<unknown>) => void };
     }).EdgeRuntime;
-    if (rt?.waitUntil) rt.waitUntil(welcomePromise);
+    if (rt?.waitUntil) rt.waitUntil(welcomeFlow);
+    else await welcomeFlow;
   }
 
   // 4. Log event (trilha de auditoria — registra inclusive a falha de upsert).

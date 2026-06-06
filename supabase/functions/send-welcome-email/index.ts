@@ -22,7 +22,12 @@ interface Payload {
   email: string;
   name?: string | null;
   plan?: "mensal" | "anual" | string | null;
+  /** Link de definir senha (recovery action_link gerado pelo webhook). A conta
+   *  criada pelo webhook não tem senha — sem isso o cliente não consegue logar. */
+  action_link?: string | null;
 }
+
+const FORGOT_URL = `${APP_URL}/forgot-password`;
 
 function escapeHtml(s: string): string {
   return s
@@ -33,9 +38,10 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function buildHtml(name: string, planLabel: string): string {
+function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
   const safeName = escapeHtml(name);
   const safePlan = escapeHtml(planLabel);
+  const safeCta = escapeHtml(ctaUrl);
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -76,12 +82,16 @@ function buildHtml(name: string, planLabel: string): string {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-radius:12px;background:#7C3AED;">
-                    <a href="${APP_URL}${LIBRARY_PATH}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;border-radius:12px;">
-                      Acessar minha biblioteca →
+                    <a href="${safeCta}" style="display:inline-block;padding:14px 28px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;border-radius:12px;">
+                      Crie sua senha e acesse →
                     </a>
                   </td>
                 </tr>
               </table>
+              <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#999999;">
+                O link de definição de senha expira em 1 hora. Expirou? Crie uma nova senha em
+                <a href="${FORGOT_URL}" style="color:#7C3AED;text-decoration:none;">borda.pro/forgot-password</a>.
+              </p>
             </td>
           </tr>
 
@@ -143,12 +153,13 @@ function buildHtml(name: string, planLabel: string): string {
 </html>`;
 }
 
-function buildText(name: string, planLabel: string): string {
+function buildText(name: string, planLabel: string, ctaUrl: string): string {
   return `Seja bem-vinda, ${name}!
 
 Sua assinatura do ${planLabel} no Borda Pro está ativa. Você tem acesso a mais de 650 matrizes de bordado.
 
-Acessar a biblioteca: ${APP_URL}${LIBRARY_PATH}
+Crie sua senha e acesse: ${ctaUrl}
+(O link expira em 1 hora. Expirou? Crie uma nova senha em ${FORGOT_URL})
 
 Por onde começar:
 
@@ -203,6 +214,9 @@ serve(async (req) => {
 
   const name = (body.name && body.name.trim()) || "bordadeira";
   const planLabel = body.plan === "anual" ? "Plano Anual" : "Plano Mensal";
+  // CTA = link de definir senha (action_link do webhook). Se faltar, cai no
+  // fluxo de recuperação — nunca aponta pro /biblioteca protegido (dead-end).
+  const ctaUrl = (body.action_link && body.action_link.trim()) ? body.action_link.trim() : FORGOT_URL;
 
   const resendRes = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -214,8 +228,8 @@ serve(async (req) => {
       from: FROM_EMAIL,
       to: [body.email],
       subject: "Bem-vinda ao Borda Pro! Sua biblioteca está pronta 🎉",
-      html: buildHtml(name, planLabel),
-      text: buildText(name, planLabel),
+      html: buildHtml(name, planLabel, ctaUrl),
+      text: buildText(name, planLabel, ctaUrl),
       tags: [
         { name: "type", value: "welcome" },
         { name: "plan", value: planLabel.toLowerCase().replace(" ", "_") },
