@@ -250,7 +250,11 @@ Deno.serve(async (req) => {
   }
 
   if (!userId) {
-    return json(200, { ok: true, note: "user_resolution_failed" });
+    // Não conseguimos resolver/criar o usuário (erro logado acima nos catches
+    // de lookup/createUser). Devolve 500 pra Eduzz RETENTAR — devolver 200 aqui
+    // faria a assinatura paga se perder sem reenvio nem trilha de retry.
+    console.error("[eduzz-webhook] user_resolution_failed for", buyerEmail);
+    return json(500, { error: "user_resolution_failed" });
   }
 
   // 3. Upsert subscription.
@@ -315,24 +319,35 @@ Deno.serve(async (req) => {
     if (rt?.waitUntil) rt.waitUntil(welcomePromise);
   }
 
-  // 4. Log event.
+  // 4. Log event (trilha de auditoria — registra inclusive a falha de upsert).
   try {
     await supabase.from("integration_logs").insert({
       integration: "eduzz",
       event_type: eventName,
       email: buyerEmail,
       user_id: userId,
-      status:
-        subscriptionStatus === "active"
+      status: !subscriptionUpserted
+        ? "error"
+        : subscriptionStatus === "active"
           ? "success"
           : subscriptionStatus === "canceled"
             ? "error"
             : "pending",
-      message: `Evento ${eventName} processado como ${subscriptionStatus}`,
+      message: subscriptionUpserted
+        ? `Evento ${eventName} processado como ${subscriptionStatus}`
+        : `Falha ao gravar subscription do evento ${eventName} — devolvendo 500 para retry da Eduzz`,
       payload,
     });
   } catch (err) {
     console.error("[eduzz-webhook] log insert error:", err);
+  }
+
+  // Se o upsert da subscription falhou, devolve 500 pra Eduzz RETENTAR o
+  // webhook. Devolver 200 aqui faria a assinatura paga se perder em silêncio
+  // (provedor marca como entregue e nunca reenvia). O erro já foi logado no
+  // catch do passo 3 e na trilha (integration_logs) acima.
+  if (!subscriptionUpserted) {
+    return json(500, { error: "subscription_upsert_failed" });
   }
 
   return json(200, { ok: true });
