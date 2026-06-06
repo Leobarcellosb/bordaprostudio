@@ -326,14 +326,21 @@ export const AdminDesigns = () => {
   const bulkDelete = async () => {
     setBulkDeleting(true);
     const ids = Array.from(selectedIds);
+    // Deleta em LOTES de 100 ids. O .in() serializa os ids na query-string;
+    // ~1104 UUIDs viravam URL de ~40KB → PostgREST HTTP 400 → nada deletado
+    // (ou parcial). Em chunks de 100 cada requisição fica ~4KB, segura, e o
+    // select-all do acervo inteiro funciona. Filhos antes do pai (FKs).
+    const CHUNK = 100;
     try {
-      // Deleta registros filhos antes (FK constraints)
-      for (const table of ["product_ideas", "kit_arquivos", "kit_designs"] as const) {
-        const { error } = await db.from(table).delete().in("design_id", ids);
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK);
+        for (const table of ["product_ideas", "kit_arquivos", "kit_designs"] as const) {
+          const { error } = await db.from(table).delete().in("design_id", chunk);
+          if (error) throw error;
+        }
+        const { error } = await db.from("designs").delete().in("id", chunk);
         if (error) throw error;
       }
-      const { error } = await db.from("designs").delete().in("id", ids);
-      if (error) throw error;
       toast.success(`${ids.length} ${ids.length === 1 ? "matriz deletada" : "matrizes deletadas"}!`);
       clearSelection();
       fetchData();
