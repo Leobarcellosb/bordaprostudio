@@ -32,8 +32,8 @@ const MinhaContaPage = () => {
   };
 
   const planPrices: Record<string, string> = {
-    mensal: "R$ 79,90/mês",
-    anual: "R$ 597,00/ano",
+    mensal: "R$ 49,90/mês",
+    anual: "R$ 397,00/ano",
   };
 
   const statusConfig: Record<string, { label: string; icon: any; variant: "default" | "secondary" | "destructive" }> = {
