@@ -90,18 +90,29 @@ function detectStatus(event: string): "active" | "canceled" | "pending" {
   return "pending";
 }
 
-function detectPlanCode(payload: EduzzPayload): "mensal" | "anual" {
-  const haystacks = [
-    payload.product?.code,
-    payload.product?.name,
-    payload.offer?.code,
-    typeof payload.data === "object" && payload.data
-      ? JSON.stringify(payload.data)
-      : "",
-    JSON.stringify(payload),
-  ].join(" ").toLowerCase();
-  if (haystacks.includes("anual") || haystacks.includes("yearly")) return "anual";
-  return "mensal";
+type PlanCode = "mensal" | "anual";
+
+// Mapa productId -> plano (secret BORDA_PRO_PRODUCT_MAP, JSON), ex.:
+//   {"2981834":"anual","<id_mensal>":"mensal"}
+// Resolve o filtro de produto E o plano de uma vez: se o productId do item
+// está no mapa, é Borda Pro e o valor diz qual plano. Substitui a antiga
+// heurística por nome (que não funcionava: o payload real não traz product.code/name).
+// Fail-closed: mapa vazio (não-configurado ou JSON inválido) => nada casa => nada concede.
+function loadProductPlanMap(): Record<string, PlanCode> {
+  const raw = Deno.env.get("BORDA_PRO_PRODUCT_MAP") ?? "";
+  if (!raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const out: Record<string, PlanCode> = Object.create(null); // sem prototype (evita match em toString/constructor/etc.)
+    for (const [id, plan] of Object.entries(parsed)) {
+      const p = String(plan).toLowerCase().trim();
+      if ((p === "mensal" || p === "anual") && id.trim()) out[id.trim()] = p;
+    }
+    return out;
+  } catch (e) {
+    console.error("[eduzz-webhook] BORDA_PRO_PRODUCT_MAP inválido (esperado JSON):", e);
+    return {};
+  }
 }
 
 function pickString(value: unknown): string | null {
@@ -186,6 +197,83 @@ Deno.serve(async (req) => {
   const dataProduct = (dataObj.product ?? {}) as { id?: unknown; code?: unknown; name?: unknown };
   const dataOffer = (dataObj.offer ?? {}) as { id?: unknown; code?: unknown };
 
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // ── FIX: filtro + plano por productId ────────────────────────────────────────
+  // A Eduzz (myeduzz) manda os produtos em data.items[].productId (pode haver
+  // mais de um por causa de order bump). O mapa BORDA_PRO_PRODUCT_MAP resolve
+  // filtro E plano: concede se ALGUM item casar no mapa, com o plano que o mapa
+  // indicar. Nenhum item Borda Pro => log "ignored" + 200, sem conceder.
+  // Roda ANTES do tratamento de status, então vale também pra refund/chargeback:
+  // só revoga se o item for Borda Pro (escopo por produto). Fail-closed: mapa vazio
+  // => nada casa => nada concede/altera.
+  const PRODUCT_PLAN_MAP = loadProductPlanMap();
+
+  const items = Array.isArray(dataObj.items)
+    ? (dataObj.items as Array<Record<string, unknown>>)
+    : [];
+  const candidateProductIds = [
+    ...items.map((it) => pickString(it?.productId)),
+    // fallback p/ formato legado / testes manuais (product no root ou em data.product)
+    pickString(payload.product?.id),
+    pickString(dataProduct.id),
+  ].filter((v): v is string => v !== null);
+
+  if (Object.keys(PRODUCT_PLAN_MAP).length === 0) {
+    console.error(
+      "[eduzz-webhook] BORDA_PRO_PRODUCT_MAP vazio/não-configurado — fail-closed: nenhuma assinatura será concedida",
+    );
+  }
+
+  // hasOwnProperty (NÃO `in`): `in` casaria chaves herdadas do prototype
+  // ("toString"/"constructor"/etc.) e concederia mesmo com o mapa vazio (fail-OPEN).
+  const matchedProductId =
+    candidateProductIds.find((id) =>
+      Object.prototype.hasOwnProperty.call(PRODUCT_PLAN_MAP, id),
+    ) ?? null;
+  // Auditoria: grava o produto Borda Pro que casou; se nenhum casar, o 1º item.
+  const providerProductId = matchedProductId ?? candidateProductIds[0] ?? null;
+
+  if (!matchedProductId) {
+    const evName = pickString(payload.event) ?? pickString(payload.status) ?? "unknown";
+    const ignoredEmail = pickString(payload.buyer?.email) ?? pickString(dataBuyer.email);
+    const idsStr = candidateProductIds.join(", ") || "nenhum";
+    // Cancelamento/refund SEM produto identificável NÃO some em silêncio: pode ser
+    // refund de Borda Pro num payload enxuto (sem data.items). Marca "needs_review"
+    // e NÃO revoga no automático — revogar por email derrubaria o Borda Pro de quem
+    // comprou OUTRO produto. Revogação precisa do payload real de refund (por invoice).
+    const needsReview = detectStatus(evName) === "canceled";
+    try {
+      await supabase.from("integration_logs").insert({
+        integration: "eduzz",
+        event_type: evName,
+        email: ignoredEmail,
+        status: needsReview ? "needs_review" : "ignored",
+        message: needsReview
+          ? `Cancelamento/refund SEM produto identificável (productIds=[${idsStr}]). Se for Borda Pro, revogar manualmente — não revogado no automático pra não derrubar quem comprou outro produto.`
+          : `Nenhum produto Borda Pro no evento (productIds=[${idsStr}]) — assinatura NÃO concedida.`,
+        payload,
+      });
+    } catch (e) {
+      console.error("[eduzz-webhook] ignored/needs_review log insert error:", e);
+    }
+    console.log(
+      `[eduzz-webhook] ${needsReview ? "cancelamento sem produto (needs_review)" : "sem produto Borda Pro (ignored)"} (productIds=[${idsStr}])`,
+    );
+    return json(200, {
+      ok: true,
+      ignored: true,
+      reason: needsReview ? "canceled_without_product" : "product_not_borda_pro",
+      product_ids: candidateProductIds,
+    });
+  }
+
+  // Plano vem do MAPA (o productId diz qual é) — não depende mais de heurística de nome.
+  const planCode: PlanCode = PRODUCT_PLAN_MAP[matchedProductId];
+  // ── fim do filtro de produto ─────────────────────────────────────────────────
+
   const buyerEmail =
     pickString(payload.buyer?.email) ?? pickString(dataBuyer.email);
   if (!buyerEmail) {
@@ -194,22 +282,15 @@ Deno.serve(async (req) => {
 
   const eventName = pickString(payload.event) ?? pickString(payload.status) ?? "unknown";
   const subscriptionStatus = detectStatus(eventName);
-  const planCode = detectPlanCode(payload);
   const providerBuyerId =
     pickString(payload.buyer?.id) ?? pickString(dataBuyer.id);
   const providerInvoiceId =
     pickString(payload.invoice?.id) ?? pickString(dataInvoice.id);
+  // provider_offer_id agora é só a oferta (o produto tem campo próprio: provider_product_id).
   const providerOfferId =
-    pickString(payload.offer?.id) ??
-    pickString(dataOffer.id) ??
-    pickString(payload.product?.id) ??
-    pickString(dataProduct.id);
+    pickString(payload.offer?.id) ?? pickString(dataOffer.id);
   const buyerName =
     pickString(payload.buyer?.name) ?? pickString(dataBuyer.name);
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   // 1. Find user by email — busca direta na tabela profiles em vez de
   // listUsers (que tinha limite implícito de 200 e quebraria após
@@ -271,6 +352,7 @@ Deno.serve(async (req) => {
         provider_buyer_id: providerBuyerId,
         provider_invoice_id: providerInvoiceId,
         provider_offer_id: providerOfferId,
+        provider_product_id: providerProductId,
         plan_code: planCode,
         status: subscriptionStatus,
         access_expires_at: accessExpiresAt,
