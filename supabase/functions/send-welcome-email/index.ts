@@ -47,7 +47,7 @@ function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Bem-vinda ao Borda Pro</title>
+  <title>Boas-vindas ao Borda Pro</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1a1a1a;-webkit-font-smoothing:antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f7;padding:32px 16px;">
@@ -70,15 +70,34 @@ function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
             </td>
           </tr>
 
-          <!-- Saudação + CTA principal -->
+          <!-- Saudação + valor completo + CTA -->
           <tr>
             <td style="padding:40px 32px 32px;">
               <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;line-height:1.3;letter-spacing:-0.01em;color:#1a1a1a;">
-                Seja bem-vinda, ${safeName}! 🎉
+                Boas-vindas, ${safeName}! 🎉
               </h2>
-              <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#4a4a4a;">
-                Sua assinatura do <strong style="color:#1a1a1a;">${safePlan}</strong> está ativa. Você tem acesso a mais de 650 matrizes de bordado, organizadas e filtradas pelo formato da sua máquina.
+              <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#4a4a4a;">
+                Sua assinatura do <strong style="color:#1a1a1a;">${safePlan}</strong> está ativa e seu acesso completo ao Borda Pro está liberado. Tudo pra bordar e vender, num lugar só:
               </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#4a4a4a;"><strong style="color:#1a1a1a;">Biblioteca de matrizes profissionais</strong> — filtradas pelo formato e bastidor da sua máquina, e atualizada com novidades o tempo todo.</p>
+                </td></tr>
+                <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#4a4a4a;"><strong style="color:#1a1a1a;">Visualizar Matriz</strong> — veja o resultado antes de bordar.</p>
+                </td></tr>
+                <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#4a4a4a;"><strong style="color:#1a1a1a;">Calculadora de Lucro</strong> — precifique seus trabalhos com segurança.</p>
+                </td></tr>
+                <tr><td style="padding:9px 0;border-bottom:1px solid #f0f0f0;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#4a4a4a;"><strong style="color:#1a1a1a;">Tendências e Kits Premium</strong> — esteja sempre com o que está em alta.</p>
+                </td></tr>
+                <tr><td style="padding:9px 0;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:#4a4a4a;"><strong style="color:#1a1a1a;">Catálogos prontos</strong> — pra apresentar e vender pros seus clientes.</p>
+                </td></tr>
+              </table>
+
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-radius:12px;background:#7C3AED;">
@@ -89,51 +108,9 @@ function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
                 </tr>
               </table>
               <p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#999999;">
-                O link de definição de senha expira em 1 hora. Expirou? Crie uma nova senha em
+                O link de senha expira em 1 hora. Expirou? Crie uma nova em
                 <a href="${FORGOT_URL}" style="color:#7C3AED;text-decoration:none;">borda.pro/forgot-password</a>.
               </p>
-            </td>
-          </tr>
-
-          <!-- Steps -->
-          <tr>
-            <td style="padding:0 32px 8px;border-top:1px solid #eaeaea;">
-              <h3 style="margin:32px 0 16px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#666666;">
-                Por onde começar
-              </h3>
-
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="padding:14px 0;border-bottom:1px solid #f0f0f0;">
-                    <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#1a1a1a;">
-                      1. Configure sua máquina
-                    </p>
-                    <p style="margin:0;font-size:14px;line-height:1.5;color:#666666;">
-                      Em Configurações, selecione o formato da sua máquina (PES, JEF, DST...) e o tamanho do bastidor. A biblioteca filtra tudo automaticamente.
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 0;border-bottom:1px solid #f0f0f0;">
-                    <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#1a1a1a;">
-                      2. Explore por tema
-                    </p>
-                    <p style="margin:0;font-size:14px;line-height:1.5;color:#666666;">
-                      Na Biblioteca, clique em <em>Por Tema</em> pra ver matrizes em pastas por categoria — Dinos, Florais, Infantil, Religioso, etc.
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:14px 0;">
-                    <p style="margin:0 0 4px;font-weight:600;font-size:15px;color:#1a1a1a;">
-                      3. Baixe e borde
-                    </p>
-                    <p style="margin:0;font-size:14px;line-height:1.5;color:#666666;">
-                      Clique em qualquer matriz, escolha seu formato e baixe. O download inteligente também gera um ZIP com várias de uma vez.
-                    </p>
-                  </td>
-                </tr>
-              </table>
             </td>
           </tr>
 
@@ -154,23 +131,18 @@ function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
 }
 
 function buildText(name: string, planLabel: string, ctaUrl: string): string {
-  return `Seja bem-vinda, ${name}!
+  return `Boas-vindas, ${name}!
 
-Sua assinatura do ${planLabel} no Borda Pro está ativa. Você tem acesso a mais de 650 matrizes de bordado.
+Sua assinatura do ${planLabel} está ativa e seu acesso completo ao Borda Pro está liberado. Tudo pra bordar e vender, num lugar só:
+
+- Biblioteca de matrizes profissionais — filtradas pelo formato e bastidor da sua máquina, e atualizada com novidades o tempo todo.
+- Visualizar Matriz — veja o resultado antes de bordar.
+- Calculadora de Lucro — precifique seus trabalhos com segurança.
+- Tendências e Kits Premium — esteja sempre com o que está em alta.
+- Catálogos prontos — pra apresentar e vender pros seus clientes.
 
 Crie sua senha e acesse: ${ctaUrl}
-(O link expira em 1 hora. Expirou? Crie uma nova senha em ${FORGOT_URL})
-
-Por onde começar:
-
-1. Configure sua máquina (Configurações)
-   Selecione formato (PES, JEF, DST...) e bastidor. A biblioteca filtra automaticamente.
-
-2. Explore por tema
-   Na Biblioteca, clique em "Por Tema" pra ver matrizes em pastas.
-
-3. Baixe e borde
-   Clique em qualquer matriz, escolha o formato e baixe.
+(O link de senha expira em 1 hora. Expirou? Crie uma nova em ${FORGOT_URL})
 
 Dúvidas? Responda este email.
 
@@ -241,7 +213,7 @@ serve(async (req) => {
     body: JSON.stringify({
       from: FROM_EMAIL,
       to: [body.email],
-      subject: "Bem-vinda ao Borda Pro! Sua biblioteca está pronta 🎉",
+      subject: "Boas-vindas ao Borda Pro! Seu acesso está liberado 🎉",
       html: buildHtml(name, planLabel, ctaUrl),
       text: buildText(name, planLabel, ctaUrl),
       tags: [
