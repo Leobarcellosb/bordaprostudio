@@ -135,7 +135,8 @@
     background: var(--gradient-hero);
   }
   .text-gradient-brand {
-    background: linear-gradient(135deg, hsl(268 78% 56%), hsl(335 72% 58%));
+    /* Marca: indigo profundo (#312E81, alinhado ao logo) → violeta. Sem rosa/magenta. */
+    background: linear-gradient(135deg, hsl(242 47% 34%), hsl(268 78% 56%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

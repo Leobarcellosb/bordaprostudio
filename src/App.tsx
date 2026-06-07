@@ -36,6 +36,8 @@ const MinhaContaPage = lazy(() => import("./pages/MinhaContaPage"));
 const EmbroideryViewerPage = lazy(() => import("./pages/EmbroideryViewerPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPanel = lazy(() => import("./pages/admin/AdminPanel"));
+const Termos = lazy(() => import("./pages/Termos"));
+const Privacidade = lazy(() => import("./pages/Privacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -125,6 +127,8 @@ const App = () => {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<LandingPage />} />
+              <Route path="/termos" element={<Termos />} />
+              <Route path="/privacidade" element={<Privacidade />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/library/:id" element={<ProtectedRoute><KitDetail /></ProtectedRoute>} />
