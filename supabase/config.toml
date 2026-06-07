@@ -28,7 +28,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-welcome-email]
-verify_jwt = true
+verify_jwt = false  # SERVICE_ROLE_KEY do projeto é sb_secret_ (não-JWT) → verify_jwt dava INVALID_JWT_FORMAT; auth interna por igualdade do segredo no index.ts
 
 [functions.weekly-digest]
 verify_jwt = false  # cron-job.org chama sem JWT; auth interna via SERVICE_ROLE_KEY ou admin JWT

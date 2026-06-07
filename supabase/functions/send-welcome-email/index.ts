@@ -187,6 +187,20 @@ serve(async (req) => {
     });
   }
 
+  // Auth interna (server-to-server, chamado pelo eduzz-webhook).
+  // verify_jwt está FALSE pra essa function porque o SUPABASE_SERVICE_ROLE_KEY
+  // do projeto é o novo formato sb_secret_ (NÃO é JWT) — o gateway verify_jwt
+  // rejeitava com INVALID_JWT_FORMAT. Aqui validamos por IGUALDADE do segredo
+  // (string), que funciona tanto pra JWT legado quanto pra sb_secret_.
+  const INTERNAL_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const presented = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!INTERNAL_KEY || presented !== INTERNAL_KEY) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   if (!RESEND_API_KEY) {
     console.error("[send-welcome-email] RESEND_API_KEY not configured");
     return new Response(JSON.stringify({ error: "resend_not_configured" }), {
