@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, ArrowLeft, Check, Lock } from "lucide-react";
-import logoHorizontal from "@/assets/logo-horizontal.png";
 import { MACHINE_FORMATS, MACHINE_HOOP_SIZES } from "@/hooks/useUserMachineSettings";
 
 const STEPS = [
@@ -190,7 +189,7 @@ const Onboarding = () => {
       <div className="w-full max-w-lg space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col items-center text-center space-y-3">
-          <img src={logoHorizontal} alt="Borda Pro" className="w-[220px] h-auto" />
+          <img src="/lockup-indigo.png" alt="Borda Pro" className="w-[220px] h-auto" />
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <p className="text-sm text-muted-foreground">

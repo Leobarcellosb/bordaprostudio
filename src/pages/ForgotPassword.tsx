@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import logoHorizontal from "@/assets/logo-horizontal.png";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -26,7 +25,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <img src={logoHorizontal} alt="Borda Pro" className="h-16 w-auto mx-auto mb-3" />
+          <img src="/lockup-indigo.png" alt="Borda Pro" className="h-16 w-auto mx-auto mb-3" />
           <CardTitle className="text-2xl font-serif">Recuperar Senha</CardTitle>
           <CardDescription>Enviaremos um link para redefinir sua senha</CardDescription>
         </CardHeader>

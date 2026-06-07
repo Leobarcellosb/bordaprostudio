@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/db";
-import logoIcon from "@/assets/logo-icon.png";
 
 const CHECKOUT_MENSAL = "https://chk.eduzz.com/E0D6ON5691";
 const CHECKOUT_ANUAL = "https://chk.eduzz.com/G961DZBEW1";
@@ -108,7 +107,7 @@ const PlansPage = () => {
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 text-primary text-sm font-semibold">
-            <img src={logoIcon} alt="Borda Pro" className="h-5 w-5 rounded" />
+            <img src="/symbol-indigo.png" alt="Borda Pro" className="h-5 w-auto" />
             Borda Pro Studio
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight">

@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
-import logoIcon from "@/assets/logo-icon.png";
 
 const sections = [
   {
@@ -61,7 +60,7 @@ export const MobileNav = () => {
     <>
       <header className="md:hidden flex items-center justify-between px-5 py-4 bg-card border-b border-border">
         <div className="flex items-center gap-2.5">
-          <img src={logoIcon} alt="Borda Pro" className="h-8 w-8 rounded-lg" />
+          <img src="/symbol-indigo.png" alt="Borda Pro" className="h-8 w-auto" />
           <h1 className="text-sm font-display font-bold text-gradient-brand">Borda Pro</h1>
         </div>
         <button onClick={() => setOpen(!open)} className="p-2 rounded-xl hover:bg-muted transition-colors">
