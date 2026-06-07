@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.eduzz-webhook]
 verify_jwt = false
 
+[functions.admin-grant-access]
+verify_jwt = true  # bearer é o JWT do admin logado (JWT real do Auth, passa no gate); guarda de admin via borda_is_admin() no servidor
+
 [functions.admin-manage-user]
 verify_jwt = false
 

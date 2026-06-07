@@ -3,10 +3,16 @@
 // upserts subscription + ensures auth user exists, logs the event.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  computeAccessExpiresAt,
+  generateRecoveryLink,
+  sendWelcomeEmail,
+} from "../_shared/provisioning.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const WEBHOOK_SECRET = Deno.env.get("EDUZZ_WEBHOOK_SECRET");
+const APP_URL = Deno.env.get("APP_URL") ?? "https://borda.pro";
 
 // Webhooks são server-to-server (Eduzz → Supabase). CORS não se aplica.
 // Mantemos apenas Content-Type nas respostas.
@@ -96,12 +102,6 @@ function detectPlanCode(payload: EduzzPayload): "mensal" | "anual" {
   ].join(" ").toLowerCase();
   if (haystacks.includes("anual") || haystacks.includes("yearly")) return "anual";
   return "mensal";
-}
-
-function computeExpiresAt(plan: "mensal" | "anual"): string {
-  const now = new Date();
-  const days = plan === "anual" ? 365 : 30;
-  return new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 function pickString(value: unknown): string | null {
@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
 
   // 3. Upsert subscription.
   const accessExpiresAt =
-    subscriptionStatus === "active" ? computeExpiresAt(planCode) : null;
+    subscriptionStatus === "active" ? computeAccessExpiresAt(planCode) : null;
 
   let subscriptionUpserted = false;
   try {
@@ -308,16 +308,11 @@ Deno.serve(async (req) => {
     };
 
     const welcomeFlow = (async () => {
-      // 1) Link de definir senha (recovery). Sem isso o pagante fica preso no login.
+      // 1) Link de definir senha (recovery → /reset-password). Helper compartilhado
+      //    com admin-grant-access. Sem isso o pagante fica preso no login.
       let actionLink: string | null = null;
       try {
-        const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
-          type: "recovery",
-          email: buyerEmail,
-        });
-        if (linkErr) throw linkErr;
-        actionLink = linkData?.properties?.action_link ?? null;
-        if (!actionLink) throw new Error("generateLink retornou sem action_link");
+        actionLink = await generateRecoveryLink(supabase, buyerEmail, APP_URL);
       } catch (err) {
         console.error("[eduzz-webhook] generateLink error:", err);
         await logErr(
@@ -327,32 +322,17 @@ Deno.serve(async (req) => {
         // Segue mesmo assim: o email cai no fallback /forgot-password.
       }
 
-      // 2) Envia o welcome email com o action_link (ou fallback de recuperação).
-      try {
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/send-welcome-email`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          },
-          body: JSON.stringify({
-            email: buyerEmail,
-            name: buyerName,
-            plan: planCode,
-            action_link: actionLink,
-          }),
-        });
-        if (!r.ok) {
-          const t = await r.text();
-          console.error("[eduzz-webhook] send-welcome-email failed:", r.status, t);
-          await logErr("welcome_email_error", `send-welcome-email HTTP ${r.status}: ${t}`);
-        }
-      } catch (e) {
-        console.error("[eduzz-webhook] send-welcome-email error:", e);
-        await logErr(
-          "welcome_email_error",
-          `send-welcome-email exception: ${e instanceof Error ? e.message : String(e)}`,
-        );
+      // 2) Welcome email com o action_link (helper compartilhado; manda o
+      //    Authorization: Bearer service-role que a trava interna exige).
+      const mail = await sendWelcomeEmail(SUPABASE_URL!, SERVICE_ROLE_KEY!, {
+        email: buyerEmail,
+        name: buyerName,
+        plan: planCode,
+        action_link: actionLink,
+      });
+      if (!mail.ok) {
+        console.error("[eduzz-webhook] send-welcome-email failed:", mail.status, mail.detail);
+        await logErr("welcome_email_error", `send-welcome-email HTTP ${mail.status}: ${mail.detail ?? ""}`);
       }
     })();
 
