@@ -39,7 +39,7 @@
 
     --sidebar-background: 268 28% 12%;
     --sidebar-foreground: 268 8% 90%;
-    --sidebar-primary: 268 78% 68%;
+    --sidebar-primary: 268 78% 78%; /* A11y: L68→78 → 6.2:1 do texto ativo no pill (era 4.07:1, reprovava AA) */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 268 22% 20%;
     --sidebar-accent-foreground: 268 8% 92%;
@@ -99,7 +99,7 @@
 
     --sidebar-background: 240 12% 5%;
     --sidebar-foreground: 268 8% 92%;
-    --sidebar-primary: 268 78% 65%;
+    --sidebar-primary: 268 78% 78%; /* A11y: alinhado ao root (contraste do item ativo no dark) */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 10% 12%;
     --sidebar-accent-foreground: 268 8% 92%;

@@ -63,13 +63,13 @@ export const AppSidebar = () => {
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
           active
             ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
-            : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/85"
+            : "text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
         )}
       >
         <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-colors", active && "text-sidebar-primary")} />
         <span className="flex-1 text-left">{labelKey ? t(labelKey) : label}</span>
         {path === "/favorites" && favoriteIds.size > 0 && (
-          <span className="ml-auto text-[10px] font-semibold tabular-nums bg-sidebar-accent text-sidebar-foreground/60 px-1.5 py-0.5 rounded-md">
+          <span className="ml-auto text-[10px] font-semibold tabular-nums bg-sidebar-accent text-sidebar-foreground/90 px-1.5 py-0.5 rounded-md">
             {favoriteIds.size}
           </span>
         )}
@@ -84,7 +84,7 @@ export const AppSidebar = () => {
         <img src="/symbol-offwhite.png" alt="Borda Pro" className="h-12 w-auto shrink-0" />
         <div className="flex flex-col">
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">Borda Pro</span>
-          <span className="text-[13px] text-sidebar-foreground/40 tracking-wide">Biblioteca de Matrizes</span>
+          <span className="text-[13px] text-sidebar-foreground/70 tracking-wide">Biblioteca de Matrizes</span>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export const AppSidebar = () => {
           <div key={idx}>
             {idx > 0 && <div className="h-px bg-sidebar-border/40 my-3 mx-2" />}
             {section.title && (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2 pt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/70 px-3 pb-2 pt-1">
                 {section.title}
               </p>
             )}
@@ -107,7 +107,7 @@ export const AppSidebar = () => {
         {isAdmin && (
           <>
             <div className="h-px bg-sidebar-border/50 my-3 mx-2" />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/30 px-3 pb-2">{t("nav.admin")}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-sidebar-foreground/70 px-3 pb-2">{t("nav.admin")}</p>
             {adminItems.map(({ icon: Icon, labelKey, path }) => (
               <button
                 key={path}
@@ -116,7 +116,7 @@ export const AppSidebar = () => {
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
                   location.pathname.startsWith(path)
                     ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
-                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/85"
+                    : "text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                 )}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -137,7 +137,7 @@ export const AppSidebar = () => {
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
               location.pathname === "/pricing"
                 ? "bg-sidebar-accent text-sidebar-primary shadow-sm"
-                : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/85"
+                : "text-sidebar-foreground/85 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
             )}
           >
             <Crown className={cn("h-[18px] w-[18px] shrink-0", location.pathname === "/pricing" && "text-sidebar-primary")} />
@@ -157,7 +157,7 @@ export const AppSidebar = () => {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium truncate text-sidebar-foreground/90">{profile?.name || t("common.user")}</p>
-              <p className="text-[11px] text-sidebar-foreground/35 truncate">{profile?.email}</p>
+              <p className="text-[11px] text-sidebar-foreground/70 truncate">{profile?.email}</p>
             </div>
           </div>
         </div>
@@ -166,21 +166,21 @@ export const AppSidebar = () => {
         <div className="flex gap-1">
           <button
             onClick={() => navigate("/settings")}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground transition-colors"
           >
             <Settings className="h-3.5 w-3.5" />
             {t("nav.settings")}
           </button>
           <button
             onClick={signOut}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/45 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/70 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
             {t("nav.logout")}
           </button>
         </div>
 
-        <p className="text-[10px] text-sidebar-foreground/20 text-center py-1 tracking-wide">
+        <p className="text-[11px] text-sidebar-foreground/65 text-center py-1 tracking-wide">
           {t("common.madeWith")}
         </p>
       </div>
