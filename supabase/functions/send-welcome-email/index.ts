@@ -58,13 +58,8 @@ function buildHtml(name: string, planLabel: string, ctaUrl: string): string {
           <!-- Header (gradient roxo Borda Pro) -->
           <tr>
             <td style="background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%);padding:40px 32px;text-align:center;color:#ffffff;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
-                <tr>
-                  <td style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:14px;width:56px;height:56px;text-align:center;vertical-align:middle;">
-                    <span style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.04em;">B</span>
-                  </td>
-                </tr>
-              </table>
+              <img src="https://borda.pro/logo-email.png" alt="Borda Pro" width="108" height="72" style="display:block;margin:0 auto;border:0;">
+
               <h1 style="margin:16px 0 4px;font-size:28px;font-weight:800;letter-spacing:-0.02em;color:#ffffff;">Borda Pro</h1>
               <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.85);">Biblioteca de Matrizes de Bordado</p>
             </td>
