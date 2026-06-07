@@ -114,7 +114,7 @@ export const LibraryFilters = ({
                   }`}
                 >
                   {tag}
-                  <span className={`text-[10px] ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground/50"}`}>
+                  <span className={`text-[10px] ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                     {count}
                   </span>
                 </button>

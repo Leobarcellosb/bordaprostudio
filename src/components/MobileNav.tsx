@@ -73,7 +73,7 @@ export const MobileNav = () => {
             <div key={idx}>
               {idx > 0 && <div className="h-px bg-border my-2" />}
               {section.title && (
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-4 pb-1 pt-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground px-4 pb-1 pt-2">
                   {section.title}
                 </p>
               )}

@@ -23,12 +23,12 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 240 14% 95%;
-    --muted-foreground: 240 8% 50%;
+    --muted-foreground: 240 8% 45%; /* A11y: L50→45 → 4.9:1 no bg / 5.3:1 no card / 4.7:1 no muted (era 4.15/4.48/3.96, reprovava AA). Escurecer melhora texto em fundo claro — direção segura. 333 usos. */
 
     --accent: 268 60% 95%;
     --accent-foreground: 268 78% 38%;
 
-    --destructive: 0 76% 56%;
+    --destructive: 0 76% 52%; /* A11y: L56→52 → branco no botão 4.6:1 (era 4.24, reprovava AA por pouco). Continua vermelho. */
     --destructive-foreground: 0 0% 100%;
 
     --border: 240 10% 90%;

@@ -145,7 +145,7 @@ const PricingPage = () => {
             <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> {t("pricing.guarantee")}</span>
             <span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> {t("pricing.cancelAnytime")}</span>
           </div>
-          <p className="text-[11px] text-muted-foreground/40">{t("common.madeWith")}</p>
+          <p className="text-[11px] text-muted-foreground">{t("common.madeWith")}</p>
         </div>
       </div>
     </AppLayout>

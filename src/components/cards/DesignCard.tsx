@@ -130,7 +130,7 @@ export const DesignCard = ({ id, name, coverImage, category, tags = [], download
                 </Badge>
               ))}
               {tags.length > 3 && (
-                <span className="text-[10px] text-muted-foreground/50 self-center">+{tags.length - 3}</span>
+                <span className="text-[10px] text-muted-foreground self-center">+{tags.length - 3}</span>
               )}
             </div>
           )}
