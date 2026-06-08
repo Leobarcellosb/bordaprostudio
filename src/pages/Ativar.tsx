@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Gift, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 
 const BENEFITS = [
   "Acervo completo de matrizes, organizado por tema",
@@ -183,6 +184,9 @@ const Ativar = () => {
           )}
         </div>
       </div>
+
+      {/* Suporte: botão flutuante de WhatsApp — só nesta página, em qualquer estado. */}
+      <WhatsAppFloat />
     </div>
   );
 };
