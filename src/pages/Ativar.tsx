@@ -18,12 +18,12 @@ const Ativar = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existing, setExisting] = useState(false);
+  const [result, setResult] = useState<{ status: string; message: string } | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setExisting(false);
+    setResult(null);
     setLoading(true);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("register-trial", {
@@ -46,13 +46,17 @@ const Ativar = () => {
       }
 
       if (data?.magic_link) {
-        // Conta nova → cai logado direto (mantém o loading até navegar).
+        // Trial iniciado → cai logado direto (mantém o loading até navegar).
         window.location.href = data.magic_link;
         return;
       }
 
-      if (data?.status === "existing") {
-        setExisting(true);
+      if (data?.status) {
+        // Conta existente: já-assinante / trial-já-usado / genérico.
+        setResult({
+          status: data.status,
+          message: data.message ?? "Você já tem uma conta com esse email. Faça login.",
+        });
         setLoading(false);
         return;
       }
@@ -87,19 +91,30 @@ const Ativar = () => {
             </p>
           </div>
 
-          {existing ? (
-            /* Conta já existe — não auto-loga (segurança); manda pro login. */
+          {result ? (
+            /* Conta já existe — não auto-loga (assinante/trial-usado); manda pro login. */
             <div className="rounded-2xl bg-card border border-border/50 p-6 text-center space-y-4 shadow-sm">
               <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <Check className="h-5 w-5 text-primary" />
               </div>
               <div className="space-y-1">
-                <p className="font-semibold">Você já tem uma conta com esse email</p>
-                <p className="text-sm text-muted-foreground">Faça login para acessar a Borda Pro.</p>
+                <p className="font-semibold">
+                  {result.status === "existing_active"
+                    ? "Você já é assinante"
+                    : result.status === "trial_used"
+                      ? "Seu trial já foi ativado"
+                      : "Você já tem uma conta"}
+                </p>
+                <p className="text-sm text-muted-foreground">{result.message}</p>
               </div>
               <Button onClick={() => navigate("/login")} className="w-full rounded-full py-6 text-base font-semibold">
                 Entrar
               </Button>
+              {result.status === "trial_used" && (
+                <button onClick={() => navigate("/plans")} className="text-sm text-primary hover:underline">
+                  Ver planos
+                </button>
+              )}
             </div>
           ) : (
             <>

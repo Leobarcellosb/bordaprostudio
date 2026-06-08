@@ -109,8 +109,9 @@ Deno.serve(async (req) => {
     return json(502, { error: "activation_failed", message: "Não foi possível ativar agora. Tente de novo." });
   }
 
-  // SEGURANÇA: só auto-loga (devolve magic_link) se a conta foi criada AGORA.
-  if (data.user_created && data.magic_link) {
+  // trial_started: trial foi iniciado AGORA — cobre conta NOVA e conta existente
+  // SEM assinatura ativa e SEM trial usado. Auto-loga (devolve o magic_link).
+  if (data.status === "trial_started" && data.magic_link) {
     return json(200, {
       ok: true,
       status: "trial_started",
@@ -119,7 +120,25 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Conta já existia: NÃO devolve link (evita takeover). App manda pro /login.
+  // Já é assinante ativo → não auto-loga; manda pro login.
+  if (data.status === "already_active") {
+    return json(200, {
+      ok: true,
+      status: "existing_active",
+      message: "Você já é assinante. Faça login para acessar.",
+    });
+  }
+
+  // Já usou o trial antes → não reconcede; login ou assinar.
+  if (data.status === "trial_already_used") {
+    return json(200, {
+      ok: true,
+      status: "trial_used",
+      message: "Seu trial já foi ativado. Faça login ou assine.",
+    });
+  }
+
+  // Fallback defensivo (não devolve link).
   return json(200, {
     ok: true,
     status: "existing",
