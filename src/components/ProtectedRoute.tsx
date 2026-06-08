@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { TrialExpired } from "@/components/TrialExpired";
 
 // Bumped to accommodate Supabase NANO cold-start latency.
 const SLOW_LOADER_MS = 25_000;
@@ -92,6 +94,7 @@ export const ProtectedRoute = ({
     subscriptionResolved,
     signOut,
   } = useAuth();
+  const { status: subStatus } = useSubscriptionStatus();
 
   if (status === "loading") return <SlowAwareSpinner onSignOut={signOut} />;
   if (status === "unauthenticated") return <Navigate to="/login" replace />;
@@ -134,6 +137,12 @@ export const ProtectedRoute = ({
   }
 
   if (requireSubscription && subscriptionResolved && !hasActiveSubscription) {
+    // Quem já teve trial/assinatura e expirou vê a tela de expirado (com CTA de
+    // assinar), em vez de ser jogado pra /plans.
+    if (subStatus === "expired") {
+      console.info("[ROUTE] protected → trial/assinatura expirada");
+      return <TrialExpired />;
+    }
     console.info("[ROUTE] protected → /plans");
     return <Navigate to="/plans" replace />;
   }
