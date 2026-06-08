@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
 
   // 1. Resolver usuário por email (profiles é populada pelo trigger de auth.users).
   let userId: string | null = null;
+  let userCreated = false;
   try {
     const { data: profileRow, error } = await supabase
       .from("profiles")
@@ -98,6 +99,7 @@ Deno.serve(async (req) => {
       });
       if (error) throw error;
       userId = data.user?.id ?? null;
+      userCreated = !!userId;
     } catch (err) {
       console.error("[activate-trial] createUser error:", err);
     }
@@ -201,6 +203,7 @@ Deno.serve(async (req) => {
   return json(200, {
     ok: true,
     status: outcome,
+    user_created: userCreated,
     magic_link: magicLink,
     trial_ends_at: trialEndsAt,
   });

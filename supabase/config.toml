@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.activate-trial]
 verify_jwt = false  # público (ManyChat não manda JWT); guarda via header x-manychat-secret no servidor
 
+[functions.register-trial]
+verify_jwt = false  # público (chamado pelo /ativar no browser); rate-limit + injeta o secret server-side
+
 [functions.admin-grant-access]
 verify_jwt = true  # bearer é o JWT do admin logado (JWT real do Auth, passa no gate); guarda de admin via borda_is_admin() no servidor
 
