@@ -1,9 +1,10 @@
 import { Sparkles, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
-import { CHECKOUT_MENSAL } from "@/config/checkout";
 
 /** Faixa no topo do app enquanto o trial está ativo. Some quando expira/assina. */
 export const TrialBanner = () => {
+  const navigate = useNavigate();
   const { isTrial, trialDaysLeft } = useSubscriptionStatus();
   if (!isTrial) return null;
 
@@ -18,7 +19,7 @@ export const TrialBanner = () => {
           Trial: <strong>{label}</strong>. Curtindo? Garante seu acesso.
         </p>
         <button
-          onClick={() => window.open(CHECKOUT_MENSAL, "_blank", "noopener,noreferrer")}
+          onClick={() => navigate("/plans")}
           className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 rounded-full px-4 py-1 text-sm font-semibold transition-colors"
         >
           Garantir acesso

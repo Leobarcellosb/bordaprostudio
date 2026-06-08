@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Zap, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { CHECKOUT_MENSAL, CHECKOUT_ANUAL } from "@/config/checkout";
 
 /** Mostrada no lugar do conteúdo quando o acesso expirou (status='expired'). */
 export const TrialExpired = () => {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--landing-warm))] px-4">
       <div className="w-full max-w-md text-center space-y-7">
@@ -23,18 +24,12 @@ export const TrialExpired = () => {
         <div className="space-y-3">
           <Button
             size="lg"
-            onClick={() => window.open(CHECKOUT_MENSAL, "_blank", "noopener,noreferrer")}
+            onClick={() => navigate("/plans")}
             className="w-full py-6 text-base font-semibold rounded-full gap-2 shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition-all"
           >
             <Zap className="h-5 w-5" />
             Assinar agora
           </Button>
-          <button
-            onClick={() => window.open(CHECKOUT_ANUAL, "_blank", "noopener,noreferrer")}
-            className="text-sm text-primary hover:underline"
-          >
-            Quero o anual (R$ 397/ano)
-          </button>
         </div>
 
         <div className="space-y-3 pt-2">
