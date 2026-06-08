@@ -43,6 +43,11 @@ export function trialDaysLeft(sub: Subscription | null, now: number = Date.now()
   return Math.max(0, Math.ceil((t - now) / DAY_MS));
 }
 
+/** true se o usuário já iniciou um trial alguma vez (trial_until presente). */
+export function hadTrial(sub: Subscription | null): boolean {
+  return trialUntilOf(sub) !== null;
+}
+
 export function computeSubscriptionStatus(sub: Subscription | null, now: number = Date.now()): SubStatus {
   if (isPaidActive(sub, now)) return "active";
   if (isTrialActive(sub, now)) return "trial";

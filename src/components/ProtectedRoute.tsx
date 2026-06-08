@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { hadTrial } from "@/lib/subscription";
 import { TrialExpired } from "@/components/TrialExpired";
 
 // Bumped to accommodate Supabase NANO cold-start latency.
@@ -92,6 +93,7 @@ export const ProtectedRoute = ({
     onboardingResolved,
     hasActiveSubscription,
     subscriptionResolved,
+    subscription,
     signOut,
   } = useAuth();
   const { status: subStatus } = useSubscriptionStatus();
@@ -137,10 +139,10 @@ export const ProtectedRoute = ({
   }
 
   if (requireSubscription && subscriptionResolved && !hasActiveSubscription) {
-    // Quem já teve trial/assinatura e expirou vê a tela de expirado (com CTA de
-    // assinar), em vez de ser jogado pra /plans.
-    if (subStatus === "expired") {
-      console.info("[ROUTE] protected → trial/assinatura expirada");
+    // Só quem DE FATO teve trial vê a tela "Seus 15 dias acabaram". Assinatura
+    // paga vencida (sem trial) segue pro fluxo de /plans (copy não se aplicaria).
+    if (subStatus === "expired" && hadTrial(subscription)) {
+      console.info("[ROUTE] protected → trial expirado");
       return <TrialExpired />;
     }
     console.info("[ROUTE] protected → /plans");
