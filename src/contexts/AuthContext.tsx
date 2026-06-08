@@ -15,6 +15,7 @@ import type {
   Subscription,
   UserPreferences,
 } from "@/types/database.types";
+import { isSubscriptionActive, pickPrimarySubscription } from "@/lib/subscription";
 
 // Bumped to accommodate Supabase NANO cold-start latency.
 const FETCH_TIMEOUT_MS = 20_000;
@@ -62,13 +63,9 @@ const AuthContext = createContext<AuthContextValue>({
 
 export const useAuth = () => useContext(AuthContext);
 
+// Acesso = assinatura paga ativa OU trial ativo (lógica central em @/lib/subscription).
 function computeHasActiveSubscription(sub: Subscription | null): boolean {
-  if (!sub) return false;
-  if (!["active", "approved", "paid"].includes(sub.status)) return false;
-  if (!sub.access_expires_at) return false;
-  const expires = new Date(sub.access_expires_at);
-  if (Number.isNaN(expires.getTime())) return false;
-  return expires.getTime() > Date.now();
+  return isSubscriptionActive(sub);
 }
 
 function computeNeedsOnboarding(profile: Profile | null, prefs: UserPreferences | null): boolean {
@@ -124,15 +121,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         supabase.from("user_roles").select("role").eq("user_id", userId),
         FETCH_TIMEOUT_MS,
       ),
-      safeQuery<Subscription>(
+      safeQuery<Subscription[]>(
         "subscription",
         supabase
           .from("subscriptions")
           .select("*")
           .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .order("created_at", { ascending: false }),
         FETCH_TIMEOUT_MS,
       ),
       safeQuery<UserPreferences>(
@@ -160,7 +155,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Subscription
     if (subRes.status === "success") {
-      setSubscription(subRes.data);
+      // Pode haver +1 linha (eduzz + manychat) — escolhe a de melhor acesso.
+      setSubscription(pickPrimarySubscription(subRes.data ?? []));
       setSubscriptionResolved(true);
     }
 
