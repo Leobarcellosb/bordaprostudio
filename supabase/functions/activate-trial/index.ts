@@ -15,7 +15,10 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const APP_URL = Deno.env.get("APP_URL") ?? "https://borda.pro";
 const TRIAL_SECRET = Deno.env.get("MANYCHAT_TRIAL_SECRET");
 
-const TRIAL_DAYS = 15;
+// Duração do trial configurável (secret TRIAL_DURATION_DAYS; default 10).
+// NÃO afeta trials já existentes — só vale pra novos trials iniciados a partir daqui.
+const parsedTrialDays = Number(Deno.env.get("TRIAL_DURATION_DAYS"));
+const TRIAL_DAYS = Number.isFinite(parsedTrialDays) && parsedTrialDays > 0 ? parsedTrialDays : 10;
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
