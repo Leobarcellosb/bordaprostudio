@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     return json(500, { error: "server_misconfigured", message: "Indisponível no momento." });
   }
 
-  let body: { email?: unknown; name?: unknown } = {};
+  let body: { email?: unknown; name?: unknown; ref?: unknown } = {};
   try {
     body = await req.json();
   } catch {
@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const name = typeof body.name === "string" ? body.name.trim() : "";
+  // ?ref=XXX capturado no /ativar (id/código de quem convidou). Limitado p/ sanidade.
+  const ref = typeof body.ref === "string" ? body.ref.trim().slice(0, 200) : "";
   if (!EMAIL_RE.test(email)) {
     return json(400, { error: "invalid_email", message: "Digite um email válido." });
   }
@@ -112,6 +114,19 @@ Deno.serve(async (req) => {
   // trial_started: trial foi iniciado AGORA — cobre conta NOVA e conta existente
   // SEM assinatura ativa e SEM trial usado. Auto-loga (devolve o magic_link).
   if (data.status === "trial_started" && data.magic_link) {
+    // Captura a indicação (best-effort; não bloqueia o trial). Recompensa = passo futuro.
+    if (ref) {
+      try {
+        await admin.from("referrals").insert({
+          referrer_id: ref,
+          referred_email: email,
+          status: "activated",
+          activated_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error("[register-trial] referral insert error:", e);
+      }
+    }
     return json(200, {
       ok: true,
       status: "trial_started",

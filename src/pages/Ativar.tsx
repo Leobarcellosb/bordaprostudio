@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ const BENEFITS = [
 
 const Ativar = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get("ref") ?? undefined; // ?ref=XXX → captura de indicação
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ const Ativar = () => {
     setLoading(true);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("register-trial", {
-        body: { email, name },
+        body: { email, name, ...(ref ? { ref } : {}) },
       });
 
       if (fnErr) {
