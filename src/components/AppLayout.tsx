@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { TrialBanner } from "./TrialBanner";
+import { SupportFloat } from "./SupportFloat";
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { pathname } = useLocation();
@@ -21,6 +22,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </main>
       </div>
+      <SupportFloat />
     </div>
   );
 };
