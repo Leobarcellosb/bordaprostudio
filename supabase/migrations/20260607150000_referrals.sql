@@ -22,4 +22,4 @@ CREATE POLICY "Service manages referrals"
 CREATE POLICY "Admins can read referrals"
   ON public.referrals FOR SELECT
   TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+  USING (public.has_role(auth.uid(), 'admin'::app_role));
