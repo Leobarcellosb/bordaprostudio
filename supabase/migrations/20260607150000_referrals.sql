@@ -14,12 +14,10 @@ CREATE INDEX IF NOT EXISTS idx_referrals_referred_email ON public.referrals (ref
 
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
 
--- Edge functions (service_role) gerenciam; admins leem (auditoria).
+-- As edge functions usam service_role (que bypassa RLS) — é o suficiente pra
+-- gravar/ler referrals. Sem policy p/ anon/authenticated. A policy de admin-read
+-- (dashboard) fica pra depois: depende da função/enum de role do projeto, que
+-- diverge entre os ambientes.
 CREATE POLICY "Service manages referrals"
   ON public.referrals FOR ALL
   USING (auth.role() = 'service_role');
-
-CREATE POLICY "Admins can read referrals"
-  ON public.referrals FOR SELECT
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'::app_role));
