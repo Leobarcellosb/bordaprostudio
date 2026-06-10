@@ -1,7 +1,7 @@
 // Borda Pro — activate-trial.
 // Recebe { email, name, phone } do webhook do ManyChat, cria o usuário no Auth
-// (se não existir), inicia um trial de 15 dias (provider=manychat, status=trial),
-// gera um magic link e devolve { magic_link, trial_ends_at, status }.
+// (se não existir), inicia um trial (TRIAL_DURATION_DAYS, default 10; provider=
+// manychat, status=trial) e devolve { magic_link, trial_ends_at, status }.
 //
 // SEGURANÇA: o endpoint devolve o magic link no corpo da resposta — logar como o
 // dono do email. Por isso exige o header x-manychat-secret == MANYCHAT_TRIAL_SECRET
@@ -167,20 +167,24 @@ Deno.serve(async (req) => {
     return json(500, { error: "subscription_failed" });
   }
 
-  // 5. Magic link (login direto → dashboard). É o que o ManyChat entrega ao usuário.
+  // 5. Magic link — SÓ quando o trial foi iniciado AGORA. Devolver link de login
+  // de conta JÁ existente (assinante ativo / trial usado) seria takeover: o fluxo
+  // ManyChat entrega a resposta a quem digitou o email, que pode não ser o dono.
   let magicLink: string | null = null;
-  try {
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: { redirectTo: `${APP_URL}/dashboard` },
-    });
-    if (error) throw error;
-    magicLink = data.properties?.action_link ?? null;
-  } catch (err) {
-    console.error("[activate-trial] generateLink error:", err);
-    // Sem o link, o ManyChat não consegue logar a pessoa — devolve 500.
-    return json(500, { error: "magiclink_failed" });
+  if (outcome === "trial_started") {
+    try {
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+        options: { redirectTo: `${APP_URL}/dashboard` },
+      });
+      if (error) throw error;
+      magicLink = data.properties?.action_link ?? null;
+    } catch (err) {
+      console.error("[activate-trial] generateLink error:", err);
+      // Sem o link, o ManyChat não consegue logar a pessoa — devolve 500.
+      return json(500, { error: "magiclink_failed" });
+    }
   }
 
   // 6. Trilha de auditoria (mesmo padrão do eduzz-webhook).

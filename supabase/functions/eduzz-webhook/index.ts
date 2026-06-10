@@ -58,26 +58,35 @@ interface EduzzPayload {
 // Agora normaliza removendo prefixo conhecido e usa .includes() pra tolerar
 // variantes futuras de naming.
 
-const PAID_KEYWORDS = [
+// Match EXATO contra listas fechadas (não substring): .includes() classificava
+// errado nomes plausíveis ("invoice_unpaid" casa "paid", "subscription_inactive"
+// casa "active") e concederia acesso indevidamente. Evento fora das listas agora
+// cai no caminho SEGURO (log needs_review, sem tocar a assinatura) — então errar
+// pra "desconhecido" é barato; errar pra "pago" não é.
+// contract_created/contract_updated SAÍRAM de PAID: chegam ANTES do invoice_paid
+// (anual/boleto) e concediam 365d antes do dinheiro entrar; contract_updated nem
+// significa pagamento. Acesso só em pagamento confirmado.
+const PAID_EVENTS = new Set([
   "invoice_paid",
   "paid",
   "active",
   "purchase_complete",
   "subscription_renewed",
-  "contract_created",
-  "contract_updated",
-];
-const CANCELED_KEYWORDS = [
+]);
+const CANCELED_EVENTS = new Set([
   "invoice_refunded",
   "refunded",
-  "chargeback",          // mantido do código original — sinal forte de cancelamento
+  "chargeback",
+  "invoice_chargeback",
   "cancelled",
   "canceled",
   "subscription_canceled",
   "subscription_cancelled",
   "invoice_canceled",
   "invoice_cancelled",
-];
+  "contract_canceled",
+  "contract_cancelled",
+]);
 
 function detectStatus(event: string): "active" | "canceled" | "pending" {
   const e = event
@@ -85,8 +94,8 @@ function detectStatus(event: string): "active" | "canceled" | "pending" {
     .trim()
     .replace(/^myeduzz\./i, "")
     .replace(/^sun\./i, "");
-  if (PAID_KEYWORDS.some((p) => e.includes(p))) return "active";
-  if (CANCELED_KEYWORDS.some((c) => e.includes(c))) return "canceled";
+  if (PAID_EVENTS.has(e)) return "active";
+  if (CANCELED_EVENTS.has(e)) return "canceled";
   return "pending";
 }
 
@@ -241,10 +250,59 @@ Deno.serve(async (req) => {
     const ignoredEmail = pickString(payload.buyer?.email) ?? pickString(dataBuyer.email);
     const idsStr = candidateProductIds.join(", ") || "nenhum";
     // Cancelamento/refund SEM produto identificável NÃO some em silêncio: pode ser
-    // refund de Borda Pro num payload enxuto (sem data.items). Marca "needs_review"
-    // e NÃO revoga no automático — revogar por email derrubaria o Borda Pro de quem
-    // comprou OUTRO produto. Revogação precisa do payload real de refund (por invoice).
+    // refund de Borda Pro num payload enxuto (sem data.items).
     const needsReview = detectStatus(evName) === "canceled";
+
+    // Fallback de revogação SEGURA por invoice: o payload myeduzz traz o id da
+    // fatura em data.id mesmo quando vem sem items. Se uma assinatura eduzz tem
+    // esse provider_invoice_id, o refund É de Borda Pro — revoga no automático
+    // sem risco de derrubar quem comprou outro produto. Sem match → needs_review.
+    if (needsReview) {
+      const invId =
+        pickString(payload.invoice?.id) ?? pickString(dataInvoice.id) ?? pickString(dataObj.id);
+      if (invId) {
+        try {
+          const { data: subRow, error: findErr } = await supabase
+            .from("subscriptions")
+            .select("id, user_id, email")
+            .eq("provider", "eduzz")
+            .eq("provider_invoice_id", invId)
+            .maybeSingle();
+          if (findErr) throw findErr;
+          if (subRow) {
+            const { error: updErr } = await supabase
+              .from("subscriptions")
+              .update({
+                status: "canceled",
+                access_expires_at: null,
+                last_event: evName,
+                raw_payload: payload,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", subRow.id);
+            if (updErr) throw updErr;
+            try {
+              await supabase.from("integration_logs").insert({
+                integration: "eduzz",
+                event_type: evName,
+                email: subRow.email ?? ignoredEmail,
+                user_id: subRow.user_id,
+                status: "success",
+                message: `Refund/cancelamento sem items REVOGADO via match de provider_invoice_id=${invId}.`,
+                payload,
+              });
+            } catch (e) {
+              console.error("[eduzz-webhook] invoice-revoke log error:", e);
+            }
+            console.log(`[eduzz-webhook] revogado via invoice match (${invId})`);
+            return json(200, { ok: true, revoked_by_invoice: invId });
+          }
+        } catch (e) {
+          // Falhou o fallback → cai no needs_review abaixo (não some em silêncio).
+          console.error("[eduzz-webhook] invoice-match revoke error:", e);
+        }
+      }
+    }
     try {
       await supabase.from("integration_logs").insert({
         integration: "eduzz",
@@ -282,10 +340,33 @@ Deno.serve(async (req) => {
 
   const eventName = pickString(payload.event) ?? pickString(payload.status) ?? "unknown";
   const subscriptionStatus = detectStatus(eventName);
+
+  // Evento DESCONHECIDO (fora das listas fechadas): caminho SEGURO — loga pra
+  // revisão e responde 200 SEM tocar usuário/assinatura. Antes virava 'pending'
+  // e o upsert SOBRESCREVIA assinatura ativa com pending + expiração nula
+  // (derrubava pagante no meio do ciclo, ex.: invoice_created de renewal boleto).
+  if (subscriptionStatus === "pending") {
+    try {
+      await supabase.from("integration_logs").insert({
+        integration: "eduzz",
+        event_type: eventName,
+        email: buyerEmail,
+        status: "needs_review",
+        message: `Evento desconhecido (${eventName}) — nenhuma alteração de assinatura aplicada.`,
+        payload,
+      });
+    } catch (e) {
+      console.error("[eduzz-webhook] unknown-event log insert error:", e);
+    }
+    console.log(`[eduzz-webhook] evento desconhecido (${eventName}) — needs_review, sem alteração`);
+    return json(200, { ok: true, ignored: true, reason: "unknown_event", event: eventName });
+  }
+
   const providerBuyerId =
     pickString(payload.buyer?.id) ?? pickString(dataBuyer.id);
+  // Payload real (myeduzz) traz o id da FATURA em data.id (não em data.invoice.id).
   const providerInvoiceId =
-    pickString(payload.invoice?.id) ?? pickString(dataInvoice.id);
+    pickString(payload.invoice?.id) ?? pickString(dataInvoice.id) ?? pickString(dataObj.id);
   // provider_offer_id agora é só a oferta (o produto tem campo próprio: provider_product_id).
   const providerOfferId =
     pickString(payload.offer?.id) ?? pickString(dataOffer.id);
@@ -368,16 +449,15 @@ Deno.serve(async (req) => {
     console.error("[eduzz-webhook] upsert subscription error:", err);
   }
 
-  // 3a. PRIMEIRA fatura paga da vida deste user? Welcome SÓ na primeira — renewal
-  // mensal não recebe (spam). COUNT em subscriptions não serve de critério: a
-  // UNIQUE(user_id,provider) faz renewal ser UPDATE na mesma linha (count=1 sempre).
-  // Critério: NÃO existe invoice_paid anterior com sucesso pra esse user — e nem
-  // welcome_email_sent anterior. Filtrar por invoice_paid (e não "qualquer evento
-  // success") evita que um contract_created histórico (vem ANTES do invoice_paid
-  // em anuais/parcelados) bloqueie o welcome do pagamento real. O welcome_email_sent
-  // entra no filtro pra não duplicar: no fluxo novo o contract_created já dispara o
-  // welcome (vira active), e o invoice_paid seguinte deve ficar calado.
-  // O check roda ANTES do log do passo 4 (senão o evento atual contaminaria a contagem).
+  // 3a. Welcome SÓ uma vez na vida do user (na primeira fatura paga; renewal não).
+  // Critério: NÃO existe marcador welcome_email_sent pra esse user. Basear o gate
+  // SÓ no marcador (e não em logs de invoice_paid) garante RETRY natural: se o
+  // envio falhar na primeira fatura, o marcador não é gravado e o próximo evento
+  // pago (renewal) re-tenta — antes, o log success do passo 4 envenenava o gate e
+  // o pagante ficava sem caminho de senha pra sempre. Cohort histórica (pagou
+  // antes do marcador existir) recebe UM welcome no próximo renewal — desejável
+  // (é a cohort sem senha); suprimível via backfill de marcadores (script SQL).
+  // O check roda ANTES do log do passo 4 (ordem importa).
   let isFirstPaidInvoice = false;
   if (subscriptionUpserted && subscriptionStatus === "active") {
     try {
@@ -386,9 +466,7 @@ Deno.serve(async (req) => {
         .select("*", { count: "exact", head: true })
         .eq("integration", "eduzz")
         .eq("user_id", userId)
-        .eq("status", "success")
-        // Curinga do PostgREST em .or() é * (vira % no SQL); cobre myeduzz./sun. etc.
-        .or("event_type.ilike.*invoice_paid*,event_type.eq.welcome_email_sent");
+        .eq("event_type", "welcome_email_sent");
       if (error) throw error;
       isFirstPaidInvoice = (count ?? 0) === 0;
     } catch (err) {

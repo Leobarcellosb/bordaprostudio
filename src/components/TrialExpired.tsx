@@ -14,7 +14,7 @@ export const TrialExpired = () => {
 
         <div className="space-y-2">
           <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight">
-            Seus 15 dias <span className="text-gradient-brand">acabaram</span>
+            Seu teste grátis <span className="text-gradient-brand">acabou</span>
           </h1>
           <p className="text-muted-foreground text-base">
             Continue na Borda Pro por <strong className="text-foreground">R$ 49,90/mês</strong>.

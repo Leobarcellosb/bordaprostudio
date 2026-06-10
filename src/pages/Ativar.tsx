@@ -84,10 +84,10 @@ const Ativar = () => {
           <div className="text-center space-y-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
               <Gift className="h-3.5 w-3.5" />
-              15 dias grátis
+              10 dias grátis
             </span>
             <h1 className="text-3xl sm:text-4xl font-display font-bold leading-tight">
-              Seus 15 dias grátis <span className="text-gradient-brand">começam agora</span>
+              Seus 10 dias grátis <span className="text-gradient-brand">começam agora</span>
             </h1>
             <p className="text-muted-foreground">
               Acesso completo à Borda Pro. Sem cartão, sem compromisso.
@@ -173,7 +173,7 @@ const Ativar = () => {
                   ) : (
                     <>
                       <Sparkles className="h-5 w-5" />
-                      Ativar meus 15 dias grátis
+                      Ativar meus 10 dias grátis
                     </>
                   )}
                 </Button>

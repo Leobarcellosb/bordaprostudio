@@ -550,7 +550,7 @@ function HistoryView({ logs, loading }: { logs: LogEntry[]; loading: boolean }) 
                 <td className="py-3 px-5 text-muted-foreground">{log.email || "—"}</td>
                 <td className="py-3 px-5 text-foreground/70 max-w-[200px] truncate">{log.message || "—"}</td>
                 <td className="py-3 px-5">
-                  <LogStatusBadge status={log.status as "success" | "error" | "pending"} />
+                  <LogStatusBadge status={log.status} />
                 </td>
                 <td className="py-3 px-5 text-muted-foreground/60 tabular-nums whitespace-nowrap">
                   {new Date(log.created_at).toLocaleString("pt-BR")}
@@ -590,7 +590,7 @@ function StatusBadge({ status }: { status: "active" | "inactive" | "error" }) {
   );
 }
 
-function LogStatusBadge({ status }: { status: "success" | "error" | "pending" }) {
+function LogStatusBadge({ status }: { status: string }) {
   if (status === "success") {
     return (
       <span className="inline-flex items-center gap-1 text-emerald-600">
@@ -604,6 +604,25 @@ function LogStatusBadge({ status }: { status: "success" | "error" | "pending" })
       <span className="inline-flex items-center gap-1 text-destructive">
         <XCircle className="h-3 w-3" />
         <span className="text-[10px] font-medium">Erro</span>
+      </span>
+    );
+  }
+  // needs_review: refund/cancelamento que NÃO foi revogado no automático (sem
+  // produto identificável) ou evento desconhecido — exige ação humana. Destaque
+  // forte pra não se perder na lista.
+  if (status === "needs_review") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-1.5 py-0.5 text-destructive">
+        <AlertCircle className="h-3 w-3" />
+        <span className="text-[10px] font-bold uppercase">Revisar</span>
+      </span>
+    );
+  }
+  if (status === "ignored") {
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        <XCircle className="h-3 w-3" />
+        <span className="text-[10px] font-medium">Ignorado</span>
       </span>
     );
   }
