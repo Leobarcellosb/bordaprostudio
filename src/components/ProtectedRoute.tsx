@@ -93,7 +93,6 @@ export const ProtectedRoute = ({
     onboardingResolved,
     hasActiveSubscription,
     subscriptionResolved,
-    subscriptionLoadFailed,
     subscription,
     signOut,
   } = useAuth();
@@ -139,19 +138,12 @@ export const ProtectedRoute = ({
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Falha (erro/timeout) ao carregar a assinatura: NÃO libera no escuro (fail-open
-  // dava acesso grátis a quem teve a query falhada) nem joga pagante pra /plans.
-  // Mostra recuperação — recarregar refaz o fetch. [S6-01]
-  if (requireSubscription && subscriptionLoadFailed && !hasActiveSubscription) {
-    return (
-      <RecoveryScreen
-        title="Não foi possível confirmar sua assinatura"
-        description="Pode ter sido uma instabilidade. Recarregue para tentar de novo."
-        onSignOut={signOut}
-      />
-    );
-  }
-
+  // NOTA (incidente 2026-06-10): havia aqui um guard que bloqueava com
+  // RecoveryScreen quando subscriptionLoadFailed=true. Em prod a query de
+  // subscriptions falha com frequência (causa sob investigação) e o guard
+  // virou "loop de login" pra usuários reais. Removido — falha de fetch volta
+  // a ser fail-open (comportamento pré-6193ee6) até reintroduzirmos com retry
+  // automático. O flag subscriptionLoadFailed segue exposto pelo AuthContext.
   if (requireSubscription && subscriptionResolved && !hasActiveSubscription) {
     // Só quem DE FATO teve trial vê a tela "Seus 15 dias acabaram". Assinatura
     // paga vencida (sem trial) segue pro fluxo de /plans (copy não se aplicaria).
