@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users, Download, TrendingUp, CreditCard, Heart, BarChart3,
-  Calendar, FileText, Star, Layers, Activity, UserX, ChevronRight
+  Calendar, FileText, Star, Layers, Activity, UserX, ChevronRight, Banknote
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -153,6 +153,8 @@ export const AdminAnalytics = () => {
     { icon: Download, label: "Downloads totais", value: allDownloads.length.toLocaleString("pt-BR"), sub: "desde o início", accent: "bg-orange-500/10 text-orange-600" },
     { icon: Calendar, label: "Downloads no período", value: periodDownloads.length, sub: periodLabel[period], accent: "bg-violet-500/10 text-violet-600" },
     { icon: BarChart3, label: "MRR estimado", value: `R$ ${mrr.toFixed(0)}`, sub: "receita mensal recorrente", accent: "bg-secondary/10 text-secondary" },
+    // ARR = MRR anualizado (mesma base: só assinaturas pagas eduzz, preços oficiais).
+    { icon: Banknote, label: "ARR estimado", value: `R$ ${(mrr * 12).toFixed(0)}`, sub: "receita anual recorrente", accent: "bg-emerald-500/10 text-emerald-600" },
   ];
 
   return (
@@ -177,7 +179,8 @@ export const AdminAnalytics = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      {/* 7 cards: xl em 4 colunas (4+3) — com 6 colunas o 7º ficava órfão sozinho na 2ª linha. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
         {kpiCards.map(({ icon: Icon, label, value, sub, accent }) => (
           <Card key={label} className="group border-border/40 bg-card shadow-[0_1px_3px_hsl(268_78%_56%/0.04)] hover:shadow-[0_4px_16px_hsl(268_78%_56%/0.08)] transition-all duration-300">
             <CardContent className="p-5">
