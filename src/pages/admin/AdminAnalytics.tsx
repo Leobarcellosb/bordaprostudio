@@ -60,7 +60,7 @@ export const AdminAnalytics = () => {
       const [downloads, users, subs, designs, favorites, files] = await Promise.all([
         db.from("downloads").select("id, kit_id, user_id, created_at"),
         db.from("profiles").select("id, name, email, plan, created_at"),
-        db.from("subscriptions").select("id, plan_code, status, access_expires_at, created_at"),
+        db.from("subscriptions").select("id, plan_code, status, access_expires_at, provider, created_at"),
         db.from("designs").select("id, name, cover_image, category_id, is_published, created_at"),
         db.from("favorites").select("id, kit_id, created_at"),
         db.from("kit_arquivos").select("id, format, created_at"),
@@ -82,8 +82,16 @@ export const AdminAnalytics = () => {
   const periodUsers = useMemo(() => allUsers.filter((u) => new Date(u.created_at) >= start), [allUsers, start]);
   const periodSubs = useMemo(() => allSubs.filter((s) => new Date(s.created_at) >= start), [allSubs, start]);
 
-  const activeSubs = allSubs.filter((s) => s.status === "active" && s.access_expires_at && new Date(s.access_expires_at) > new Date());
-  const mrr = activeSubs.reduce((sum, s) => sum + (s.plan_code === "anual" ? 29.9 : 39.9), 0);
+  // Acessos vigentes (qualquer origem; NULL = vitalício do grant permanente).
+  const activeSubs = allSubs.filter(
+    (s) => s.status === "active" && (!s.access_expires_at || new Date(s.access_expires_at) > new Date()),
+  );
+  // RECEITA = só assinatura PAGA (provider eduzz). Manual/cortesia/teste não é MRR.
+  // Preços oficiais: mensal R$ 49,90/mês; anual R$ 397/ano → R$ 33,08/mês.
+  // (Antes somava 39,90/29,90 — valores que nunca existiram no produto — sobre
+  // QUALQUER linha ativa, inclusive cortesias: por isso o MRR saía inflado.)
+  const payingSubs = activeSubs.filter((s) => s.provider === "eduzz");
+  const mrr = payingSubs.reduce((sum, s) => sum + (s.plan_code === "anual" ? 397 / 12 : 49.9), 0);
 
   const downloadsChart = useMemo(() => groupByDay(periodDownloads, start), [periodDownloads, start]);
   const usersChart = useMemo(() => groupByDay(periodUsers, start), [periodUsers, start]);
@@ -141,7 +149,7 @@ export const AdminAnalytics = () => {
   const kpiCards = [
     { icon: Users, label: "Usuários ativos", value: activeUserIds.size, sub: "últimos 30 dias", accent: "bg-primary/10 text-primary" },
     { icon: TrendingUp, label: "Novos usuários", value: periodUsers.length, sub: periodLabel[period], accent: "bg-emerald-500/10 text-emerald-600" },
-    { icon: CreditCard, label: "Assinaturas ativas", value: activeSubs.length, sub: "vigentes agora", accent: "bg-blue-500/10 text-blue-600" },
+    { icon: CreditCard, label: "Assinaturas pagas", value: payingSubs.length, sub: `vigentes agora (+${activeSubs.length - payingSubs.length} cortesia/manual)`, accent: "bg-blue-500/10 text-blue-600" },
     { icon: Download, label: "Downloads totais", value: allDownloads.length.toLocaleString("pt-BR"), sub: "desde o início", accent: "bg-orange-500/10 text-orange-600" },
     { icon: Calendar, label: "Downloads no período", value: periodDownloads.length, sub: periodLabel[period], accent: "bg-violet-500/10 text-violet-600" },
     { icon: BarChart3, label: "MRR estimado", value: `R$ ${mrr.toFixed(0)}`, sub: "receita mensal recorrente", accent: "bg-secondary/10 text-secondary" },
