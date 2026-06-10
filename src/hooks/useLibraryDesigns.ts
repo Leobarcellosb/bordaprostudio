@@ -100,8 +100,10 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       // com X em 6 formatos, count exato = distintos, sem duplicação).
       const useGapFilter = showAllFormats && !!gapFormat;
 
-      // Direct SELECT (RPC search_designs não existe neste Supabase).
-      // Filtros/sort/paginação/count gerenciados pelo query builder.
+      // Direct SELECT por escolha (a Library não usa a RPC search_designs —
+      // controle fino de filtros/sort/paginação/count no query builder).
+      // Nota: a RPC search_designs EXISTE em prod (reconciliada na migration
+      // 20260610120000); os hooks de sugestão do Dashboard a usam.
       // Encapsulado num builder pra poder rodar 2x: com e sem o filtro de
       // formato (fallback formato-órfão, ver abaixo).
       const buildQuery = (applyFormatFilter: boolean) => {
