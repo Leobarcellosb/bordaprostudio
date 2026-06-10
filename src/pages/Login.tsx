@@ -13,6 +13,8 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
   const navigate = useNavigate();
   const loginTimeoutRef = useRef<number | null>(null);
   const {
@@ -86,7 +88,13 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         clearLoginTimeout();
-        toast.error(error.message);
+        // Mensagem amigável: contas criadas pelo trial/compra não têm senha — a
+        // pessoa precisa saber que existe o caminho sem senha.
+        toast.error(
+          /invalid login credentials/i.test(error.message)
+            ? "Email ou senha incorretos. Se você entrou por link no email ou acabou de assinar, use \"Entrar com link no email\" abaixo ou \"Esqueci minha senha\"."
+            : "Não foi possível entrar. Tente novamente.",
+        );
         setLoading(false);
       }
       // On success, don't setLoading(false) — AuthContext handles redirect.
@@ -95,6 +103,40 @@ const Login = () => {
       clearLoginTimeout();
       toast.error("Erro inesperado ao fazer login.");
       setLoading(false);
+    }
+  };
+
+  // Login SEM senha (contas criadas pelo trial /ativar ou pela compra não têm
+  // senha definida). shouldCreateUser:false — só envia link pra conta existente.
+  const handleMagicLink = async () => {
+    const target = email.trim();
+    if (!target) {
+      toast.error("Digite seu email no campo acima primeiro.");
+      return;
+    }
+    setMagicLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: target,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
+      });
+      if (error) {
+        toast.error(
+          /signups not allowed|user not found/i.test(error.message)
+            ? "Não encontramos conta com esse email. Confira o email ou crie uma conta."
+            : "Não foi possível enviar o link agora. Tente novamente em instantes.",
+        );
+      } else {
+        setMagicSent(true);
+        toast.success("Link enviado! Abra seu email e clique no link pra entrar.");
+      }
+    } catch {
+      toast.error("Não foi possível enviar o link agora. Tente novamente.");
+    } finally {
+      setMagicLoading(false);
     }
   };
 
@@ -123,6 +165,22 @@ const Login = () => {
               <Button type="submit" className="w-full shadow-md shadow-primary/20" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
+
+              {/* Caminho sem senha — essencial p/ contas criadas pelo trial/compra (sem senha definida). */}
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
+                <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">ou</span></div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleMagicLink}
+                disabled={magicLoading || magicSent}
+              >
+                {magicSent ? "Link enviado — olha seu email 📬" : magicLoading ? "Enviando link..." : "Entrar com link no email (sem senha)"}
+              </Button>
+
               <div className="text-center text-sm space-y-2 pt-2">
                 <Link to="/forgot-password" className="text-primary hover:underline block font-medium">Esqueci minha senha</Link>
                 <p className="text-muted-foreground">
