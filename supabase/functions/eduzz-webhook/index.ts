@@ -371,10 +371,13 @@ Deno.serve(async (req) => {
   // 3a. PRIMEIRA fatura paga da vida deste user? Welcome SÓ na primeira — renewal
   // mensal não recebe (spam). COUNT em subscriptions não serve de critério: a
   // UNIQUE(user_id,provider) faz renewal ser UPDATE na mesma linha (count=1 sempre).
-  // Critério equivalente: já existe log de evento pago processado com sucesso
-  // (integration_logs eduzz status='success') pra esse user? O check roda ANTES
-  // do log do passo 4 (senão o evento atual contaminaria a contagem) e o envio
-  // grava 'welcome_email_sent' (status success), que também bloqueia repetição.
+  // Critério: NÃO existe invoice_paid anterior com sucesso pra esse user — e nem
+  // welcome_email_sent anterior. Filtrar por invoice_paid (e não "qualquer evento
+  // success") evita que um contract_created histórico (vem ANTES do invoice_paid
+  // em anuais/parcelados) bloqueie o welcome do pagamento real. O welcome_email_sent
+  // entra no filtro pra não duplicar: no fluxo novo o contract_created já dispara o
+  // welcome (vira active), e o invoice_paid seguinte deve ficar calado.
+  // O check roda ANTES do log do passo 4 (senão o evento atual contaminaria a contagem).
   let isFirstPaidInvoice = false;
   if (subscriptionUpserted && subscriptionStatus === "active") {
     try {
@@ -383,7 +386,9 @@ Deno.serve(async (req) => {
         .select("*", { count: "exact", head: true })
         .eq("integration", "eduzz")
         .eq("user_id", userId)
-        .eq("status", "success");
+        .eq("status", "success")
+        // Curinga do PostgREST em .or() é * (vira % no SQL); cobre myeduzz./sun. etc.
+        .or("event_type.ilike.*invoice_paid*,event_type.eq.welcome_email_sent");
       if (error) throw error;
       isFirstPaidInvoice = (count ?? 0) === 0;
     } catch (err) {
