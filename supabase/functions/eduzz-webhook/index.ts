@@ -368,11 +368,38 @@ Deno.serve(async (req) => {
     console.error("[eduzz-webhook] upsert subscription error:", err);
   }
 
+  // 3a. PRIMEIRA fatura paga da vida deste user? Welcome SÓ na primeira — renewal
+  // mensal não recebe (spam). COUNT em subscriptions não serve de critério: a
+  // UNIQUE(user_id,provider) faz renewal ser UPDATE na mesma linha (count=1 sempre).
+  // Critério equivalente: já existe log de evento pago processado com sucesso
+  // (integration_logs eduzz status='success') pra esse user? O check roda ANTES
+  // do log do passo 4 (senão o evento atual contaminaria a contagem) e o envio
+  // grava 'welcome_email_sent' (status success), que também bloqueia repetição.
+  let isFirstPaidInvoice = false;
+  if (subscriptionUpserted && subscriptionStatus === "active") {
+    try {
+      const { count, error } = await supabase
+        .from("integration_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("integration", "eduzz")
+        .eq("user_id", userId)
+        .eq("status", "success");
+      if (error) throw error;
+      isFirstPaidInvoice = (count ?? 0) === 0;
+    } catch (err) {
+      // Fail-open: melhor 1 welcome a mais (raro, só se o check falhar) do que
+      // um pagante novo sem caminho de senha.
+      console.error("[eduzz-webhook] first-paid check error (fail-open):", err);
+      isFirstPaidInvoice = true;
+    }
+  }
+
   // 3b. Boas-vindas — fire-and-forget (não bloqueia a resposta pro Eduzz), mas
   // NADA falha em silêncio: erro de generateLink ou de envio vai pra integration_logs.
   // A conta criada pelo webhook NÃO tem senha → sem um link de definir senha o
-  // cliente não consegue logar (o CTA não pode apontar pro /biblioteca protegido).
-  if (subscriptionUpserted && subscriptionStatus === "active") {
+  // cliente não consegue logar. Dispara na PRIMEIRA fatura paga da vida, INCLUSIVE
+  // se a conta já existir (caso trial→paid); nunca em renewals.
+  if (subscriptionUpserted && subscriptionStatus === "active" && isFirstPaidInvoice) {
     const logErr = async (eventType: string, message: string) => {
       try {
         await supabase.from("integration_logs").insert({
@@ -415,6 +442,21 @@ Deno.serve(async (req) => {
       if (!mail.ok) {
         console.error("[eduzz-webhook] send-welcome-email failed:", mail.status, mail.detail);
         await logErr("welcome_email_error", `send-welcome-email HTTP ${mail.status}: ${mail.detail ?? ""}`);
+      } else {
+        // Marca o envio (status success): além de auditoria, esse registro também
+        // entra no critério de "primeira fatura" e impede welcome repetido.
+        try {
+          await supabase.from("integration_logs").insert({
+            integration: "eduzz",
+            event_type: "welcome_email_sent",
+            email: buyerEmail,
+            user_id: userId,
+            status: "success",
+            message: `Welcome enviado (primeira fatura paga; plano ${planCode}; link de senha ${actionLink ? "ok" : "fallback /forgot-password"}).`,
+          });
+        } catch (e) {
+          console.error("[eduzz-webhook] welcome_email_sent log insert error:", e);
+        }
       }
     })();
 
