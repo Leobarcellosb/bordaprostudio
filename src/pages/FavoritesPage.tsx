@@ -13,33 +13,51 @@ import { useTranslation } from "@/hooks/useTranslation";
 const FavoritesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { favoriteIds } = useFavoritesQuery();
+  const { favoriteIds, error: favError } = useFavoritesQuery();
   const toggleMutation = useToggleFavorite();
   const toggle = (kitId: string) =>
     toggleMutation.mutate({ kitId, isFavorited: favoriteIds.has(kitId) });
   const [designs, setDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     const ids = Array.from(favoriteIds);
-    if (ids.length === 0) { setDesigns([]); setLoading(false); return; }
+    if (ids.length === 0) { setDesigns([]); setError(false); setLoading(false); return; }
 
-    db.from("designs")
-      .select("*, categories(name)")
-      .in("id", ids)
-      .eq("is_published", true)
-      .then(({ data }: any) => {
-        setDesigns(data || []);
-      })
-      .catch((err: any) => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    (async () => {
+      try {
+        // Chunk de 100 — evita o URL bomb do .in() com muitos ids (incidente
+        // histórico: 1104 UUIDs → URL ~40KB → HTTP 400). [S5-01]
+        const CHUNK = 100;
+        const all: any[] = [];
+        for (let i = 0; i < ids.length; i += CHUNK) {
+          const { data, error: qErr } = await db
+            .from("designs")
+            .select("*, categories(name)")
+            .in("id", ids.slice(i, i + CHUNK))
+            .eq("is_published", true);
+          if (qErr) throw qErr;
+          all.push(...(data ?? []));
+        }
+        if (!cancelled) setDesigns(all);
+      } catch (err) {
+        // Falha vira ERRO visível, não "vazio" enganoso. [S6-03]
         console.error("[FavoritesPage] fetch error:", err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+        if (!cancelled) { setError(true); setDesigns([]); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user, favoriteIds]);
+
+  const showError = error || !!favError;
 
   return (
     <AppLayout>
@@ -69,6 +87,15 @@ const FavoritesPage = () => {
               </Card>
             ))}
           </div>
+        ) : showError ? (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardContent className="py-16 text-center space-y-4">
+              <Heart className="h-12 w-12 text-destructive/40 mx-auto" />
+              <p className="text-foreground font-medium">Não foi possível carregar seus favoritos.</p>
+              <p className="text-sm text-muted-foreground">Pode ter sido uma falha de conexão — tente recarregar.</p>
+              <Button onClick={() => window.location.reload()} className="mt-2 rounded-xl">Recarregar</Button>
+            </CardContent>
+          </Card>
         ) : designs.length === 0 ? (
           <Card className="border-border/60 bg-muted/30">
             <CardContent className="py-16 text-center space-y-4">

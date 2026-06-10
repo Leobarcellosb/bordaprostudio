@@ -26,7 +26,10 @@ export function isTrialActive(sub: Subscription | null, now: number = Date.now()
 export function isPaidActive(sub: Subscription | null, now: number = Date.now()): boolean {
   if (!sub) return false;
   if (!PAID_STATUSES.includes(sub.status)) return false;
-  if (!sub.access_expires_at) return false;
+  // access_expires_at NULL = acesso VITALÍCIO (grant permanente do admin). A RLS
+  // do banco já trata NULL como ativo; o frontend exigia não-nulo e trancava esses
+  // usuários em /plans (e os jogava na tela de trial-expirado). [S2-01/S2-04]
+  if (!sub.access_expires_at) return true;
   const e = new Date(sub.access_expires_at).getTime();
   return !Number.isNaN(e) && e > now;
 }

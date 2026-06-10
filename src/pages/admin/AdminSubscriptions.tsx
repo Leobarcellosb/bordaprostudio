@@ -19,14 +19,22 @@ interface Subscription {
 export const AdminSubscriptions = () => {
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await db
+      const { data, error: qErr } = await db
         .from("subscriptions")
         .select("id, email, plan_code, status, provider_buyer_id, provider_invoice_id, access_expires_at, last_event, created_at")
         .order("created_at", { ascending: false });
-      setSubs(data || []);
+      // Falha (RLS, timeout) NÃO pode virar "Nenhuma assinatura encontrada" numa
+      // tela de dinheiro — isso esconde o problema e mente sobre a receita. [S6-02]
+      if (qErr) {
+        console.error("[AdminSubscriptions] fetch error:", qErr);
+        setError("Não foi possível carregar as assinaturas. Recarregue a página.");
+      } else {
+        setSubs(data || []);
+      }
       setLoading(false);
     };
     fetch();
@@ -39,6 +47,8 @@ export const AdminSubscriptions = () => {
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  if (error) return <p className="text-center text-destructive py-12">{error}</p>;
 
   if (!subs.length) return <p className="text-center text-muted-foreground py-12">Nenhuma assinatura encontrada.</p>;
 

@@ -34,6 +34,8 @@ interface AuthContextValue {
   isAdmin: boolean;
   roleResolved: boolean;
   subscriptionResolved: boolean;
+  /** A query de subscription FALHOU (erro/timeout) — distinto de "resolveu sem linha". */
+  subscriptionLoadFailed: boolean;
   onboardingResolved: boolean;
   needsOnboarding: boolean;
   hasActiveSubscription: boolean;
@@ -53,6 +55,7 @@ const AuthContext = createContext<AuthContextValue>({
   isAdmin: false,
   roleResolved: false,
   subscriptionResolved: false,
+  subscriptionLoadFailed: false,
   onboardingResolved: false,
   needsOnboarding: false,
   hasActiveSubscription: false,
@@ -83,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [roleResolved, setRoleResolved] = useState(false);
   const [subscriptionResolved, setSubscriptionResolved] = useState(false);
+  const [subscriptionLoadFailed, setSubscriptionLoadFailed] = useState(false);
   const [onboardingResolved, setOnboardingResolved] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
@@ -102,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(false);
     setRoleResolved(false);
     setSubscriptionResolved(false);
+    setSubscriptionLoadFailed(false);
     setOnboardingResolved(false);
     setNeedsOnboarding(false);
   }, []);
@@ -158,6 +163,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Pode haver +1 linha (eduzz + manychat) — escolhe a de melhor acesso.
       setSubscription(pickPrimarySubscription(subRes.data ?? []));
       setSubscriptionResolved(true);
+      setSubscriptionLoadFailed(false);
+    } else {
+      // Erro/timeout NÃO é "não tem assinatura": sinaliza falha pra o gate não
+      // liberar (fail-open) nem a UI mentir "você não possui assinatura". [S6-01]
+      setSubscriptionLoadFailed(true);
     }
 
     // Onboarding flag
@@ -318,6 +328,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAdmin,
     roleResolved,
     subscriptionResolved,
+    subscriptionLoadFailed,
     onboardingResolved,
     needsOnboarding,
     hasActiveSubscription,

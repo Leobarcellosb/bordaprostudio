@@ -93,6 +93,7 @@ export const ProtectedRoute = ({
     onboardingResolved,
     hasActiveSubscription,
     subscriptionResolved,
+    subscriptionLoadFailed,
     subscription,
     signOut,
   } = useAuth();
@@ -136,6 +137,19 @@ export const ProtectedRoute = ({
   if (onboardingResolved && needsOnboarding) {
     console.info("[ROUTE] protected → /onboarding");
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // Falha (erro/timeout) ao carregar a assinatura: NÃO libera no escuro (fail-open
+  // dava acesso grátis a quem teve a query falhada) nem joga pagante pra /plans.
+  // Mostra recuperação — recarregar refaz o fetch. [S6-01]
+  if (requireSubscription && subscriptionLoadFailed && !hasActiveSubscription) {
+    return (
+      <RecoveryScreen
+        title="Não foi possível confirmar sua assinatura"
+        description="Pode ter sido uma instabilidade. Recarregue para tentar de novo."
+        onSignOut={signOut}
+      />
+    );
   }
 
   if (requireSubscription && subscriptionResolved && !hasActiveSubscription) {
