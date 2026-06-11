@@ -11,6 +11,7 @@ import { AdminAnalytics } from "./AdminAnalytics";
 import { AdminIntegrations } from "./AdminIntegrations";
 import { AdminPremiumKits } from "./AdminPremiumKits";
 import { AdminGrantAccess } from "./AdminGrantAccess";
+import { AdminQuiz } from "./AdminQuiz";
 import { Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -30,7 +31,7 @@ const AdminPanel = () => {
 
         <Tabs defaultValue="dashboard">
           <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-11">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:grid-cols-12">
               <TabsTrigger value="dashboard" className="font-medium text-xs">{t("admin.overview")}</TabsTrigger>
               <TabsTrigger value="analytics" className="font-medium text-xs">Analytics</TabsTrigger>
               <TabsTrigger value="designs" className="font-medium text-xs">{t("admin.designs")}</TabsTrigger>
@@ -42,6 +43,7 @@ const AdminPanel = () => {
               <TabsTrigger value="grant" className="font-medium text-xs">Liberar acesso</TabsTrigger>
               <TabsTrigger value="integrations" className="font-medium text-xs">Integrações</TabsTrigger>
               <TabsTrigger value="kits" className="font-medium text-xs">Kits Premium</TabsTrigger>
+              <TabsTrigger value="quiz" className="font-medium text-xs">Feedback</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
@@ -55,6 +57,7 @@ const AdminPanel = () => {
           <TabsContent value="grant"><AdminGrantAccess /></TabsContent>
           <TabsContent value="integrations"><AdminIntegrations /></TabsContent>
           <TabsContent value="kits"><AdminPremiumKits /></TabsContent>
+          <TabsContent value="quiz"><AdminQuiz /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>
