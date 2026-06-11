@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { TrialBanner } from "./TrialBanner";
+import { TrialEndQuiz } from "./TrialEndQuiz";
 import { SupportFloat } from "./SupportFloat";
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +24,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         </main>
       </div>
       <SupportFloat />
+      <TrialEndQuiz />
     </div>
   );
 };
