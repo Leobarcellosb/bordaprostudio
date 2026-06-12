@@ -165,18 +165,20 @@ const GanheDinheiro = () => {
             <Card className="border-primary/30 border-2 shadow-lg shadow-primary/10">
               <CardContent className="p-6 space-y-4">
                 <p className="text-sm font-semibold flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-primary" /> Seu link exclusivo</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 truncate rounded-xl bg-muted/60 px-3 py-2.5 text-xs">{link}</code>
-                  <Button size="sm" variant="outline" className="rounded-xl shrink-0 gap-1.5" onClick={() => copy(link!, "link")}>
-                    {copied === "link" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                <code className="block truncate rounded-xl bg-muted/60 px-3 py-2.5 text-xs">{link}</code>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="rounded-full gap-1.5 font-semibold" onClick={() => copy(link!, "link")}>
+                    {copied === "link"
+                      ? (<><Check className="h-4 w-4 text-emerald-600" /> Copiado!</>)
+                      : (<><Copy className="h-4 w-4" /> Copiar link</>)}
+                  </Button>
+                  <Button
+                    className="rounded-full gap-1.5 font-semibold bg-[#25D366] hover:bg-[#2ee06f] text-white"
+                    onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(WHATS_MSG(link!))}`, "_blank", "noopener,noreferrer")}
+                  >
+                    📱 WhatsApp
                   </Button>
                 </div>
-                <Button
-                  className="w-full rounded-full py-5 font-semibold gap-2 bg-[#25D366] hover:bg-[#2ee06f] text-white"
-                  onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(WHATS_MSG(link!))}`, "_blank", "noopener,noreferrer")}
-                >
-                  📱 Enviar no WhatsApp
-                </Button>
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center">
                   {[
                     { v: String(activeRefs.length), l: "amigas" },
