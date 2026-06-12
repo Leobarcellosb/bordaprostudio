@@ -449,6 +449,72 @@ Deno.serve(async (req) => {
     console.error("[eduzz-webhook] upsert subscription error:", err);
   }
 
+  // 3a'. ATRIBUIÇÃO DE AFILIADA (Fase 1 — só tracking; comissões nascem na Fase 2).
+  // Dois caminhos, nesta ordem:
+  //   (1) fallback por EMAIL: a amiga entrou pelo trial (?ref) — o referral já
+  //       existe; na PRIMEIRA fatura marca first_paid_at/status (renewal no-op
+  //       via filtro first_paid_at IS NULL — idempotente em retry da Eduzz).
+  //   (2) utm_campaign do checkout: só códigos br_* (utm de anúncio, ex.
+  //       "1202355...", não é código de afiliada) e só se o código existir em
+  //       affiliate_profile. Autoindicação (mesma conta) entra flagged.
+  if (subscriptionUpserted && subscriptionStatus === "active") {
+    try {
+      const nowIso = new Date().toISOString();
+      const { data: emailRefs } = await supabase
+        .from("referrals")
+        .select("id")
+        .ilike("referred_email", buyerEmail)
+        .is("first_paid_at", null);
+
+      if (emailRefs && emailRefs.length > 0) {
+        await supabase
+          .from("referrals")
+          .update({
+            referred_user_id: userId,
+            first_paid_at: nowIso,
+            status: "paid_first",
+            updated_at: nowIso,
+          })
+          .in("id", emailRefs.map((r) => r.id));
+      } else {
+        const utmObj = (dataObj.utm ?? {}) as Record<string, unknown>;
+        const utmCode = pickString(utmObj.campaign);
+        if (utmCode && utmCode.startsWith("br_")) {
+          const { data: aff } = await supabase
+            .from("affiliate_profile")
+            .select("user_id")
+            .eq("referral_code", utmCode)
+            .maybeSingle();
+          if (aff?.user_id) {
+            const { count } = await supabase
+              .from("referrals")
+              .select("*", { count: "exact", head: true })
+              .eq("referral_code", utmCode)
+              .ilike("referred_email", buyerEmail);
+            if ((count ?? 0) === 0) {
+              const self = aff.user_id === userId;
+              await supabase.from("referrals").insert({
+                referrer_id: utmCode,
+                referrer_user_id: aff.user_id,
+                referral_code: utmCode,
+                referred_email: buyerEmail,
+                referred_user_id: userId,
+                source: "utm_campaign",
+                status: "paid_first",
+                first_paid_at: nowIso,
+                flagged_for_review: self,
+                flag_reason: self ? "self_referral" : null,
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Atribuição é best-effort: NUNCA derruba o provisionamento da venda.
+      console.error("[eduzz-webhook] referral attribution error:", e);
+    }
+  }
+
   // 3a. Welcome SÓ uma vez na vida do user (na primeira fatura paga; renewal não).
   // Critério: NÃO existe marcador welcome_email_sent pra esse user. Basear o gate
   // SÓ no marcador (e não em logs de invoice_paid) garante RETRY natural: se o

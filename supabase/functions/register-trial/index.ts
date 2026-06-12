@@ -117,12 +117,40 @@ Deno.serve(async (req) => {
     // Captura a indicação (best-effort; não bloqueia o trial). Recompensa = passo futuro.
     if (ref) {
       try {
-        await admin.from("referrals").insert({
-          referrer_id: ref,
+        // Resolve o código contra o programa de afiliados (Fase 1). Código que
+        // não existe em affiliate_profile ainda é gravado (campanhas antigas),
+        // só não tem referrer_user_id.
+        const { data: aff } = await admin
+          .from("affiliate_profile")
+          .select("user_id")
+          .eq("referral_code", ref)
+          .maybeSingle();
+
+        // Anti-autoindicação (guard barato; detecção completa é Fase 3):
+        // o email do trial é o mesmo da dona do código? Marca pra revisão.
+        let selfReferral = false;
+        if (aff?.user_id) {
+          const { data: owner } = await admin
+            .from("profiles")
+            .select("email")
+            .eq("id", aff.user_id)
+            .maybeSingle();
+          selfReferral = !!owner?.email && owner.email.toLowerCase() === email;
+        }
+
+        const { error: refErr } = await admin.from("referrals").insert({
+          referrer_id: ref,                       // legado (texto livre)
+          referrer_user_id: aff?.user_id ?? null,
+          referral_code: ref,
           referred_email: email,
-          status: "activated",
-          activated_at: new Date().toISOString(),
+          source: "register_trial",
+          status: "activated_trial",
+          activated_at: new Date().toISOString(), // legado
+          trial_activated_at: new Date().toISOString(),
+          flagged_for_review: selfReferral,
+          flag_reason: selfReferral ? "self_referral" : null,
         });
+        if (refErr) console.error("[register-trial] referral insert error:", refErr);
       } catch (e) {
         console.error("[register-trial] referral insert error:", e);
       }
