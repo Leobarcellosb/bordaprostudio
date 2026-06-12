@@ -6,24 +6,231 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// ⚠️ RASCUNHO v0 — TEXTO PLACEHOLDER. O lançamento do programa é BLOQUEADO até
-// o Leo validar este termo com o contador (obrigação pré-lançamento do spec).
-export const TERMS_VERSION = "v0-draft";
-export const TERMS_TEXT = `TERMO DE ADESÃO — PROGRAMA DE INDICAÇÃO BORDA PRO (RASCUNHO v0 — sujeito a validação contábil e jurídica)
+// ⚠️ Termo REVISADO pelo Leo (12/06) — header ainda diz "rascunho operacional
+// sujeito à validação contábil e jurídica" → o gate AFFILIATE_ENABLED segue
+// false até o OK formal do contador. Aí: virar TERMS_VERSION pra "v1.0".
+export const TERMS_VERSION = "v0.2-draft";
+export const TERMS_TEXT = `TERMO DE ADESÃO — PROGRAMA DE INDICAÇÃO BORDA PRO
 
-1. INDICAÇÃO VÁLIDA: considera-se indicação válida a pessoa que (a) acessar a Borda Pro pelo seu link exclusivo, (b) tornar-se assinante pagante, e (c) permanecer ativa por pelo menos 60 dias após a primeira fatura paga.
+Versão: rascunho operacional sujeito à validação contábil e jurídica
 
-2. COMISSÃO: 30% do valor da assinatura mensal (R$ 14,97 por mês, por indicada ativa), enquanto a indicada permanecer cliente pagante. A comissão da primeira fatura só é liberada 60 dias após o pagamento.
+Pelo presente termo, a BORDA PRO estabelece as regras para participação no seu Programa de Indicação, destinado a pessoas físicas ou jurídicas que desejem indicar novas assinantes para a plataforma Borda Pro.
 
-3. REVERSÃO: em caso de reembolso ou chargeback da indicada, comissões futuras cessam e comissões ainda não pagas são canceladas.
+Ao participar do programa, a participante declara ter lido, compreendido e aceitado integralmente as regras abaixo.
 
-4. PAGAMENTO: via Pix, em ciclo mensal (dia 14), para a chave cadastrada neste programa. Limite de R$ 500,00/mês; valores excedentes ficam em espera para o ciclo seguinte. Acima de R$ 5.000,00 acumulados, será exigida emissão de nota fiscal.
+1. OBJETO DO PROGRAMA
 
-5. NATUREZA: a comissão constitui remuneração por serviço autônomo eventual de indicação de negócios, sem vínculo empregatício, societário ou de representação.
+O Programa de Indicação Borda Pro tem como objetivo remunerar participantes que indicarem novas assinantes pagantes para a Borda Pro, conforme as condições previstas neste termo.
 
-6. AUTOINDICAÇÃO: é vedado indicar a si mesma, contas próprias ou utilizar o próprio CPF/email como indicada. Violações resultam em bloqueio do programa e cancelamento das comissões.
+A participação no programa não gera vínculo empregatício, societário, comercial exclusivo, representação comercial, franquia, mandato, agência ou qualquer forma de subordinação entre a participante e a Borda Pro.
 
-7. A Borda Pro pode alterar ou encerrar o programa mediante aviso prévio de 30 dias, preservando comissões já geradas.`;
+2. PARTICIPANTE
+
+Poderão participar do programa pessoas físicas maiores de 18 anos, com CPF regular, chave Pix válida e dados cadastrais completos.
+
+Pessoas jurídicas também poderão participar, desde que apresentem os dados cadastrais e fiscais exigidos pela Borda Pro.
+
+A Borda Pro poderá recusar, suspender ou encerrar a participação de qualquer pessoa em caso de dados incompletos, inconsistentes, suspeita de fraude, uso indevido da marca ou descumprimento das regras deste termo.
+
+3. INDICAÇÃO VÁLIDA
+
+Considera-se indicação válida a pessoa que:
+
+(a) acessar a Borda Pro por meio do link exclusivo da participante;
+
+(b) realizar a assinatura paga da Borda Pro;
+
+(c) ter o pagamento da primeira fatura confirmado;
+
+(d) permanecer ativa, pagante e adimplente por, no mínimo, 60 dias após a confirmação do pagamento da primeira fatura.
+
+Indicações em período gratuito, teste, cortesia, inadimplência, reembolso, chargeback, contestação, cancelamento ou fraude não serão consideradas válidas para fins de comissão.
+
+4. ATRIBUIÇÃO DA INDICAÇÃO
+
+A indicação será atribuída com base nos critérios técnicos definidos pela Borda Pro, incluindo link exclusivo, identificação do cadastro, rastreamento disponível, prazo de atribuição e validação antifraude.
+
+Caso a mesma pessoa seja indicada por mais de uma participante, a Borda Pro poderá definir a atribuição com base no primeiro link válido identificado, no último link válido identificado ou em outro critério técnico adotado internamente.
+
+Em caso de conflito, erro técnico, duplicidade, uso de múltiplos links, suspeita de manipulação ou impossibilidade de comprovar a origem da indicação, a Borda Pro poderá revisar, negar ou cancelar a comissão.
+
+5. COMISSÃO
+
+A participante fará jus a uma comissão equivalente a 30% do valor mensal efetivamente pago pela assinante indicada à Borda Pro, enquanto a indicada permanecer cliente pagante, ativa e adimplente.
+
+Considerando o plano mensal vigente de R$ 49,90, a comissão corresponde atualmente a R$ 14,97 por mês por indicada ativa.
+
+O valor da comissão poderá variar em caso de alteração de preço, troca de plano, cupom, desconto, promoção, inadimplência, reembolso, cancelamento, chargeback ou mudança comercial da assinatura.
+
+A comissão será calculada somente sobre valores efetivamente recebidos pela Borda Pro, excluídos valores não pagos, estornados, reembolsados, contestados, concedidos em desconto ou cancelados.
+
+6. LIBERAÇÃO DA PRIMEIRA COMISSÃO
+
+A comissão referente à primeira fatura da assinante indicada somente será considerada aprovada após o prazo mínimo de 60 dias contados da confirmação do pagamento da primeira fatura.
+
+Caso a assinante indicada cancele, solicite reembolso, fique inadimplente, conteste o pagamento ou realize chargeback dentro desse prazo, a comissão correspondente será cancelada.
+
+7. COMISSÕES RECORRENTES
+
+Após a aprovação da primeira comissão, a participante poderá continuar recebendo comissões mensais enquanto a assinante indicada permanecer ativa, pagante e adimplente na Borda Pro.
+
+As comissões recorrentes não constituem direito adquirido permanente e dependem da manutenção da assinatura da indicada, da continuidade do programa e do cumprimento das regras deste termo.
+
+Caso a indicada cancele a assinatura, deixe de pagar, solicite reembolso, realize chargeback ou seja removida da base da Borda Pro por qualquer motivo, as comissões futuras vinculadas a essa indicada serão encerradas.
+
+8. REVERSÃO, REEMBOLSO E CHARGEBACK
+
+Em caso de reembolso, cancelamento, inadimplência, chargeback, fraude, contestação ou pagamento indevido, a Borda Pro poderá cancelar comissões ainda não pagas, suspender comissões futuras ou compensar valores pagos indevidamente em ciclos posteriores.
+
+A Borda Pro poderá realizar auditoria das indicações a qualquer momento, especialmente em caso de comportamento atípico, volume incomum de indicações, suspeita de autoindicação, uso de dados falsos ou tentativa de manipulação do programa.
+
+9. PAGAMENTO DAS COMISSÕES
+
+As comissões aprovadas serão pagas mensalmente, preferencialmente até o dia 14 de cada mês, via Pix, para chave de titularidade da participante cadastrada no programa.
+
+O pagamento somente será realizado quando a participante possuir saldo mínimo aprovado de R$ 50,00.
+
+Caso o saldo aprovado seja inferior a R$ 50,00, o valor permanecerá acumulado para ciclos seguintes, sem correção monetária, até atingir o saldo mínimo de pagamento.
+
+A Borda Pro poderá estabelecer limite operacional mensal de pagamento por participante. Valores aprovados que excederem eventual limite operacional poderão ser acumulados para ciclos seguintes, sem correção monetária.
+
+O pagamento dependerá da regularidade cadastral, fiscal e documental da participante.
+
+10. DADOS NECESSÁRIOS PARA PAGAMENTO
+
+Para receber as comissões, a participante deverá informar corretamente os dados solicitados pela Borda Pro, incluindo, quando aplicável:
+
+(a) nome completo ou razão social;
+
+(b) CPF ou CNPJ;
+
+(c) e-mail;
+
+(d) telefone;
+
+(e) chave Pix de titularidade da participante;
+
+(f) dados bancários, se necessário;
+
+(g) endereço;
+
+(h) demais informações fiscais ou cadastrais exigidas pela Borda Pro.
+
+A Borda Pro poderá suspender pagamentos caso os dados estejam incompletos, incorretos, inconsistentes, desatualizados ou vinculados a terceiros.
+
+11. TRIBUTOS, RECIBOS E DOCUMENTAÇÃO FISCAL
+
+As comissões serão pagas líquidas das retenções tributárias, previdenciárias ou legais eventualmente aplicáveis, conforme a natureza do pagamento, o cadastro da participante, o valor devido e a legislação vigente.
+
+Para participantes pessoas físicas, a Borda Pro poderá emitir recibo, RPA, demonstrativo de pagamento ou documento equivalente, conforme orientação contábil e fiscal.
+
+Para participantes pessoas jurídicas, a Borda Pro poderá exigir a emissão de nota fiscal de serviços válida como condição para pagamento das comissões.
+
+A Borda Pro poderá exigir documentação fiscal adicional, atualização cadastral, comprovação de titularidade da chave Pix, regularização de CPF/CNPJ ou adequação cadastral como condição para liberação de novos pagamentos.
+
+Caso a participante pessoa física passe a apresentar volume recorrente elevado de comissões, a Borda Pro poderá solicitar adequação fiscal, emissão de documentação complementar ou migração para recebimento como pessoa jurídica, conforme orientação contábil.
+
+12. AUTOINDICAÇÃO
+
+É proibido indicar a si mesma, utilizar contas próprias, criar assinaturas em nome próprio, utilizar o próprio CPF, e-mail, cartão, Pix, dispositivo, endereço ou qualquer dado pessoal com o objetivo de gerar comissão artificial.
+
+Também é proibido indicar familiares próximos, terceiros fictícios, contas duplicadas ou qualquer pessoa cadastrada apenas com a finalidade de manipular o programa.
+
+A violação desta cláusula poderá resultar em bloqueio imediato da participante, cancelamento das comissões, exclusão definitiva do programa e compensação de valores pagos indevidamente.
+
+13. CONDUTAS PROIBIDAS
+
+A participante não poderá:
+
+(a) prometer resultados não garantidos pela Borda Pro;
+
+(b) falar em nome da Borda Pro sem autorização;
+
+(c) conceder descontos, bônus ou condições comerciais não autorizadas;
+
+(d) utilizar anúncios pagos com a marca Borda Pro sem autorização expressa;
+
+(e) praticar spam, envio abusivo de mensagens ou abordagem invasiva;
+
+(f) usar dados falsos, perfis falsos ou contas de terceiros;
+
+(g) copiar páginas, identidade visual, materiais, anúncios ou conteúdos da Borda Pro sem autorização;
+
+(h) associar a Borda Pro a promessas enganosas, ilegais, ofensivas ou incompatíveis com a marca;
+
+(i) praticar qualquer conduta que prejudique a reputação, operação ou clientes da Borda Pro.
+
+14. USO DA MARCA BORDA PRO
+
+A participante poderá divulgar seu link de indicação de forma ética e compatível com as regras do programa.
+
+O uso do nome, marca, logotipo, imagens, materiais, prints, vídeos, páginas, promessas comerciais ou identidade visual da Borda Pro dependerá de autorização prévia, salvo materiais oficialmente disponibilizados pela Borda Pro para divulgação do programa.
+
+A participante não poderá criar páginas, perfis, grupos, anúncios, domínios, materiais ou comunicações que levem o público a acreditar que são canais oficiais da Borda Pro.
+
+15. AUSÊNCIA DE REPRESENTAÇÃO
+
+A participante atua de forma independente e não possui poderes para representar a Borda Pro, assumir obrigações, negociar contratos, alterar preços, conceder descontos, prometer funcionalidades, realizar suporte oficial ou tomar decisões em nome da empresa.
+
+Qualquer promessa, garantia, oferta ou condição criada pela participante sem autorização expressa será de responsabilidade exclusiva da participante.
+
+16. PROTEÇÃO DE DADOS
+
+A participante deverá respeitar a privacidade e a proteção de dados das pessoas indicadas, comprometendo-se a não coletar, utilizar, compartilhar ou tratar dados pessoais de forma irregular.
+
+A participante não poderá inserir dados de terceiros sem autorização, cadastrar pessoas sem consentimento ou utilizar listas de contatos obtidas de forma irregular.
+
+A Borda Pro tratará os dados das participantes e indicadas conforme sua Política de Privacidade e a legislação aplicável de proteção de dados.
+
+17. SUSPENSÃO OU CANCELAMENTO DA PARTICIPAÇÃO
+
+A Borda Pro poderá suspender, bloquear ou cancelar a participação da participante no programa, com ou sem aviso prévio, em caso de:
+
+(a) descumprimento deste termo;
+
+(b) suspeita de fraude;
+
+(c) autoindicação;
+
+(d) manipulação de links ou cadastros;
+
+(e) uso indevido da marca;
+
+(f) conduta abusiva ou prejudicial à Borda Pro;
+
+(g) inconsistência cadastral ou fiscal;
+
+(h) tentativa de obter comissões indevidas;
+
+(i) violação de leis, regulamentos ou direitos de terceiros.
+
+Nesses casos, a Borda Pro poderá cancelar comissões pendentes, suspender pagamentos e compensar valores pagos indevidamente.
+
+18. ALTERAÇÃO DO PROGRAMA
+
+A Borda Pro poderá alterar regras, percentuais, prazos, critérios de validação, forma de pagamento, valor mínimo de saque, condições fiscais ou demais características do programa mediante aviso prévio de 30 dias.
+
+Alterações poderão ser aplicadas imediatamente em caso de exigência legal, determinação de autoridade competente, risco fiscal, risco operacional, fraude, abuso ou necessidade de proteção da Borda Pro e de suas clientes.
+
+19. ENCERRAMENTO DO PROGRAMA
+
+A Borda Pro poderá suspender ou encerrar o Programa de Indicação mediante aviso prévio de 30 dias.
+
+Comissões já aprovadas até a data de encerramento serão preservadas, desde que cumpridas as regras deste termo e a documentação cadastral e fiscal da participante esteja regular.
+
+Comissões futuras, ainda não aprovadas ou vinculadas a períodos posteriores ao encerramento do programa poderão deixar de ser geradas.
+
+20. COMUNICAÇÕES
+
+As comunicações relacionadas ao programa poderão ser realizadas por e-mail, WhatsApp, área de membros, painel da participante ou outro canal informado pela Borda Pro.
+
+A participante é responsável por manter seus dados de contato atualizados.
+
+21. ACEITE
+
+Ao participar do Programa de Indicação Borda Pro, cadastrar-se, divulgar seu link ou receber comissões, a participante declara que leu, compreendeu e aceitou integralmente este termo.
+
+Este termo entra em vigor na data de aceite da participante ou na data de início de sua participação no programa, o que ocorrer primeiro.`;
 
 interface Profile {
   pix_key?: string | null;

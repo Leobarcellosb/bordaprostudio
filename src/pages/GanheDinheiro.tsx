@@ -46,9 +46,9 @@ const WHATS_MSG = (link: string) =>
 const FAQ = [
   { q: "Como funciona?", a: `Você compartilha seu link exclusivo. Quando uma amiga assina pela sua indicação, você ganha ${COMMISSION} por mês enquanto ela for cliente. Sem limite de amigas.` },
   { q: "Quanto posso ganhar?", a: `${COMMISSION} por mês por amiga assinante ativa, até ${CAP} por mês nesta fase do programa (valores acima ficam em espera pro ciclo seguinte).` },
-  { q: "Quando recebo o Pix?", a: "Todo dia 14, direto na chave Pix que você cadastrar. A comissão de cada amiga é liberada 60 dias após a primeira fatura paga dela." },
-  { q: "O que é uma indicação válida?", a: "Uma pessoa nova que entra pelo seu link, vira assinante pagante e permanece ativa por pelo menos 60 dias." },
-  { q: "Posso indicar meu marido / sócia / mãe?", a: "Pode indicar qualquer pessoa que realmente vá usar a Borda Pro — mas contas criadas só pra gerar comissão (mesmo CPF, mesmo endereço, autoindicação) são bloqueadas pelo nosso sistema antifraude." },
+  { q: "Quando recebo o Pix?", a: "Mensalmente, até o dia 14, direto na chave Pix que você cadastrar — quando seu saldo aprovado atingir R$ 50. Abaixo disso, o valor acumula pro ciclo seguinte. A comissão de cada amiga é liberada 60 dias após a primeira fatura paga dela." },
+  { q: "O que é uma indicação válida?", a: "Uma pessoa nova que entra pelo seu link, vira assinante pagante e permanece ativa e em dia por pelo menos 60 dias." },
+  { q: "Posso indicar meu marido / sócia / mãe?", a: "Não — o termo do programa veda autoindicação e indicação de familiares próximos ou contas criadas pra gerar comissão. Indique amigas, colegas e clientes bordadeiras que realmente vão usar a Borda Pro." },
   { q: "E se a amiga cancelar?", a: "A comissão dela para de ser gerada a partir do cancelamento. Se ela pedir reembolso, a comissão daquela fatura é cancelada." },
   { q: "Preciso pagar imposto?", a: `Até ${CAP}/mês o Pix vai direto. Acima de R$ 5.000 acumulados, pedimos nota fiscal — a gente te orienta quando chegar lá.` },
 ];
