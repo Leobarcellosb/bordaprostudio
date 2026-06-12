@@ -19,10 +19,31 @@ ALTER TABLE public.referrals ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer_user ON public.referrals (referrer_user_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_code ON public.referrals (referral_code);
 
--- A bordadeira vê as PRÓPRIAS indicações (onepager lê direto via RLS).
+-- A bordadeira vê as PRÓPRIAS indicações via RPC MASCARADA (não por own-read na
+-- tabela: policy row-level exporia o email COMPLETO + flag antifraude das
+-- indicadas via PostgREST — PII/LGPD; a UI mascara, a API não mascararia).
 DROP POLICY IF EXISTS "Referrer reads own referrals" ON public.referrals;
-CREATE POLICY "Referrer reads own referrals" ON public.referrals
-  FOR SELECT TO authenticated USING (referrer_user_id = auth.uid());
+
+CREATE OR REPLACE FUNCTION public.my_referrals()
+RETURNS TABLE(id uuid, referred_initial text, status text, created_at timestamptz)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $$
+  SELECT r.id,
+         upper(left(coalesce(r.referred_email, '?'), 1)) || '•••' AS referred_initial,
+         r.status,
+         r.created_at
+  FROM public.referrals r
+  WHERE r.referrer_user_id = auth.uid()
+    AND r.status <> 'fraud_blocked'
+  ORDER BY r.created_at DESC;
+$$;
+REVOKE ALL ON FUNCTION public.my_referrals() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.my_referrals() TO authenticated;
+
+-- Normaliza emails legados pra lowercase (a atribuição usa match exato .eq —
+-- register-trial já grava lowercase; isto alinha as linhas antigas).
+UPDATE public.referrals SET referred_email = lower(referred_email)
+WHERE referred_email IS NOT NULL AND referred_email <> lower(referred_email);
 
 -- Admin lê tudo (borda_is_admin existe em prod — verificada).
 DROP POLICY IF EXISTS "Admins read referrals" ON public.referrals;

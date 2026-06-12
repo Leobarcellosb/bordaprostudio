@@ -1,5 +1,6 @@
 import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings, Eye, HandCoins } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AFFILIATE_ENABLED } from "@/config/affiliate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -78,7 +79,9 @@ export const MobileNav = () => {
                   {section.title}
                 </p>
               )}
-              {section.items.map(({ icon: Icon, labelKey, label, path }) => (
+              {section.items
+                .filter(({ path }) => path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED || isAdmin)
+                .map(({ icon: Icon, labelKey, label, path }) => (
                 <button key={path} onClick={() => { navigate(path); setOpen(false); }}
                   className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                     location.pathname === path ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"

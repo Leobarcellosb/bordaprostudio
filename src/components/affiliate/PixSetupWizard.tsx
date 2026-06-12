@@ -43,8 +43,31 @@ const PIX_TYPES = [
   { value: "cpf", label: "CPF" },
   { value: "email", label: "Email" },
   { value: "phone", label: "Telefone" },
-  { value: "random", label: "Chave aleatória" },
+  { value: "random", label: "Aleatória" },
 ];
+
+// Dígito verificador de CPF (espelho do server — feedback imediato no client).
+export function cpfValido(cpf: string): boolean {
+  const d = cpf.replace(/\D/g, "");
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (const len of [9, 10]) {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += Number(d[i]) * (len + 1 - i);
+    if (((sum * 10) % 11) % 10 !== Number(d[len])) return false;
+  }
+  return true;
+}
+
+// Erros do servidor → mensagem amigável (fallback genérico cobre o resto).
+const SERVER_ERRORS: Record<string, string> = {
+  cpf_invalido: "CPF inválido — confere os dígitos.",
+  pix_cpf_diferente_do_titular: "A chave CPF precisa ser o mesmo CPF do titular.",
+  pix_email_invalido: "A chave de email não parece válida.",
+  pix_phone_invalido: "A chave de telefone não parece válida (use DDD + número).",
+  pix_random_invalida: "A chave aleatória não parece válida (copie do app do banco).",
+  setup_required: "Finalize o cadastro primeiro (Configurar PIX).",
+  termos_nao_aceitos: "Você precisa aceitar os termos pra concluir.",
+};
 
 export const PixSetupWizard = ({
   open, onOpenChange, mode, initial, onSaved,
@@ -94,7 +117,8 @@ export const PixSetupWizard = ({
   };
 
   const cpfDigits = f.pix_holder_cpf.replace(/\D/g, "");
-  const step0Ok = f.pix_holder_name.trim().length >= 5 && cpfDigits.length === 11 && f.address_zip && f.address_city;
+  const cpfOk = cpfValido(cpfDigits);
+  const step0Ok = f.pix_holder_name.trim().length >= 5 && cpfOk && f.address_zip && f.address_city;
   const pixCpfMismatch = f.pix_type === "cpf" && f.pix_key.replace(/\D/g, "") !== cpfDigits && f.pix_key.length > 0;
   const step1Ok = f.pix_key.trim().length > 3 && !pixCpfMismatch;
 
@@ -112,7 +136,15 @@ export const PixSetupWizard = ({
       onSaved();
     } catch (err) {
       console.error("[PixSetupWizard] submit error:", err);
-      setError("Não foi possível salvar. Confere os dados e tenta de novo.");
+      // supabase-js põe respostas não-2xx em err.context (Response) — extrai o
+      // código do servidor pra mensagem específica; genérica como fallback.
+      let msg = "Não foi possível salvar. Confere os dados e tenta de novo.";
+      try {
+        const ctx = (err as { context?: Response }).context;
+        const body = ctx ? await ctx.json() : null;
+        if (body?.error && SERVER_ERRORS[body.error]) msg = SERVER_ERRORS[body.error];
+      } catch { /* mantém genérica */ }
+      setError(msg);
     } finally {
       setSending(false);
     }
@@ -134,6 +166,11 @@ export const PixSetupWizard = ({
           <div className="space-y-2.5">
             <Input placeholder="Nome completo" value={f.pix_holder_name} onChange={set("pix_holder_name")} />
             <Input placeholder="CPF (só números)" inputMode="numeric" value={f.pix_holder_cpf} onChange={set("pix_holder_cpf")} />
+            {cpfDigits.length === 11 && !cpfOk && (
+              <p className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" /> CPF inválido — confere os dígitos.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2.5">
               <Input placeholder="CEP" inputMode="numeric" value={f.address_zip} onChange={set("address_zip")} onBlur={onZipBlur} />
               <Input placeholder="UF" maxLength={2} value={f.address_state} onChange={set("address_state")} />

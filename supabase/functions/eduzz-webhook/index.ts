@@ -460,11 +460,19 @@ Deno.serve(async (req) => {
   if (subscriptionUpserted && subscriptionStatus === "active") {
     try {
       const nowIso = new Date().toISOString();
+      // Match EXATO em lowercase (.eq, não .ilike): '_'/'%' no email do comprador
+      // são curingas de LIKE e corrompiam atribuição em massa. register-trial e o
+      // insert abaixo gravam lowercase; legados normalizados na migration.
+      const refEmail = buyerEmail.toLowerCase();
       const { data: emailRefs } = await supabase
         .from("referrals")
         .select("id")
-        .ilike("referred_email", buyerEmail)
-        .is("first_paid_at", null);
+        .eq("referred_email", refEmail)
+        .is("first_paid_at", null)
+        // Só indicações de AFILIADA real (programa). Linhas legadas de campanha
+        // (referrer_user_id null) ficam fora — senão um RENEWAL da coorte antiga
+        // viraria "paid_first" retroativo sem dono.
+        .not("referrer_user_id", "is", null);
 
       if (emailRefs && emailRefs.length > 0) {
         await supabase
@@ -486,18 +494,21 @@ Deno.serve(async (req) => {
             .eq("referral_code", utmCode)
             .maybeSingle();
           if (aff?.user_id) {
+            // Dedup por EMAIL (qualquer referral desse comprador, de QUALQUER
+            // código): retry da Eduzz re-entra aqui depois que o fallback acima
+            // marcou first_paid — dedupar por (código,email) inseriria um SEGUNDO
+            // referral paid_first pra outro código (disputa de comissão na Fase 2).
             const { count } = await supabase
               .from("referrals")
               .select("*", { count: "exact", head: true })
-              .eq("referral_code", utmCode)
-              .ilike("referred_email", buyerEmail);
+              .eq("referred_email", refEmail);
             if ((count ?? 0) === 0) {
               const self = aff.user_id === userId;
               await supabase.from("referrals").insert({
                 referrer_id: utmCode,
                 referrer_user_id: aff.user_id,
                 referral_code: utmCode,
-                referred_email: buyerEmail,
+                referred_email: refEmail,
                 referred_user_id: userId,
                 source: "utm_campaign",
                 status: "paid_first",

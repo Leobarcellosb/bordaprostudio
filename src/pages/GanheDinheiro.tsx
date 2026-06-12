@@ -12,6 +12,8 @@ import {
 import { db } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Navigate } from "react-router-dom";
+import { AFFILIATE_ENABLED } from "@/config/affiliate";
 import { PixSetupWizard, TERMS_TEXT } from "@/components/affiliate/PixSetupWizard";
 
 // Onepager do programa de indicação (FASE 1: link + indicações; comissões em R$
@@ -21,11 +23,11 @@ import { PixSetupWizard, TERMS_TEXT } from "@/components/affiliate/PixSetupWizar
 const COMMISSION = "R$ 14,97";
 const CAP = "R$ 500";
 
+// Shape da RPC my_referrals (mascarada: a API nunca expõe o email da indicada).
 interface Referral {
   id: string;
-  referred_email: string | null;
+  referred_initial: string;
   status: string;
-  flagged_for_review: boolean | null;
   created_at: string;
 }
 
@@ -52,12 +54,13 @@ const FAQ = [
 ];
 
 const GanheDinheiro = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [profile, setProfile] = useState<any | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardOpenCount, setWizardOpenCount] = useState(0);
   const [wizardMode, setWizardMode] = useState<"setup" | "edit">("setup");
   const [termsOpen, setTermsOpen] = useState(false);
   const [copied, setCopied] = useState<"link" | "msg" | null>(null);
@@ -68,8 +71,7 @@ const GanheDinheiro = () => {
     setError(false);
     const [prof, refs] = await Promise.all([
       db.from("affiliate_profile").select("*").eq("user_id", user.id).maybeSingle(),
-      db.from("referrals").select("id, referred_email, status, flagged_for_review, created_at")
-        .eq("referrer_user_id", user.id).order("created_at", { ascending: false }),
+      db.rpc("my_referrals"),
     ]);
     // Erro vira ERRO visível, não "vazio" (lição da auditoria).
     if (prof.error || refs.error) {
@@ -85,7 +87,8 @@ const GanheDinheiro = () => {
   useEffect(() => { load(); }, [load]);
 
   const link = profile ? `https://borda.pro/ativar?ref=${profile.referral_code}` : null;
-  const activeRefs = referrals.filter((r) => r.status !== "fraud_blocked");
+  // RPC my_referrals já vem mascarada e sem linhas fraud_blocked.
+  const activeRefs = referrals;
 
   const copy = async (text: string, which: "link" | "msg") => {
     try {
@@ -98,9 +101,18 @@ const GanheDinheiro = () => {
     }
   };
 
+  // ⚠️ GATE DE LANÇAMENTO (§7 do spec): termo é rascunho → programa visível só
+  // pra admin (smoke test em prod) até AFFILIATE_ENABLED=true com termo v1.0.
+  if (!AFFILIATE_ENABLED && !isAdmin) return <Navigate to="/dashboard" replace />;
+
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-8">
+        {!AFFILIATE_ENABLED && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-800">
+            🔒 Pré-lançamento — visível só para admin. Libera em src/config/affiliate.ts após o termo validado pelo contador.
+          </div>
+        )}
         {/* ── Header ── */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-secondary/5 to-amber-100/40 p-7 md:p-9">
           <div className="relative z-10 space-y-3">
@@ -141,7 +153,7 @@ const GanheDinheiro = () => {
               </div>
               <Button
                 className="rounded-full py-6 px-8 font-semibold shadow-lg shadow-primary/20"
-                onClick={() => { setWizardMode("setup"); setWizardOpen(true); }}
+                onClick={() => { setWizardMode("setup"); setWizardOpenCount((c) => c + 1); setWizardOpen(true); }}
               >
                 Configurar PIX para receber
               </Button>
@@ -168,7 +180,7 @@ const GanheDinheiro = () => {
                 <div className="grid grid-cols-3 gap-2 pt-1 text-center">
                   {[
                     { v: String(activeRefs.length), l: "amigas" },
-                    { v: "R$ 0", l: "acumulado" },
+                    { v: "R$ 0", l: "liberado" },
                     { v: `até ${CAP}`, l: "cap mensal" },
                   ].map((s) => (
                     <div key={s.l} className="rounded-xl bg-muted/40 py-3">
@@ -177,9 +189,12 @@ const GanheDinheiro = () => {
                     </div>
                   ))}
                 </div>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Comissões liberam 60 dias após a 1ª fatura paga de cada amiga.
+                </p>
                 <p className="text-[11px] text-muted-foreground flex items-center justify-between">
                   <span>✓ Pix configurado: <strong>{profile.pix_type === "email" ? profile.pix_key?.replace(/^(..).*(@.*)$/, "$1***$2") : `${(profile.pix_key ?? "").slice(0, 4)}…`}</strong></span>
-                  <button onClick={() => { setWizardMode("edit"); setWizardOpen(true); }} className="inline-flex items-center gap-1 text-primary hover:underline">
+                  <button onClick={() => { setWizardMode("edit"); setWizardOpenCount((c) => c + 1); setWizardOpen(true); }} className="inline-flex items-center gap-1 text-primary hover:underline">
                     <Pencil className="h-3 w-3" /> Editar
                   </button>
                 </p>
@@ -205,10 +220,10 @@ const GanheDinheiro = () => {
                       {r ? (
                         <>
                           <span className="text-base font-display font-bold text-primary">
-                            {(r.referred_email ?? "?").charAt(0).toUpperCase()}
+                            {r.referred_initial}
                           </span>
-                          <span className="text-[9px] leading-tight text-muted-foreground px-0.5">
-                            {STATUS_LABEL[r.status] ?? r.status}
+                          <span className="line-clamp-2 overflow-hidden text-[10px] leading-tight text-muted-foreground px-0.5">
+                            {STATUS_LABEL[r.status] ?? "em andamento"}
                           </span>
                         </>
                       ) : (
@@ -255,8 +270,10 @@ const GanheDinheiro = () => {
         </div>
       </div>
 
+      {/* key só muda ao ABRIR (counter): reseta o state do wizard sem matar a
+          animação de saída do Dialog no fechar. */}
       <PixSetupWizard
-        key={`${wizardMode}-${wizardOpen}`}
+        key={`${wizardMode}-${wizardOpenCount}`}
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         mode={wizardMode}

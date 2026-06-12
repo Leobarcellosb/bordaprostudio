@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFavoritesQuery } from "@/hooks/queries/useFavoritesQuery";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { AFFILIATE_ENABLED } from "@/config/affiliate";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const sections = [
@@ -54,7 +55,12 @@ export const AppSidebar = () => {
   const location = useLocation();
   const { t } = useTranslation();
 
+  // Pré-lançamento de afiliados: item só pra admin enquanto AFFILIATE_ENABLED=false.
+  const itemVisible = (path: string) =>
+    path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED || isAdmin;
+
   const renderItem = ({ icon: Icon, labelKey, label, path }: any) => {
+    if (!itemVisible(path)) return null;
     const active = location.pathname === path;
     return (
       <button

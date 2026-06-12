@@ -37,6 +37,20 @@ const clip = (v: unknown, max: number): string | null => {
 
 const onlyDigits = (s: string | null): string => (s ?? "").replace(/\D/g, "");
 
+// Dígito verificador de CPF (algoritmo padrão) — a Fase 2 paga Pix nesse dado;
+// CPF inválido coletado agora vira payout falho depois.
+function cpfValido(cpf: string): boolean {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  for (const len of [9, 10]) {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i);
+    const dv = ((sum * 10) % 11) % 10;
+    if (dv !== Number(cpf[len])) return false;
+  }
+  return true;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PIX_TYPES = new Set(["cpf", "email", "phone", "random"]);
 
 interface PixPayload {
@@ -61,10 +75,18 @@ function parsePix(body: Record<string, unknown>): { ok: true; data: PixPayload }
   if (!pixType || !PIX_TYPES.has(pixType)) return { ok: false, error: "pix_type_invalido" };
   if (!pixKey) return { ok: false, error: "pix_key_obrigatoria" };
   if (!holderName) return { ok: false, error: "titular_obrigatorio" };
-  if (holderCpf.length !== 11) return { ok: false, error: "cpf_invalido" };
+  if (!cpfValido(holderCpf)) return { ok: false, error: "cpf_invalido" };
   // Validação do spec: a chave Pix tipo CPF tem que ser o MESMO CPF do titular.
   if (pixType === "cpf" && onlyDigits(pixKey) !== holderCpf) {
     return { ok: false, error: "pix_cpf_diferente_do_titular" };
+  }
+  // Formato da chave por tipo (qualidade do dado de pagamento, não antifraude).
+  if (pixType === "email" && !EMAIL_RE.test(pixKey)) return { ok: false, error: "pix_email_invalido" };
+  if (pixType === "phone" && (onlyDigits(pixKey).length < 10 || onlyDigits(pixKey).length > 13)) {
+    return { ok: false, error: "pix_phone_invalido" };
+  }
+  if (pixType === "random" && !/^[0-9a-f-]{32,36}$/i.test(pixKey)) {
+    return { ok: false, error: "pix_random_invalida" };
   }
   return {
     ok: true,
@@ -129,37 +151,65 @@ Deno.serve(async (req) => {
       return json(500, { error: "lookup_failed" });
     }
 
-    let code = existing?.referral_code ?? null;
-    if (!code) {
-      // Gera br_xxxxxx único (6 hex). Colisão em 16M é rara; tenta 5x.
-      for (let i = 0; i < 5 && !code; i++) {
-        const candidate = `br_${crypto.randomUUID().replace(/-/g, "").slice(0, 6)}`;
-        const { count, error } = await admin
-          .from("affiliate_profile")
-          .select("*", { count: "exact", head: true })
-          .eq("referral_code", candidate);
-        if (error) {
-          console.error("[affiliate] code uniqueness check error:", error);
-          return json(500, { error: "code_generation_failed" });
-        }
-        if ((count ?? 0) === 0) code = candidate;
+    const nowIso = new Date().toISOString();
+
+    // Perfil existente: ATUALIZA sem tocar no referral_code (um segundo setup
+    // concorrente não pode rotacionar o código — link já compartilhado morreria).
+    if (existing?.referral_code) {
+      const { error: updErr } = await admin
+        .from("affiliate_profile")
+        .update({ ...pix.data, terms_accepted_at: nowIso, terms_version: TERMS_VERSION, updated_at: nowIso })
+        .eq("user_id", user.id);
+      if (updErr) {
+        console.error("[affiliate] setup update error:", updErr);
+        return json(500, { error: "save_failed" });
       }
-      if (!code) return json(500, { error: "code_generation_failed" });
+      return json(200, { ok: true, referral_code: existing.referral_code, terms_version: TERMS_VERSION });
     }
 
-    const { error: upErr } = await admin.from("affiliate_profile").upsert(
-      {
-        user_id: user.id,
-        referral_code: code,
-        ...pix.data,
-        terms_accepted_at: new Date().toISOString(),
-        terms_version: TERMS_VERSION,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-    if (upErr) {
-      console.error("[affiliate] setup upsert error:", upErr);
+    // Perfil novo: gera código e INSERE. Corrida (duas abas) é resolvida pelo
+    // PK/UNIQUE: 23505 → re-seleciona o código que a outra chamada gravou.
+    let code: string | null = null;
+    for (let i = 0; i < 5 && !code; i++) {
+      const candidate = `br_${crypto.randomUUID().replace(/-/g, "").slice(0, 6)}`;
+      const { count, error } = await admin
+        .from("affiliate_profile")
+        .select("*", { count: "exact", head: true })
+        .eq("referral_code", candidate);
+      if (error) {
+        console.error("[affiliate] code uniqueness check error:", error);
+        return json(500, { error: "code_generation_failed" });
+      }
+      if ((count ?? 0) === 0) code = candidate;
+    }
+    if (!code) return json(500, { error: "code_generation_failed" });
+
+    const { error: insErr } = await admin.from("affiliate_profile").insert({
+      user_id: user.id,
+      referral_code: code,
+      ...pix.data,
+      terms_accepted_at: nowIso,
+      terms_version: TERMS_VERSION,
+      updated_at: nowIso,
+    });
+    if (insErr) {
+      if ((insErr as { code?: string }).code === "23505") {
+        // Conflito (user_id já inserido em paralelo, ou colisão de código):
+        // devolve o código persistido e atualiza os demais campos.
+        const { data: row } = await admin
+          .from("affiliate_profile")
+          .select("referral_code")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (row?.referral_code) {
+          await admin
+            .from("affiliate_profile")
+            .update({ ...pix.data, terms_accepted_at: nowIso, terms_version: TERMS_VERSION, updated_at: nowIso })
+            .eq("user_id", user.id);
+          return json(200, { ok: true, referral_code: row.referral_code, terms_version: TERMS_VERSION });
+        }
+      }
+      console.error("[affiliate] setup insert error:", insErr);
       return json(500, { error: "save_failed" });
     }
 
