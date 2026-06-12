@@ -1,4 +1,4 @@
-import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings, Eye } from "lucide-react";
+import { Home, Library, BookOpen, Menu, X, Shield, LogOut, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Settings, Eye, HandCoins } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ const sections = [
     items: [
       { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
       { icon: Download, labelKey: "nav.mobile.downloads", path: "/downloads" },
+      { icon: HandCoins, label: "💰 Ganhe dinheiro", path: "/ganhe-dinheiro" },
     ],
   },
   {

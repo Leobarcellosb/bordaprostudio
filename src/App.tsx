@@ -39,6 +39,7 @@ const AdminPanel = lazy(() => import("./pages/admin/AdminPanel"));
 const Termos = lazy(() => import("./pages/Termos"));
 const Privacidade = lazy(() => import("./pages/Privacidade"));
 const Ativar = lazy(() => import("./pages/Ativar"));
+const GanheDinheiro = lazy(() => import("./pages/GanheDinheiro"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -146,6 +147,7 @@ const App = () => {
               <Route path="/downloads" element={<ProtectedRoute><DownloadsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/minha-conta" element={<ProtectedRoute><MinhaContaPage /></ProtectedRoute>} />
+              <Route path="/ganhe-dinheiro" element={<ProtectedRoute><GanheDinheiro /></ProtectedRoute>} />
               <Route path="/kits" element={<ProtectedRoute><PremiumKitsPage /></ProtectedRoute>} />
               <Route path="/kits/:id" element={<ProtectedRoute><PremiumKitDetail /></ProtectedRoute>} />
               <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
