@@ -16,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const TERMS_VERSION = "v0.2-draft"; // termo revisado 12/06; trocar pra 'v1.0' quando o contador validar
+const TERMS_VERSION = "v1.0"; // aprovado pelo contador em 12/06/2026
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",

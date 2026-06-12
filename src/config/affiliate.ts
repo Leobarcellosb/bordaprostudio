@@ -1,7 +1,5 @@
 // Gate de lançamento do programa de afiliados.
-// ⚠️ BLOQUEIO PRÉ-LANÇAMENTO (§7 do spec): o termo de adesão é RASCUNHO (v0-draft)
-// até o contador validar. Enquanto false, o menu "💰 Ganhe dinheiro" e a rota
-// /ganhe-dinheiro ficam visíveis SÓ PARA ADMIN (smoke test em prod sem expor o
-// programa). Virar true SOMENTE com o termo v1.0 validado (e atualizar
-// TERMS_VERSION no wizard e na edge function affiliate).
+// Termo v1.0 APROVADO pelo contador (12/06/2026) — o bloqueio do §7 caiu.
+// Enquanto false, menu + rota visíveis SÓ PARA ADMIN. Falta apenas o smoke test
+// de ponta a ponta em prod (wizard → link → trial → slot acende) → aí virar true.
 export const AFFILIATE_ENABLED = false;

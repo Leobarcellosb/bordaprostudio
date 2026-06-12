@@ -6,13 +6,11 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// ⚠️ Termo REVISADO pelo Leo (12/06) — header ainda diz "rascunho operacional
-// sujeito à validação contábil e jurídica" → o gate AFFILIATE_ENABLED segue
-// false até o OK formal do contador. Aí: virar TERMS_VERSION pra "v1.0".
-export const TERMS_VERSION = "v0.2-draft";
+// Termo v1.0 — revisado pelo Leo e APROVADO pelo contador (12/06/2026).
+export const TERMS_VERSION = "v1.0";
 export const TERMS_TEXT = `TERMO DE ADESÃO — PROGRAMA DE INDICAÇÃO BORDA PRO
 
-Versão: rascunho operacional sujeito à validação contábil e jurídica
+Versão: 1.0 — vigente a partir de 12/06/2026
 
 Pelo presente termo, a BORDA PRO estabelece as regras para participação no seu Programa de Indicação, destinado a pessoas físicas ou jurídicas que desejem indicar novas assinantes para a plataforma Borda Pro.
 
