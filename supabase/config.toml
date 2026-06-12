@@ -18,6 +18,9 @@ verify_jwt = false  # público (chamado pelo /ativar no browser); rate-limit + i
 [functions.submit-quiz]
 verify_jwt = false  # dual: modal manda JWT (validado no handler) e ManyChat manda x-quiz-secret
 
+[functions.affiliate]
+verify_jwt = true  # bearer = JWT do usuário logado; identidade vem do token (getUser no handler)
+
 [functions.admin-grant-access]
 verify_jwt = true  # bearer é o JWT do admin logado (JWT real do Auth, passa no gate); guarda de admin via borda_is_admin() no servidor
 
