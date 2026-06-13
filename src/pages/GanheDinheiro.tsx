@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/accordion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
-  HandCoins, Copy, Check, Heart, Loader2, AlertCircle, Pencil, Sparkles,
+  Gift, Copy, Check, Heart, Loader2, AlertCircle, Pencil, Sparkles,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
@@ -127,13 +127,13 @@ const GanheDinheiro = () => {
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-secondary/5 to-amber-100/40 p-7 md:p-9">
           <div className="relative z-10 space-y-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 text-primary px-3 py-1 text-xs font-bold tracking-wide">
-              <HandCoins className="h-3.5 w-3.5" /> INDIQUE E GANHE
+              <Gift className="h-3.5 w-3.5" /> INDIQUE E GANHE
             </span>
             <h1 className="text-2xl md:text-3xl font-display font-bold leading-tight">
-              Ganhe <span className="text-gradient-brand">{COMMISSION}/mês</span> de cada amiga que assinar
+              Convide bordadeiras amigas e ganhe <span className="text-gradient-brand">{COMMISSION}/mês</span> de cada uma que assinar
             </h1>
             <ul className="space-y-1.5 text-sm text-foreground/80">
-              {["Sem limite de amigas", "Renda recorrente enquanto ela for cliente", "Pix direto na sua conta todo dia 14"].map((b) => (
+              {["Convide quantas amigas quiser", "Você ganha todo mês enquanto ela for cliente", "Pix direto na sua conta todo dia 14"].map((b) => (
                 <li key={b} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary shrink-0" /> {b}</li>
               ))}
             </ul>
@@ -216,7 +216,7 @@ const GanheDinheiro = () => {
             {/* ── Indicações (5 slots) ── */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold">Suas indicações</p>
+                <p className="text-sm font-semibold">Amigas que você indicou</p>
                 <button onClick={load} className="text-xs text-primary hover:underline">Atualizar</button>
               </div>
               {referralsError && (

@@ -1,4 +1,4 @@
-import { Home, Library, BookOpen, Settings, LogOut, Shield, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Eye, HandCoins } from "lucide-react";
+import { Home, Library, BookOpen, Settings, LogOut, Shield, Calculator, TrendingUp, Heart, Download, Crown, Package, Users, Eye, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavoritesQuery } from "@/hooks/queries/useFavoritesQuery";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -33,7 +33,7 @@ const sections = [
     items: [
       { icon: Heart, labelKey: "nav.favorites", path: "/favorites" },
       { icon: Download, labelKey: "nav.downloads", path: "/downloads" },
-      { icon: HandCoins, label: "💰 Ganhe dinheiro", path: "/ganhe-dinheiro" },
+      { icon: Gift, label: "Indique e ganhe", path: "/ganhe-dinheiro" },
     ],
   },
   {
