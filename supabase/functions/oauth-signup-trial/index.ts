@@ -83,6 +83,31 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Anti-farming por IP (fail-open). Só chega aqui quem vai REALMENTE ganhar
+  // trial (no-ops de quem já tem subscription saíram acima) — então o limite
+  // throttla criação de trials novos por IP sem punir login recorrente. Generoso
+  // (login OAuth real já é fricção); reusa trial_rate_limits com prefixo 'oauth:',
+  // como register-trial/submit-quiz.
+  const OAUTH_TRIAL_LIMIT = 5;
+  const WINDOW_MS = 60 * 60 * 1000;
+  try {
+    const ip =
+      (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() ||
+      req.headers.get("x-real-ip") || "unknown";
+    const key = `oauth:${ip}`;
+    const since = new Date(Date.now() - WINDOW_MS).toISOString();
+    const { count, error } = await admin
+      .from("trial_rate_limits")
+      .select("*", { count: "exact", head: true })
+      .eq("ip", key)
+      .gte("created_at", since);
+    if (error) throw error;
+    if ((count ?? 0) >= OAUTH_TRIAL_LIMIT) return json(429, { error: "rate_limited" });
+    await admin.from("trial_rate_limits").insert({ ip: key });
+  } catch (e) {
+    console.error("[oauth-signup-trial] rate-limit error (fail-open):", e);
+  }
+
   const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString();
   const { error: insErr } = await admin.from("subscriptions").upsert(
     {
