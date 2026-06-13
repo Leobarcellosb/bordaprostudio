@@ -224,35 +224,26 @@ const GanheDinheiro = () => {
                   <AlertCircle className="h-3.5 w-3.5" /> Não foi possível carregar suas indicações agora — toque em Atualizar.
                 </p>
               )}
-              <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: Math.max(5, activeRefs.length) }, (_, i) => {
-                  const r = activeRefs[i];
-                  return (
-                    <div
-                      key={r?.id ?? `slot-${i}`}
-                      className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 p-1 text-center ${
-                        r ? "border-primary/40 bg-primary/5" : "border-dashed border-border/60 bg-muted/20"
-                      }`}
-                    >
-                      {r ? (
-                        <>
-                          <span className="text-base font-display font-bold text-primary">
-                            {/* inicial vem do banco (ASCII); a máscara "•••" é decoração do front (UTF-8 confiável no bundle) */}
-                            {r.referred_initial}<span className="opacity-40">•••</span>
-                          </span>
-                          <span className="line-clamp-2 overflow-hidden text-[10px] leading-tight text-muted-foreground px-0.5">
-                            {STATUS_LABEL[r.status] ?? "em andamento"}
-                          </span>
-                        </>
-                      ) : (
-                        <Heart className="h-4 w-4 text-muted-foreground/30" />
-                      )}
+              {activeRefs.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 py-8 text-center">
+                  <Heart className="h-5 w-5 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Quando uma amiga ativar pelo seu link, ela aparece aqui.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* referred_initial já vem mascarado do banco ("Lúcia M.") — sem decoração extra */}
+                  {activeRefs.map((r) => (
+                    <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-display font-bold text-primary">
+                        {(r.referred_initial || "?").charAt(0).toUpperCase()}
+                      </span>
+                      <span className="flex-1 truncate text-sm font-semibold">{r.referred_initial}</span>
+                      <span className="shrink-0 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                        {STATUS_LABEL[r.status] ?? "em andamento"}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-              {activeRefs.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center">Quando uma amiga ativar pelo seu link, ela aparece aqui ↑</p>
+                  ))}
+                </div>
               )}
             </div>
 
