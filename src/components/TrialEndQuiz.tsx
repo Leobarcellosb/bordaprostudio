@@ -35,6 +35,13 @@ const Q3_RETURN = [
   { key: "talvez", label: "Talvez" },
   { key: "nao", label: "Não" },
 ];
+// Q4 bônus — só trilha NÃO-COMPROU. Valida a hipótese do programa de afiliados.
+const Q4_AFFILIATE = [
+  { key: "dinheiro", label: "Ganhar dinheiro recorrente (ex: R$15/mês por amiga)" },
+  { key: "dias", label: "Ganhar dias grátis de Borda Pro" },
+  { key: "brinde", label: "Ganhar brindes (kit de matrizes, caneca…)" },
+  { key: "nao_indicaria", label: "Não tenho interesse em indicar" },
+];
 
 export const TrialEndQuiz = () => {
   const { user } = useAuth();
@@ -42,9 +49,11 @@ export const TrialEndQuiz = () => {
   const bought = status === "active";
 
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(0); // 0=Q1 1=Q2 2=Q3 3=obrigado
+  // 0=Q1 1=Q2 2=Q3 · 3=Q4 (só não-comprou) · 4=obrigado. (comprou pula Q4: Q3 NPS já envia)
+  const [step, setStep] = useState(0);
   const [q1, setQ1] = useState<{ key: string; label: string } | null>(null);
   const [q2, setQ2] = useState("");
+  const [q3, setQ3] = useState(""); // guardado entre Q3 e Q4 na trilha não-comprou
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(false);
 
@@ -94,7 +103,7 @@ export const TrialEndQuiz = () => {
     setOpen(false);
   };
 
-  const submit = async (q3Value: string) => {
+  const submit = async (q3Value: string, affiliate: string | null = null) => {
     setSending(true);
     setSendError(false);
     try {
@@ -106,11 +115,12 @@ export const TrialEndQuiz = () => {
           q1_label: q1?.label ?? null,
           q2_text: q2.trim() || null,
           q3_value: q3Value,
+          q_affiliate_motivator: affiliate,
         },
       });
       if (error) throw error;
       localStorage.setItem(ANSWERED_KEY, "1");
-      setStep(3);
+      setStep(4);
     } catch (err) {
       console.error("[TrialEndQuiz] submit error:", err);
       setSendError(true);
@@ -124,18 +134,19 @@ export const TrialEndQuiz = () => {
   const q1Options = bought ? Q1_BOUGHT : Q1_NOT_BOUGHT;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && step !== 3) dismiss(); else if (!v) setOpen(false); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && step !== 4) dismiss(); else if (!v) setOpen(false); }}>
       <DialogContent className="max-w-md rounded-2xl p-6 gap-0">
-        {step < 3 && (
+        {step < 4 && (
           <div className="mb-4 space-y-1.5">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
               <Sparkles className="h-3 w-3" />
-              {step + 1} de 3 · rapidinho
+              {step + 1} de {bought ? 3 : 4} · rapidinho
             </span>
             <h2 className="text-lg font-display font-bold leading-snug">
               {step === 0 && (bought ? "O que mais pesou na sua decisão de assinar?" : "Seu teste está acabando — o que pesou até agora?")}
               {step === 1 && (bought ? "O que quase te fez NÃO assinar?" : "O que a Borda Pro precisaria ter pra valer a pena pra você?")}
               {step === 2 && (bought ? "De 0 a 10, quanto indicaria a Borda Pro pra outra bordadeira?" : "Você voltaria a considerar no futuro?")}
+              {step === 3 && "Se você indicar uma amiga bordadeira, o que mais te animaria como recompensa?"}
             </h2>
           </div>
         )}
@@ -196,9 +207,8 @@ export const TrialEndQuiz = () => {
                 {Q3_RETURN.map((opt) => (
                   <button
                     key={opt.key}
-                    disabled={sending}
-                    onClick={() => submit(opt.key)}
-                    className="w-full rounded-xl border border-border/60 bg-card px-4 py-3 text-left text-sm font-medium hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                    onClick={() => { setQ3(opt.key); setStep(3); }}
+                    className="w-full rounded-xl border border-border/60 bg-card px-4 py-3 text-left text-sm font-medium hover:border-primary/40 hover:bg-primary/5 transition-colors"
                   >
                     {opt.label}
                   </button>
@@ -218,8 +228,34 @@ export const TrialEndQuiz = () => {
           </div>
         )}
 
-        {/* Obrigado */}
+        {/* Q4 — bônus afiliado (só trilha NÃO-COMPROU); envia a resposta */}
         {step === 3 && (
+          <div className="space-y-2">
+            {Q4_AFFILIATE.map((opt) => (
+              <button
+                key={opt.key}
+                disabled={sending}
+                onClick={() => submit(q3, opt.key)}
+                className="w-full rounded-xl border border-border/60 bg-card px-4 py-3 text-left text-sm font-medium hover:border-primary/40 hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                {opt.label}
+              </button>
+            ))}
+            {sending && (
+              <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando…
+              </p>
+            )}
+            {sendError && (
+              <p className="flex items-center gap-2 text-xs text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" /> Não foi possível enviar — toca de novo na opção.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Obrigado */}
+        {step === 4 && (
           <div className="py-6 text-center space-y-3">
             <p className="text-3xl">💜</p>
             <h2 className="text-lg font-display font-bold">Obrigado! Seu feedback ajuda muito 💜</h2>
