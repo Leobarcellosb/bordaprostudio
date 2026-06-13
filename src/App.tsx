@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { RecoveryRedirect } from "@/components/RecoveryRedirect";
 import { ProtectedRoute, AdminRoute } from "@/components/ProtectedRoute";
 
 // Todas as páginas são lazy — cada uma vira um chunk separado. Vendor
@@ -105,6 +106,7 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <RecoveryRedirect />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Redirects PT-BR — links de email, WhatsApp, marketing e
