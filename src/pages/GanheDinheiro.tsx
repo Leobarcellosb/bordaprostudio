@@ -237,7 +237,8 @@ const GanheDinheiro = () => {
                       {r ? (
                         <>
                           <span className="text-base font-display font-bold text-primary">
-                            {r.referred_initial}
+                            {/* inicial vem do banco (ASCII); a máscara "•••" é decoração do front (UTF-8 confiável no bundle) */}
+                            {r.referred_initial}<span className="opacity-40">•••</span>
                           </span>
                           <span className="line-clamp-2 overflow-hidden text-[10px] leading-tight text-muted-foreground px-0.5">
                             {STATUS_LABEL[r.status] ?? "em andamento"}

@@ -24,12 +24,16 @@ CREATE INDEX IF NOT EXISTS idx_referrals_code ON public.referrals (referral_code
 -- indicadas via PostgREST — PII/LGPD; a UI mascara, a API não mascararia).
 DROP POLICY IF EXISTS "Referrer reads own referrals" ON public.referrals;
 
+-- referred_initial = SÓ a inicial (ASCII). A decoração de máscara ("•••") fica
+-- no frontend: caractere não-ASCII em literal SQL é frágil — o paste no SQL
+-- editor re-encodou o '•' (UTF-8 E2 80 A2) como Mac Roman e gravou mojibake no
+-- corpo da função. Nada não-ASCII sai do banco.
 CREATE OR REPLACE FUNCTION public.my_referrals()
 RETURNS TABLE(id uuid, referred_initial text, status text, created_at timestamptz)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $$
   SELECT r.id,
-         upper(left(coalesce(r.referred_email, '?'), 1)) || '•••' AS referred_initial,
+         upper(left(coalesce(r.referred_email, '?'), 1)) AS referred_initial,
          r.status,
          r.created_at
   FROM public.referrals r
