@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Gift, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 const BENEFITS = [
   "Acervo completo de matrizes, organizado por tema",
@@ -130,6 +131,9 @@ const Ativar = () => {
                   </li>
                 ))}
               </ul>
+
+              {/* Cadastro social (Google/Facebook) — só aparece com provedor ligado em SOCIAL_AUTH */}
+              <SocialAuthButtons />
 
               {/* Form */}
               <form onSubmit={submit} className="space-y-3">

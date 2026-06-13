@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RecoveryRedirect } from "@/components/RecoveryRedirect";
+import { OAuthBootstrap } from "@/components/OAuthBootstrap";
 import { ProtectedRoute, AdminRoute } from "@/components/ProtectedRoute";
 
 // Todas as páginas são lazy — cada uma vira um chunk separado. Vendor
@@ -107,6 +108,7 @@ const App = () => {
       <BrowserRouter>
         <AuthProvider>
           <RecoveryRedirect />
+          <OAuthBootstrap />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Redirects PT-BR — links de email, WhatsApp, marketing e
