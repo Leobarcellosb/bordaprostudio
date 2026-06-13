@@ -43,7 +43,11 @@ const Q4_AFFILIATE = [
   { key: "nao_indicaria", label: "Não tenho interesse em indicar" },
 ];
 
-export const TrialEndQuiz = () => {
+// mode controla SÓ a janela de elegibilidade (todo o resto é reaproveitado):
+//  - "pre-expiry"  (AppLayout): falta <24h pro trial expirar (ainda tem acesso).
+//  - "post-expiry" (/plans + TrialExpired): trial expirou há até 7 dias — captura
+//    quem perdeu acesso e foi redirecionado pra fora do app.
+export const TrialEndQuiz = ({ mode = "pre-expiry" }: { mode?: "pre-expiry" | "post-expiry" }) => {
   const { user } = useAuth();
   const { status } = useSubscriptionStatus();
   const bought = status === "active";
@@ -73,9 +77,12 @@ export const TrialEndQuiz = () => {
           .not("trial_until", "is", null);
         if (error) throw error;
         const now = Date.now();
+        const DAY = 24 * 60 * 60 * 1000;
         const inWindow = (rows ?? []).some((r: any) => {
           const t = new Date(r.trial_until).getTime();
-          return t > now && t - now <= 24 * 60 * 60 * 1000;
+          return mode === "post-expiry"
+            ? t <= now && now - t <= 7 * DAY  // expirou nos últimos 7 dias
+            : t > now && t - now <= DAY;       // falta <24h pra expirar
         });
         if (!inWindow) return;
 
@@ -96,7 +103,7 @@ export const TrialEndQuiz = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, mode]);
 
   const dismiss = () => {
     sessionStorage.setItem(DISMISS_KEY, "1");

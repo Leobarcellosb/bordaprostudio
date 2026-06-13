@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Zap, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { TrialEndQuiz } from "@/components/TrialEndQuiz";
 
 /** Mostrada no lugar do conteúdo quando o acesso expirou (status='expired'). */
 export const TrialExpired = () => {
@@ -9,6 +10,9 @@ export const TrialExpired = () => {
   const navigate = useNavigate();
   return (
     <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--landing-warm))] px-4">
+      {/* Coorte de trial expirado cai AQUI (não em /plans). Mesmo modal, janela pós-trial. */}
+      <TrialEndQuiz mode="post-expiry" />
+
       <div className="w-full max-w-md text-center space-y-7">
         <img src="/lockup-indigo.png" alt="Borda Pro" className="h-12 w-auto mx-auto" />
 

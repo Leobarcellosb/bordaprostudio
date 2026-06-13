@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/db";
 
 import { CHECKOUT_MENSAL, CHECKOUT_ANUAL } from "@/config/checkout";
+import { TrialEndQuiz } from "@/components/TrialEndQuiz";
 
 const plans = [
   {
@@ -76,6 +77,9 @@ const PlansPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Captura quem teve trial e expirou nos últimos 7 dias (foi redirecionado
+          pra cá). Overlay não-bloqueante — /plans segue acessível embaixo. */}
+      <TrialEndQuiz mode="post-expiry" />
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 animate-fade-in">
         {/* Blocked notice */}
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-3">
