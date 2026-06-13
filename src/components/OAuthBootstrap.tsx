@@ -10,18 +10,24 @@ import { toast } from "sonner";
 //      /ativar, então sem isso cairiam em /plans sem trial.
 export const OAuthBootstrap = () => {
   useEffect(() => {
-    // (1) erro vindo do provedor (query ou hash)
+    // (1) erro vindo do provedor (query ou hash). Só tratamos como erro de login
+    // social se há error_description (o OAuth sempre manda) OU estamos na /login
+    // (destino do redirect) — evita falso-positivo em links com ?error= de outro
+    // contexto. E limpamos SÓ as chaves de erro, preservando ?ref/?utm/hash.
     const q = new URLSearchParams(window.location.search);
     const h = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const err = q.get("error") || h.get("error");
-    if (err) {
+    const errDesc = q.get("error_description") || h.get("error_description");
+    if (err && (errDesc || window.location.pathname === "/login")) {
       toast.error(
         err === "access_denied"
           ? "Login cancelado. Tente de novo ou use email e senha."
           : "Não foi possível concluir o login social. Tente de novo ou use email e senha.",
       );
-      // remove os params de erro pra não repetir o toast num refresh
-      window.history.replaceState({}, "", window.location.pathname);
+      ["error", "error_description", "error_code"].forEach((k) => { q.delete(k); h.delete(k); });
+      const qs = q.toString();
+      const hs = h.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + (hs ? `#${hs}` : ""));
     }
 
     // (2) trial em signup social novo
@@ -33,7 +39,7 @@ export const OAuthBootstrap = () => {
       // primeira vez: created_at ≈ last_sign_in_at (a função é idempotente de qualquer forma)
       const created = new Date(u.created_at).getTime();
       const last = u.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : Date.now();
-      if (Math.abs(last - created) > 10_000) return; // login recorrente → ignora
+      if (Math.abs(last - created) > 60_000) return; // login recorrente → ignora (função é idempotente)
       try {
         await supabase.functions.invoke("oauth-signup-trial", { body: {} });
       } catch (e) {

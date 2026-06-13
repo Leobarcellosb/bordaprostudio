@@ -64,6 +64,25 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, already_active: true });
   }
 
+  // Reuso por EMAIL (setting-independent): se o auto-link de identidades por
+  // email estiver DESLIGADO no projeto, a mesma pessoa poderia criar uma conta
+  // Google com email já usado (em outro user_id) e ganhar 2º trial. Checar por
+  // email fecha isso — espelha o trialAlreadyUsed do activate-trial.
+  if (email) {
+    const { data: byEmail, error: emErr } = await admin
+      .from("subscriptions")
+      .select("id")
+      .ilike("email", email)
+      .limit(1);
+    if (emErr) {
+      console.error("[oauth-signup-trial] email lookup error:", emErr);
+      return json(500, { error: "lookup_failed" });
+    }
+    if (byEmail && byEmail.length > 0) {
+      return json(200, { ok: true, already_active: true });
+    }
+  }
+
   const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString();
   const { error: insErr } = await admin.from("subscriptions").upsert(
     {

@@ -20,7 +20,10 @@ set -euo pipefail
 
 REF="mepvdblcphcgebsxpykk"
 API="https://api.supabase.com/v1/projects/${REF}/config/auth"
-KEYS="['external_google_enabled','external_google_client_id','external_facebook_enabled','external_facebook_client_id']"
+# inclui os *_secret na verificação: se o nome do campo estiver errado, o
+# after-GET mostra null e você sabe que o secret não foi setado (provider
+# 'enabled' true mas login falharia em runtime).
+KEYS="['external_google_enabled','external_google_client_id','external_google_secret','external_facebook_enabled','external_facebook_client_id','external_facebook_secret']"
 show() { python3 -c "import sys,json;d=json.load(sys.stdin);print(json.dumps({k:d.get(k) for k in ${KEYS}},indent=2))"; }
 
 echo "=== ANTES ==="

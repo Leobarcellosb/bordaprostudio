@@ -45,6 +45,20 @@ sessão → AuthContext dispara SIGNED_IN → a página de login roteia (dashboa
 plans / onboarding). Usuário novo recebe profile pelo trigger handle_new_user
 (name/email vêm do provedor). Sem assinatura → cai em /plans (esperado).
 
+## Notas da revisão adversarial (Fase 2)
+- **Account-linking por email:** no Supabase, confirme que "Link accounts with
+  same email" está ON antes de ligar as flags — assim email/senha + Google no
+  MESMO email colapsam num user_id só (Teste C do spec). Mesmo se estiver OFF, o
+  `oauth-signup-trial` faz check de reuso POR EMAIL, então ninguém ganha 2 trials.
+- **flowType = implicit (default, mantido de propósito):** o fluxo de recovery/
+  magic-link em produção depende do hash (#type=recovery). Trocar pra PKCE
+  mexeria nisso — fica como melhoria futura, testada isoladamente. O tratamento
+  de erro de OAuth funciona no implicit (erro vem no hash, OAuthBootstrap lê).
+- **Rate limit do trial OAuth:** não há limite por IP (diferente do /ativar, que
+  é público). Aqui cada trial exige um login OAuth real (o próprio Google/FB é o
+  gargalo) + o check por email impede reuso. Se virar problema, dá pra reusar
+  trial_rate_limits com prefixo 'oauth:'.
+
 ## Account linking (mesma pessoa, email + Google)
 Se alguém já tem conta por email/senha e depois entra com Google no MESMO email,
 o Supabase vincula as identidades quando o email é verificado (comportamento
