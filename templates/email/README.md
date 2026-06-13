@@ -16,7 +16,24 @@ spam). Esta fase troca por **Resend SMTP** + templates da marca.
    string em https://resend.com/api-keys (o valor do secret não é legível).
 3. **SMTP do Auth → Default** (causa raiz). Trocar pra Custom (passos abaixo).
 
-## Passos no Supabase Dashboard (Leo executa)
+## Opção A — automatizado (1 comando, recomendado)
+SMTP + os 4 templates + subjects de uma vez via Management API (substitui ~20
+campos manuais). O Claude Code NÃO roda isso — sem PAT extraível (fica no
+keychain) e sem o valor do RESEND_API_KEY. Você roda:
+```bash
+export SUPABASE_PAT=sbp_...     # https://supabase.com/dashboard/account/tokens
+export RESEND_API_KEY=re_...    # a MESMA key do Resend (resend.com/api-keys)
+bash templates/email/apply-auth-email.sh
+```
+Faz GET (antes, confere default) → PATCH → GET (depois, confirma). Subjects já
+inclusos: Confirm "Ative sua conta na Borda Pro 💜" · Magic "Seu link de acesso
+à Borda Pro" · Recovery "Redefina sua senha — Borda Pro" · Change "Confirme seu
+novo email — Borda Pro".
+
+⚠️ O script NÃO toca site_url / redirect URLs (evita sobrescrever a allowlist) —
+faça isso no Dashboard (passo 3 da Opção B).
+
+## Opção B — manual no Dashboard
 
 ### 1. Custom SMTP — Authentication → Settings → SMTP Settings
 - Enable Custom SMTP: **ON**
