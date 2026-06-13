@@ -58,7 +58,8 @@ const GanheDinheiro = () => {
   const [profile, setProfile] = useState<any | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [profileError, setProfileError] = useState(false);   // fatal: decide CTA vs link
+  const [referralsError, setReferralsError] = useState(false); // secundário: aviso suave
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardOpenCount, setWizardOpenCount] = useState(0);
   const [wizardMode, setWizardMode] = useState<"setup" | "edit">("setup");
@@ -68,17 +69,26 @@ const GanheDinheiro = () => {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    setError(false);
+    setProfileError(false);
+    setReferralsError(false);
     const [prof, refs] = await Promise.all([
       db.from("affiliate_profile").select("*").eq("user_id", user.id).maybeSingle(),
       db.rpc("my_referrals"),
     ]);
-    // Erro vira ERRO visível, não "vazio" (lição da auditoria).
-    if (prof.error || refs.error) {
-      console.error("[GanheDinheiro] load error:", prof.error ?? refs.error);
-      setError(true);
+    // Perfil é ESSENCIAL (decide CTA vs card do link) → erro aqui é fatal.
+    if (prof.error) {
+      console.error("[GanheDinheiro] profile load error:", prof.error);
+      setProfileError(true);
     } else {
       setProfile(prof.data);
+    }
+    // Indicações são SECUNDÁRIAS → erro aqui NÃO derruba o link/CTA, só mostra
+    // aviso suave na seção (um hiccup no my_referrals não pode bloquear a página).
+    if (refs.error) {
+      console.error("[GanheDinheiro] referrals load error:", refs.error);
+      setReferralsError(true);
+      setReferrals([]);
+    } else {
       setReferrals((refs.data as Referral[]) ?? []);
     }
     setLoading(false);
@@ -132,7 +142,7 @@ const GanheDinheiro = () => {
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : error ? (
+        ) : profileError ? (
           <Card className="border-destructive/30 bg-destructive/5">
             <CardContent className="py-10 text-center space-y-3">
               <AlertCircle className="h-8 w-8 text-destructive/60 mx-auto" />
@@ -209,6 +219,11 @@ const GanheDinheiro = () => {
                 <p className="text-sm font-semibold">Suas indicações</p>
                 <button onClick={load} className="text-xs text-primary hover:underline">Atualizar</button>
               </div>
+              {referralsError && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5" /> Não foi possível carregar suas indicações agora — toque em Atualizar.
+                </p>
+              )}
               <div className="grid grid-cols-5 gap-2">
                 {Array.from({ length: Math.max(5, activeRefs.length) }, (_, i) => {
                   const r = activeRefs[i];

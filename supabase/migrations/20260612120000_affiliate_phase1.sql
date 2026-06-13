@@ -89,3 +89,8 @@ CREATE POLICY "Owner reads own affiliate_profile" ON public.affiliate_profile
 DROP POLICY IF EXISTS "Admins read affiliate_profile" ON public.affiliate_profile;
 CREATE POLICY "Admins read affiliate_profile" ON public.affiliate_profile
   FOR SELECT TO authenticated USING (public.borda_is_admin());
+
+-- GRANT de tabela: RLS decide QUAIS linhas; sem o grant o role nem toca a tabela
+-- (PostgREST → 403). Tabela criada por SQL cru não herda o grant que a Table
+-- Editor UI aplicaria. Só SELECT — escrita continua via service role.
+GRANT SELECT ON public.affiliate_profile TO authenticated;
