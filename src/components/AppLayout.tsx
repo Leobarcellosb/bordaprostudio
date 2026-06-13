@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { TrialBanner } from "./TrialBanner";
@@ -20,6 +20,11 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <div key={pathname} className="route-content">
               {children}
             </div>
+            <footer className="mt-10 pt-6 border-t border-border/30 text-center text-xs text-muted-foreground">
+              <Link to="/politica-de-privacidade" className="hover:text-foreground hover:underline">
+                Política de privacidade
+              </Link>
+            </footer>
           </div>
         </main>
       </div>

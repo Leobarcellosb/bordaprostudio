@@ -133,6 +133,7 @@ const App = () => {
               <Route path="/" element={<LandingPage />} />
               <Route path="/termos" element={<Termos />} />
               <Route path="/privacidade" element={<Privacidade />} />
+              <Route path="/politica-de-privacidade" element={<Privacidade />} />
               <Route path="/ativar" element={<Ativar />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
