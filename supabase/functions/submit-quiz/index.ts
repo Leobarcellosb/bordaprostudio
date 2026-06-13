@@ -19,6 +19,8 @@ const RATE_LIMIT = 10;            // respostas por IP/hora (spam guard; dedup j�
 const WINDOW_MS = 60 * 60 * 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SOURCES = new Set(["modal", "whatsapp"]);
+// Q4 bônus (só não-comprou) — valida a hipótese do programa de afiliados.
+const AFFILIATE_MOTIVATORS = new Set(["dinheiro", "dias", "brinde", "nao_indicaria"]);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +92,9 @@ Deno.serve(async (req) => {
   const q1Label = clip(body.q1_label, 200);
   const q2Text = clip(body.q2_text, 2000);
   const q3Value = clip(body.q3_value, 20);
+  // Q4: só aceita valores da lista fechada (senão null) — nunca confia no body cru.
+  const qAffiliateRaw = clip(body.q_affiliate_motivator, 20);
+  const qAffiliate = qAffiliateRaw && AFFILIATE_MOTIVATORS.has(qAffiliateRaw) ? qAffiliateRaw : null;
 
   // ── Rate limit por IP (fail-open; o dedup por email é a trava principal) ─────
   try {
@@ -127,10 +132,11 @@ Deno.serve(async (req) => {
   // ── bought: detectado de subscriptions (status=active vigente), nunca do body ─
   let bought = false;
   let userId: string | null = authedUserId;
+  let trialUntil: string | null = null; // snapshot do trial no momento da resposta
   try {
     const { data: subs, error } = await admin
       .from("subscriptions")
-      .select("user_id, status, access_expires_at")
+      .select("user_id, status, access_expires_at, trial_until")
       .ilike("email", email);
     if (error) throw error;
     const now = Date.now();
@@ -139,6 +145,7 @@ Deno.serve(async (req) => {
         s.status === "active" &&
         (!s.access_expires_at || new Date(s.access_expires_at).getTime() > now),
     );
+    trialUntil = (subs ?? []).map((s) => s.trial_until as string | null).find(Boolean) ?? null;
     if (!userId) userId = subs?.[0]?.user_id ?? null;
   } catch (e) {
     console.error("[submit-quiz] bought detection error:", e);
@@ -167,6 +174,8 @@ Deno.serve(async (req) => {
     q1_label: q1Label,
     q2_text: q2Text,
     q3_value: q3Value,
+    q_affiliate_motivator: qAffiliate,
+    trial_until: trialUntil,
   });
   if (insErr) {
     console.error("[submit-quiz] insert error:", insErr);
