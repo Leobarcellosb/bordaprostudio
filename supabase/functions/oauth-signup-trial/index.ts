@@ -39,6 +39,17 @@ Deno.serve(async (req) => {
   const user = userData.user;
   const email = (user.email ?? "").toLowerCase();
 
+  // Enforce OAuth no SERVIDOR: verify_jwt só prova "é um usuário autenticado".
+  // Sem este check, qualquer conta logada sem assinatura (ex: signup por email
+  // parado em /plans) poderia chamar o endpoint e se auto-conceder trial,
+  // furando o gating do /ativar. Trial automático é SÓ pra login social.
+  const provider = (user.app_metadata as { provider?: string } | null)?.provider;
+  const providers = (user.app_metadata as { providers?: string[] } | null)?.providers ?? [];
+  const viaOAuth =
+    provider === "google" || provider === "facebook" ||
+    providers.includes("google") || providers.includes("facebook");
+  if (!viaOAuth) return json(200, { ok: true, skipped: "not_oauth" });
+
   // Idempotente: qualquer subscription existente (paga, trial, manual…) → no-op.
   const { data: existing, error: exErr } = await admin
     .from("subscriptions")
