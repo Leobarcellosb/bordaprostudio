@@ -93,6 +93,7 @@ export const ProtectedRoute = ({
     onboardingResolved,
     hasActiveSubscription,
     subscriptionResolved,
+    subscriptionLoadFailed,
     subscription,
     signOut,
   } = useAuth();
@@ -101,36 +102,34 @@ export const ProtectedRoute = ({
   if (status === "loading") return <SlowAwareSpinner onSignOut={signOut} />;
   if (status === "unauthenticated") return <Navigate to="/login" replace />;
 
+  // role/subscription resolvem em background (status já é "authenticated" assim
+  // que a sessão é conhecida — ver AuthContext). Enquanto a role NÃO resolveu, é
+  // estado de LOADING normal → spinner (que escala pra RecoveryScreen em 25s se
+  // travar de vez), NÃO a tela de erro imediata.
+
   // Admin gate: only admins pass. Never blocked by subscription.
   if (requireAdmin) {
-    if (!roleResolved) {
-      return (
-        <RecoveryScreen
-          title="Verificando permissões de administrador"
-          description="Não conseguimos confirmar suas permissões. Recarregue ou saia e entre novamente."
-          onSignOut={signOut}
-        />
-      );
-    }
+    if (!roleResolved) return <SlowAwareSpinner onSignOut={signOut} />;
     if (!isAdmin) return <Navigate to="/dashboard" replace />;
     console.info("[ROUTE] admin → children");
     return <>{children}</>;
   }
 
-  // User gate: admin bypasses subscription + onboarding entirely.
+  // User gate: admin bypasses subscription + onboarding entirely (renderiza
+  // assim que a role resolve — NÃO espera a subscription, que é a query lenta).
   if (roleResolved && isAdmin) {
     console.info("[ROUTE] protected → children (admin bypass)");
     return <>{children}</>;
   }
 
-  if (!roleResolved) {
-    return (
-      <RecoveryScreen
-        title="Não foi possível confirmar seu acesso"
-        description="Recarregue a página ou saia e entre novamente para continuar."
-        onSignOut={signOut}
-      />
-    );
+  if (!roleResolved) return <SlowAwareSpinner onSignOut={signOut} />;
+
+  // Não-admin em rota que exige assinatura: espera a query de subscription
+  // enquanto ela está PENDENTE (evita flash de conteúdo antes do redirect /plans).
+  // Mas se a query FALHOU (timeout/erro), NÃO trava no spinner — cai pro fluxo
+  // fail-open (mostra children), preservando o fix do login-loop [S6-01].
+  if (requireSubscription && !subscriptionResolved && !subscriptionLoadFailed) {
+    return <SlowAwareSpinner onSignOut={signOut} />;
   }
 
   if (onboardingResolved && needsOnboarding) {

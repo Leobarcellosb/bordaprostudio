@@ -113,74 +113,90 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserData = useCallback(async (userId: string, reason: string) => {
     const requestId = ++fetchRequestIdRef.current;
+    const t0 = typeof performance !== "undefined" ? performance.now() : 0;
     console.log(`[Auth] fetchUserData START (${reason})`);
 
-    const [profileRes, roleRes, subRes, prefsRes] = await Promise.all([
-      safeQuery<Profile>(
-        "profile",
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        FETCH_TIMEOUT_MS,
-      ),
-      safeQuery<{ role: string }[]>(
-        "roles",
-        supabase.from("user_roles").select("role").eq("user_id", userId),
-        FETCH_TIMEOUT_MS,
-      ),
-      safeQuery<Subscription[]>(
-        "subscription",
-        supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
-        FETCH_TIMEOUT_MS,
-      ),
-      safeQuery<UserPreferences>(
-        "preferences",
-        supabase.from("user_preferences").select("*").eq("user_id", userId).maybeSingle(),
-        FETCH_TIMEOUT_MS,
-      ),
-    ]);
+    const isStale = () =>
+      !mountedRef.current || requestId !== fetchRequestIdRef.current || currentUserIdRef.current !== userId;
 
-    if (!mountedRef.current || requestId !== fetchRequestIdRef.current || currentUserIdRef.current !== userId) {
+    // PERF (cold-start ~30s, jun/2026): antes era UM Promise.all e os estados só
+    // eram gravados quando a query MAIS LENTA terminava — então roleResolved (que
+    // o ProtectedRoute usa pra liberar a página / bypass admin) ficava refém da
+    // query de subscriptions, que é flaky e lenta no cold start do Supabase NANO.
+    // Resultado: status preso em "loading" e spinner por ~30s.
+    // Agora cada query resolve e grava SEU estado de forma INDEPENDENTE — o gate
+    // de role não espera mais a subscription. NÃO reagrupar num Promise.all único.
+    const pProfile = safeQuery<Profile>(
+      "profile",
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      FETCH_TIMEOUT_MS,
+    ).then((res) => {
+      if (!isStale() && res.status === "success") setProfile(res.data);
+      return res;
+    });
+
+    const pRole = safeQuery<{ role: string }[]>(
+      "roles",
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      FETCH_TIMEOUT_MS,
+    ).then((res) => {
+      if (!isStale() && res.status === "success") {
+        const rolesArr = Array.isArray(res.data) ? res.data : [];
+        setIsAdmin(rolesArr.some((r) => r.role === "admin"));
+        setRoleResolved(true);
+      }
+      return res;
+    });
+
+    const pSub = safeQuery<Subscription[]>(
+      "subscription",
+      supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      FETCH_TIMEOUT_MS,
+    ).then((res) => {
+      if (isStale()) return res;
+      if (res.status === "success") {
+        // Pode haver +1 linha (eduzz + manychat) — escolhe a de melhor acesso.
+        setSubscription(pickPrimarySubscription(res.data ?? []));
+        setSubscriptionResolved(true);
+        setSubscriptionLoadFailed(false);
+      } else {
+        // Erro/timeout NÃO é "não tem assinatura": sinaliza falha pra o gate não
+        // liberar (fail-open) nem a UI mentir "você não possui assinatura". [S6-01]
+        setSubscriptionLoadFailed(true);
+      }
+      return res;
+    });
+
+    const pPrefs = safeQuery<UserPreferences>(
+      "preferences",
+      supabase.from("user_preferences").select("*").eq("user_id", userId).maybeSingle(),
+      FETCH_TIMEOUT_MS,
+    );
+
+    // Onboarding depende de profile + prefs → resolve quando os dois chegarem
+    // (independente de role/subscription).
+    void Promise.all([pProfile, pPrefs]).then(([profileRes, prefsRes]) => {
+      if (isStale()) return;
+      if (profileRes.status === "success" && prefsRes.status === "success") {
+        setNeedsOnboarding(computeNeedsOnboarding(profileRes.data, prefsRes.data));
+        setOnboardingResolved(true);
+      }
+    });
+
+    const [, roleRes, subRes, prefsRes] = await Promise.all([pProfile, pRole, pSub, pPrefs]);
+    if (isStale()) {
       console.info(`[Auth] fetchUserData STALE (${reason}) ignored`);
       return;
     }
-
-    // Profile + onboarding
-    const nextProfile = profileRes.status === "success" ? profileRes.data : null;
-    if (profileRes.status === "success") setProfile(nextProfile);
-
-    // Role (separate resolution so admin bypass works even if other queries failed)
-    if (roleRes.status === "success") {
-      const rolesArr = Array.isArray(roleRes.data) ? roleRes.data : [];
-      setIsAdmin(rolesArr.some((r) => r.role === "admin"));
-      setRoleResolved(true);
-    }
-
-    // Subscription
-    if (subRes.status === "success") {
-      // Pode haver +1 linha (eduzz + manychat) — escolhe a de melhor acesso.
-      setSubscription(pickPrimarySubscription(subRes.data ?? []));
-      setSubscriptionResolved(true);
-      setSubscriptionLoadFailed(false);
-    } else {
-      // Erro/timeout NÃO é "não tem assinatura": sinaliza falha pra o gate não
-      // liberar (fail-open) nem a UI mentir "você não possui assinatura". [S6-01]
-      setSubscriptionLoadFailed(true);
-    }
-
-    // Onboarding flag
-    if (profileRes.status === "success" && prefsRes.status === "success") {
-      setNeedsOnboarding(computeNeedsOnboarding(nextProfile, prefsRes.data));
-      setOnboardingResolved(true);
-    }
-
-    console.log(`[Auth] fetchUserData DONE (${reason})`, {
-      role: roleRes.status,
-      subscription: subRes.status,
-      onboarding: prefsRes.status,
-    });
+    // Telemetria: tempo total + status por query (flagra regressão de cold start).
+    console.log(
+      `[Auth] fetchUserData DONE (${reason}) ${Math.round((typeof performance !== "undefined" ? performance.now() : 0) - t0)}ms`,
+      { role: roleRes.status, subscription: subRes.status, onboarding: prefsRes.status },
+    );
   }, []);
 
   const applySession = useCallback(
@@ -203,13 +219,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       currentUserIdRef.current = nextUser.id;
       if (userChanged) resetUserState();
 
-      try {
-        await fetchUserData(nextUser.id, reason);
-      } finally {
-        if (mountedRef.current && currentUserIdRef.current === nextUser.id) {
-          setStatus("authenticated");
-        }
-      }
+      // PERF: sessão conhecida = "authenticated" IMEDIATO. Não esperamos o
+      // fetchUserData — o gate de role/subscription é do ProtectedRoute (via
+      // roleResolved/subscriptionResolved). Isso tira a query lenta de
+      // subscriptions do caminho crítico de render (era a causa do spinner ~30s).
+      setStatus("authenticated");
+      void fetchUserData(nextUser.id, reason);
     },
     [fetchUserData, resetUserState],
   );
