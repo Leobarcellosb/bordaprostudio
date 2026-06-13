@@ -16,6 +16,7 @@ interface QuizRow {
   q1_label: string | null;
   q2_text: string | null;
   q3_value: string | null;
+  q_affiliate_motivator: string | null;
   created_at: string;
 }
 
@@ -86,7 +87,7 @@ export const AdminQuiz = () => {
     (async () => {
       const { data, error: qErr } = await db
         .from("quiz_responses")
-        .select("id, email, source, bought, q1_key, q1_label, q2_text, q3_value, created_at")
+        .select("id, email, source, bought, q1_key, q1_label, q2_text, q3_value, q_affiliate_motivator, created_at")
         .order("created_at", { ascending: false });
       if (qErr) {
         console.error("[AdminQuiz] fetch error:", qErr);
@@ -114,6 +115,19 @@ export const AdminQuiz = () => {
       key: k, label: k === "sim" ? "Sim" : k === "talvez" ? "Talvez" : "Não",
       count: count(k), pct: pct(count(k)),
     }));
+  }, [notBoughtRows]);
+
+  // Q4 bônus: valida a hipótese do programa de afiliados (só não-compradores).
+  const affiliateDist = useMemo(() => {
+    const base = notBoughtRows.filter((r) => r.q_affiliate_motivator);
+    const count = (k: string) => base.filter((r) => r.q_affiliate_motivator === k).length;
+    const pct = (n: number) => (base.length ? Math.round((n / base.length) * 100) : 0);
+    return ([
+      ["dinheiro", "Dinheiro recorrente"],
+      ["dias", "Dias grátis"],
+      ["brinde", "Brindes"],
+      ["nao_indicaria", "Não indicaria"],
+    ] as const).map(([key, label]) => ({ key, label, count: count(key), pct: pct(count(key)) }));
   }, [notBoughtRows]);
 
   const openAnswers = useMemo(() => {
@@ -169,6 +183,22 @@ export const AdminQuiz = () => {
           <div className="flex gap-3">
             {returnDist.map((d) => (
               <div key={d.key} className="flex-1 rounded-xl bg-muted/40 p-3 text-center">
+                <p className="text-xl font-display font-bold">{d.pct}%</p>
+                <p className="text-[11px] text-muted-foreground">{d.label} ({d.count})</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Q4 bônus — valida a hipótese do programa de afiliados */}
+      <Card className="border-border/40">
+        <CardContent className="p-5 space-y-3">
+          <p className="text-sm font-semibold">Recompensa que mais animaria a indicar (não-compradores)</p>
+          <p className="text-[11px] text-muted-foreground -mt-1.5">Se "dinheiro" dominar, a estratégia de afiliados está validada.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {affiliateDist.map((d) => (
+              <div key={d.key} className="rounded-xl bg-muted/40 p-3 text-center">
                 <p className="text-xl font-display font-bold">{d.pct}%</p>
                 <p className="text-[11px] text-muted-foreground">{d.label} ({d.count})</p>
               </div>
