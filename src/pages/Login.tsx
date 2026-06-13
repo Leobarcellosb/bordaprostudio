@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 const LOGIN_TIMEOUT = 15000; // 15s max waiting for auth resolution
 
@@ -153,6 +154,8 @@ const Login = () => {
             <CardDescription>Acesse sua conta para continuar</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Login social (Google/Facebook) — só aparece com provedor ligado em SOCIAL_AUTH */}
+            <SocialAuthButtons />
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Email</label>

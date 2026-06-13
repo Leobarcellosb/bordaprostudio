@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -34,6 +35,8 @@ const Signup = () => {
         </div>
         <Card className="border-border/40 shadow-xl shadow-primary/5">
           <CardContent className="pt-8">
+            {/* Cadastro social (Google/Facebook) — só aparece com provedor ligado em SOCIAL_AUTH */}
+            <SocialAuthButtons />
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Nome completo</label>
