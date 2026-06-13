@@ -26,7 +26,7 @@ const CAP = "R$ 500";
 // Shape da RPC my_referrals (mascarada: a API nunca expõe o email da indicada).
 interface Referral {
   id: string;
-  referred_initial: string;
+  referred_display_name: string; // já vem pronto: "Lúcia M." / "Lúcia" / "Bordadeira L"
   status: string;
   created_at: string;
 }
@@ -235,9 +235,9 @@ const GanheDinheiro = () => {
                   {activeRefs.map((r) => (
                     <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2.5">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-display font-bold text-primary">
-                        {(r.referred_initial || "?").charAt(0).toUpperCase()}
+                        {(r.referred_display_name || "?").charAt(0).toUpperCase()}
                       </span>
-                      <span className="flex-1 truncate text-sm font-semibold">{r.referred_initial}</span>
+                      <span className="flex-1 truncate text-sm font-semibold">{r.referred_display_name}</span>
                       <span className="shrink-0 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                         {STATUS_LABEL[r.status] ?? "em andamento"}
                       </span>
