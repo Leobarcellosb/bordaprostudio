@@ -55,9 +55,9 @@ export const AppSidebar = () => {
   const location = useLocation();
   const { t } = useTranslation();
 
-  // Pré-lançamento de afiliados: item só pra admin enquanto AFFILIATE_ENABLED=false.
+  // Kill-switch do programa de afiliados (false = some o item pra todos).
   const itemVisible = (path: string) =>
-    path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED || isAdmin;
+    path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED;
 
   const renderItem = ({ icon: Icon, labelKey, label, path }: any) => {
     if (!itemVisible(path)) return null;

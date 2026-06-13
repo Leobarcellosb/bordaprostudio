@@ -54,7 +54,7 @@ const FAQ = [
 ];
 
 const GanheDinheiro = () => {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,18 +111,14 @@ const GanheDinheiro = () => {
     }
   };
 
-  // ⚠️ GATE DE LANÇAMENTO (§7 do spec): termo é rascunho → programa visível só
-  // pra admin (smoke test em prod) até AFFILIATE_ENABLED=true com termo v1.0.
-  if (!AFFILIATE_ENABLED && !isAdmin) return <Navigate to="/dashboard" replace />;
+  // Kill-switch: se o programa for desligado, a rota redireciona (cobre quem
+  // acessa /ganhe-dinheiro direto pela URL). O acesso por assinatura/trial é
+  // garantido pelo ProtectedRoute que envolve esta rota.
+  if (!AFFILIATE_ENABLED) return <Navigate to="/dashboard" replace />;
 
   return (
     <AppLayout>
       <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-8">
-        {!AFFILIATE_ENABLED && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-800">
-            🔒 Pré-lançamento — visível só para admin. Libera em src/config/affiliate.ts após o termo validado pelo contador.
-          </div>
-        )}
         {/* ── Header ── */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-secondary/5 to-amber-100/40 p-7 md:p-9">
           <div className="relative z-10 space-y-3">

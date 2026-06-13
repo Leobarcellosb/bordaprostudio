@@ -80,7 +80,7 @@ export const MobileNav = () => {
                 </p>
               )}
               {section.items
-                .filter(({ path }) => path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED || isAdmin)
+                .filter(({ path }) => path !== "/ganhe-dinheiro" || AFFILIATE_ENABLED)
                 .map(({ icon: Icon, labelKey, label, path }) => (
                 <button key={path} onClick={() => { navigate(path); setOpen(false); }}
                   className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
