@@ -7,26 +7,27 @@ let fail = 0;
 const ok = (cond, desc) => { console.log(`${cond ? "✅" : "❌"} ${desc}`); if (!cond) fail++; };
 const noMojibake = (s) => !/[Ä¢‚â€]/.test(s);
 
-// Espelho da lógica SQL do CASE em my_referrals:
+// Espelho da lógica SQL do CASE em my_referrals (padrão Inner = ÚLTIMO sobrenome):
 //  - nome null/vazio → "Bordadeira " + inicial(email).toUpperCase()
 //  - 1 palavra → primeiro nome inteiro
-//  - 2+ palavras → Primeiro + inicial(2ª palavra).toUpperCase() + "."
+//  - 2+ palavras → Primeiro + inicial(ÚLTIMA palavra).toUpperCase() + "."
 const mask = (name, email) => {
   const n = (name ?? "").trim();
   if (!n) return "Bordadeira " + (email && email.length ? email[0] : "?").toUpperCase();
   const parts = n.split(/\s+/);
   if (parts.length === 1) return parts[0];
-  return parts[0] + " " + parts[1].charAt(0).toUpperCase() + ".";
+  return parts[0] + " " + parts[parts.length - 1].charAt(0).toUpperCase() + ".";
 };
 
 for (const [name, email, exp] of [
-  ["Lúcia Ção Ñoño", "lucia@x.com", "Lúcia Ç."], // acentos extremos: inicial da 2a palavra preservada
-  ["úrsula", "u@x.com", "úrsula"],               // 1 palavra acentuada → inteira
-  ["ñoño", "n@x.com", "ñoño"],                   // 1 palavra → inteira
-  ["Maria Silva", "m@x.com", "Maria S."],        // padrão Inner
-  [null, "lucia@x.com", "Bordadeira L"],         // sem nome → "Bordadeira " + inicial do email
-  ["", "bruna@x.com", "Bordadeira B"],           // vazio → idem
-  ["  João  Pedro  Souza ", "j@x.com", "João P."], // espaços extras + 2a palavra
+  ["Lúcia Ção Ñoño", "lucia@x.com", "Lúcia Ñ."],          // 3+ palavras → inicial do ÚLTIMO (Ñoño)
+  ["Maria de Lurdes Silva", "m@x.com", "Maria S."],       // 4 palavras → último (Silva)
+  ["úrsula", "u@x.com", "úrsula"],                        // 1 palavra acentuada → inteira
+  ["ñoño", "n@x.com", "ñoño"],                            // 1 palavra → inteira
+  ["Maria Silva", "ma@x.com", "Maria S."],                // 2 palavras
+  [null, "lucia@x.com", "Bordadeira L"],                  // sem nome → "Bordadeira " + inicial do email
+  ["", "bruna@x.com", "Bordadeira B"],                    // vazio → idem
+  ["  João  Pedro  Souza ", "j@x.com", "João S."],        // espaços extras + último (Souza)
 ]) {
   const got = mask(name, email);
   ok(got === exp && noMojibake(got), `mask(${JSON.stringify(name)}, ${JSON.stringify(email)}) = ${JSON.stringify(got)} (esperado ${JSON.stringify(exp)})`);

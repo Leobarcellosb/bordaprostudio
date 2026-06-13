@@ -39,8 +39,8 @@ AS $$
       -- 1 palavra: primeiro nome inteiro
       WHEN array_length(parts.arr, 1) = 1
         THEN parts.arr[1]
-      -- 2+ palavras: Primeiro + inicial da 2a palavra + ponto
-      ELSE parts.arr[1] || ' ' || upper(left(parts.arr[2], 1)) || '.'
+      -- 2+ palavras: Primeiro + inicial do ULTIMO sobrenome + ponto (padrao Inner)
+      ELSE parts.arr[1] || ' ' || upper(left(parts.arr[array_length(parts.arr, 1)], 1)) || '.'
     END AS referred_display_name,
     b.status,
     b.created_at
