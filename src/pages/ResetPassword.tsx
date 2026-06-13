@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check } from "lucide-react";
 
 // A sessão de recovery chega pelo hash e o supabase-js a estabelece (e LIMPA o
 // hash da URL). Por isso o gate é a SESSÃO, não o hash: se há sessão, mostramos
@@ -13,6 +13,8 @@ import { Loader2 } from "lucide-react";
 // inválido/expirado → oferecemos pedir um novo.
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"checking" | "ready" | "invalid">("checking");
   const navigate = useNavigate();
@@ -34,8 +36,13 @@ const ResetPassword = () => {
     return () => { done = true; sub.subscription.unsubscribe(); window.clearTimeout(t); };
   }, []);
 
+  const tooShort = password.length > 0 && password.length < 6;
+  const mismatch = confirm.length > 0 && password !== confirm;
+  const canSubmit = password.length >= 6 && password === confirm;
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return; // guard: senhas iguais e tamanho mínimo
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) toast.error(error.message);
@@ -72,17 +79,46 @@ const ResetPassword = () => {
           )}
 
           {phase === "ready" && (
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <form onSubmit={handleUpdate} className="space-y-3">
+              <div className="relative">
+                <Input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nova senha (mín. 6 caracteres)"
+                  required
+                  minLength={6}
+                  autoFocus
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShow((s) => !s)}
+                  aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
               <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nova senha (mín. 6 caracteres)"
+                type={show ? "text" : "password"}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Confirme a nova senha"
                 required
                 minLength={6}
-                autoFocus
               />
-              <Button type="submit" className="w-full" disabled={loading || password.length < 6}>
+
+              {tooShort && <p className="text-xs text-destructive">A senha precisa ter pelo menos 6 caracteres.</p>}
+              {mismatch && <p className="text-xs text-destructive">As senhas não são iguais.</p>}
+              {canSubmit && (
+                <p className="flex items-center gap-1 text-xs text-emerald-600">
+                  <Check className="h-3.5 w-3.5" /> As senhas conferem
+                </p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading || !canSubmit}>
                 {loading ? "Atualizando..." : isInvite ? "Criar senha e entrar" : "Atualizar senha"}
               </Button>
             </form>
