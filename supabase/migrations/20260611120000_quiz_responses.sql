@@ -11,8 +11,14 @@ CREATE TABLE IF NOT EXISTS public.quiz_responses (
   q1_label text,                         -- label legível da opção
   q2_text text,                          -- resposta aberta
   q3_value text,                         -- NPS 0-10 (comprou) | sim/nao/talvez (não comprou)
+  q_affiliate_motivator text,            -- bônus só não-comprou: dinheiro|dias|brinde|nao_indicaria
+  trial_until timestamptz,               -- snapshot do trial_until no momento da resposta
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Colunas novas (idempotente caso a tabela já tenha sido criada numa versão antiga).
+ALTER TABLE public.quiz_responses ADD COLUMN IF NOT EXISTS q_affiliate_motivator text;
+ALTER TABLE public.quiz_responses ADD COLUMN IF NOT EXISTS trial_until timestamptz;
 
 CREATE INDEX IF NOT EXISTS idx_quiz_responses_user ON public.quiz_responses (user_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_responses_email ON public.quiz_responses (lower(email));
