@@ -21,6 +21,9 @@ verify_jwt = false  # dual: modal manda JWT (validado no handler) e ManyChat man
 [functions.affiliate]
 verify_jwt = true  # bearer = JWT do usuário logado; identidade vem do token (getUser no handler)
 
+[functions.oauth-signup-trial]
+verify_jwt = true  # chamado autenticado pelo app; identidade do token (getUser)
+
 [functions.admin-grant-access]
 verify_jwt = true  # bearer é o JWT do admin logado (JWT real do Auth, passa no gate); guarda de admin via borda_is_admin() no servidor
 
