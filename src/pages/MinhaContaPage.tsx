@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Crown, KeyRound, ExternalLink, AlertTriangle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { User, Crown, KeyRound, AlertTriangle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { isPaidActive } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -118,15 +118,6 @@ const MinhaContaPage = () => {
                     </p>
                   </div>
                 </div>
-                <Separator />
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => window.open("https://orbita.eduzz.com/producer/subscription", "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Gerenciar assinatura na Eduzz
-                </Button>
               </>
             ) : (
               <div className="text-center py-6 space-y-3">

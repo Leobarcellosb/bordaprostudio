@@ -1,13 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Crown, Calendar, CheckCircle2, AlertCircle, Clock, ExternalLink } from "lucide-react";
+import { Crown, Calendar, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-// Portal de cliente da Eduzz onde a usuária gerencia o pagamento.
-// sun.eduzz.com é o portal "Minha conta" canônico do cliente.
-const EDUZZ_MANAGE_URL = "https://sun.eduzz.com/login";
+import { isPaidActive } from "@/lib/subscription";
 
 export const SubscriptionCard = () => {
   const { subscription } = useAuth();
@@ -17,6 +14,8 @@ export const SubscriptionCard = () => {
     active: { label: "Ativa", icon: CheckCircle2, variant: "default" },
     pending: { label: "Pendente", icon: Clock, variant: "secondary" },
     inactive: { label: "Inativa", icon: AlertCircle, variant: "destructive" },
+    pending_cancellation: { label: "Cancelamento agendado", icon: Clock, variant: "secondary" },
+    pending_refund: { label: "Reembolso em processamento", icon: Clock, variant: "secondary" },
   };
 
   const info = statusMap[subscription?.status || ""] || statusMap.inactive;
@@ -54,19 +53,25 @@ export const SubscriptionCard = () => {
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Provedor:</span>
-              <span className="text-sm">Eduzz</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto gap-1.5 mt-2"
-              onClick={() => window.open(EDUZZ_MANAGE_URL, "_blank", "noopener,noreferrer")}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Gerenciar na Eduzz
-            </Button>
+            {isPaidActive(subscription) &&
+            subscription.status !== "pending_cancellation" &&
+            subscription.status !== "pending_refund" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto mt-2 text-muted-foreground"
+                onClick={() => navigate("/cancelar-assinatura")}
+              >
+                Cancelar assinatura
+              </Button>
+            ) : subscription.status === "pending_cancellation" ? (
+              <p className="text-xs text-muted-foreground mt-2">
+                Cancelamento agendado — você usa até{" "}
+                {subscription.access_expires_at
+                  ? new Date(subscription.access_expires_at).toLocaleDateString("pt-BR")
+                  : "o fim do período"}.
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="text-center py-4 space-y-3">
