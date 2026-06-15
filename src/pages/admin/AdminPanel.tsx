@@ -12,6 +12,7 @@ import { AdminIntegrations } from "./AdminIntegrations";
 import { AdminPremiumKits } from "./AdminPremiumKits";
 import { AdminGrantAccess } from "./AdminGrantAccess";
 import { AdminQuiz } from "./AdminQuiz";
+import { AdminCancellations } from "./AdminCancellations";
 import { Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -44,6 +45,7 @@ const AdminPanel = () => {
               <TabsTrigger value="integrations" className="font-medium text-xs">Integrações</TabsTrigger>
               <TabsTrigger value="kits" className="font-medium text-xs">Kits Premium</TabsTrigger>
               <TabsTrigger value="quiz" className="font-medium text-xs">Feedback</TabsTrigger>
+              <TabsTrigger value="cancellations" className="font-medium text-xs">Cancelamentos</TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value="dashboard"><AdminDashboard /></TabsContent>
@@ -58,6 +60,7 @@ const AdminPanel = () => {
           <TabsContent value="integrations"><AdminIntegrations /></TabsContent>
           <TabsContent value="kits"><AdminPremiumKits /></TabsContent>
           <TabsContent value="quiz"><AdminQuiz /></TabsContent>
+          <TabsContent value="cancellations"><AdminCancellations /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>

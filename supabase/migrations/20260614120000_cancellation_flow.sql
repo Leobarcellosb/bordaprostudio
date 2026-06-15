@@ -23,6 +23,7 @@ COMMENT ON COLUMN public.subscriptions.refund_eligible
 CREATE TABLE IF NOT EXISTS public.cancellation_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
+  email text,                            -- denormalizado p/ a tela admin (sem join)
   subscription_id uuid,
 
   status text NOT NULL CHECK (status IN (

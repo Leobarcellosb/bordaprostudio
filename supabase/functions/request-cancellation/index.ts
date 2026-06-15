@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
     .from("cancellation_requests")
     .insert({
       user_id: user.id,
+      email: user.email ?? null,
       subscription_id: sub.id,
       status: newStatus,
       reason_key: reasonKey,
