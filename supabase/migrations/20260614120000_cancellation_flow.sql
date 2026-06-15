@@ -15,7 +15,7 @@ ALTER TABLE public.subscriptions
   ADD COLUMN IF NOT EXISTS first_paid_at timestamptz;
 
 COMMENT ON COLUMN public.subscriptions.cancel_at_period_end
-  IS 'TRUE = cancela ao fim do período pago (sem reembolso). FALSE = imediato (reembolso/trial)';
+  IS 'TRUE = cancela ao fim do periodo pago (sem reembolso). FALSE = imediato (reembolso/trial)';
 COMMENT ON COLUMN public.subscriptions.refund_eligible
   IS 'Era <=7 dias do first_paid_at quando o pedido foi feito';
 
