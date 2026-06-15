@@ -35,6 +35,7 @@ const PlansPage = lazy(() => import("./pages/PlansPage"));
 const PremiumKitsPage = lazy(() => import("./pages/PremiumKitsPage"));
 const PremiumKitDetail = lazy(() => import("./pages/PremiumKitDetail"));
 const MinhaContaPage = lazy(() => import("./pages/MinhaContaPage"));
+const CancelSubscription = lazy(() => import("./pages/CancelSubscription"));
 const EmbroideryViewerPage = lazy(() => import("./pages/EmbroideryViewerPage"));
 const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const AdminPanel = lazy(() => import("./pages/admin/AdminPanel"));
@@ -152,6 +153,7 @@ const App = () => {
               <Route path="/downloads" element={<ProtectedRoute><DownloadsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/minha-conta" element={<ProtectedRoute><MinhaContaPage /></ProtectedRoute>} />
+              <Route path="/cancelar-assinatura" element={<ProtectedRoute requireSubscription={false}><CancelSubscription /></ProtectedRoute>} />
               <Route path="/ganhe-dinheiro" element={<ProtectedRoute><GanheDinheiro /></ProtectedRoute>} />
               <Route path="/kits" element={<ProtectedRoute><PremiumKitsPage /></ProtectedRoute>} />
               <Route path="/kits/:id" element={<ProtectedRoute><PremiumKitDetail /></ProtectedRoute>} />

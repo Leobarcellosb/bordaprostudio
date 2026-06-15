@@ -1,21 +1,9 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { User, Crown, KeyRound, ExternalLink, AlertTriangle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 const MinhaContaPage = () => {
   const { user, profile, subscription } = useAuth();
   const navigate = useNavigate();
-  const [canceling, setCanceling] = useState(false);
 
   const planLabels: Record<string, string> = {
     mensal: "Plano Mensal",
@@ -42,6 +29,8 @@ const MinhaContaPage = () => {
     inactive: { label: "Inativa", icon: AlertCircle, variant: "destructive" },
     canceled: { label: "Cancelada", icon: AlertCircle, variant: "destructive" },
     refunded: { label: "Reembolsada", icon: AlertCircle, variant: "destructive" },
+    pending_cancellation: { label: "Cancelamento agendado", icon: Clock, variant: "secondary" },
+    pending_refund: { label: "Reembolso em processamento", icon: Clock, variant: "secondary" },
   };
 
   const status = statusConfig[subscription?.status || ""] || statusConfig.inactive;
@@ -58,13 +47,6 @@ const MinhaContaPage = () => {
     } else {
       toast.success("Email enviado! Verifique sua caixa de entrada para redefinir a senha.");
     }
-  };
-
-  const handleCancelSubscription = async () => {
-    setCanceling(true);
-    // For now, show a message directing to Eduzz support
-    toast.info("Para cancelar sua assinatura, entre em contato pelo portal da Eduzz ou envie um email para suporte.");
-    setCanceling(false);
   };
 
   return (
@@ -168,31 +150,13 @@ const MinhaContaPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Ao cancelar, você perderá o acesso aos bordados e recursos premium ao final do período atual.
+                Pode cancelar a qualquer momento, em poucos cliques. Dentro de 7 dias da
+                primeira cobrança você tem reembolso integral; depois, o acesso segue até o
+                fim do período pago.
               </p>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="gap-2" disabled={canceling}>
-                    Cancelar minha assinatura
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza que deseja cancelar?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Seu acesso continuará até {subscription.access_expires_at
-                        ? new Date(subscription.access_expires_at).toLocaleDateString("pt-BR")
-                        : "o final do período"}. Após isso, você não poderá mais baixar bordados ou acessar recursos premium.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelSubscription} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Confirmar cancelamento
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button variant="outline" className="gap-2" onClick={() => navigate("/cancelar-assinatura")}>
+                Cancelar assinatura
+              </Button>
             </CardContent>
           </Card>
         )}
