@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Crown, KeyRound, ExternalLink, AlertTriangle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { isPaidActive } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -140,7 +141,8 @@ const MinhaContaPage = () => {
         </Card>
 
         {/* 3. Cancelar Assinatura */}
-        {subscription && subscription.status === "active" && (
+        {subscription && isPaidActive(subscription) &&
+          subscription.status !== "pending_cancellation" && subscription.status !== "pending_refund" && (
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="font-display flex items-center gap-2 text-lg text-destructive">

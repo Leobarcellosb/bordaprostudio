@@ -8,7 +8,11 @@ ALTER TABLE public.subscriptions
   ADD COLUMN IF NOT EXISTS cancellation_reason text,
   ADD COLUMN IF NOT EXISTS cancel_at_period_end boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS refund_eligible boolean,
-  ADD COLUMN IF NOT EXISTS refund_amount_brl numeric(10,2);
+  ADD COLUMN IF NOT EXISTS refund_amount_brl numeric(10,2),
+  -- Janela CDC dos 7 dias. Coluna criada aqui; população canônica na 1ª fatura
+  -- paga é Fase 2 (eduzz-webhook, fora do escopo deste commit). Até lá, a função
+  -- usa created_at do row pago (eduzz cria o row na 1ª invoice_paid) como proxy.
+  ADD COLUMN IF NOT EXISTS first_paid_at timestamptz;
 
 COMMENT ON COLUMN public.subscriptions.cancel_at_period_end
   IS 'TRUE = cancela ao fim do período pago (sem reembolso). FALSE = imediato (reembolso/trial)';
@@ -75,3 +79,30 @@ CREATE INDEX IF NOT EXISTS idx_cancellation_user_status
   ON public.cancellation_requests (user_id, status);
 CREATE INDEX IF NOT EXISTS idx_cancellation_status_created
   ON public.cancellation_requests (status, created_at DESC);
+
+-- Anti-corrida (TOCTOU): no máximo 1 pedido ABERTO por usuário. O check no app
+-- não basta contra duplo-clique/concorrência; o 23505 vira "already_requested".
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_open_cancellation
+  ON public.cancellation_requests (user_id)
+  WHERE status IN ('pending_refund', 'pending_cancellation');
+
+-- 3) DOWNLOADS: o gate de storage (has_active_subscription) só aceitava
+-- status='active' → quem agenda cancelamento (pending_cancellation) veria o
+-- catálogo mas tomaria 403 no download, quebrando a promessa "acesso até o fim
+-- do período". Inclui pending_cancellation, mas SÓ com cutoff concreto futuro
+-- (NULL=vitalício continua exclusivo de 'active' — sem vazamento permanente).
+CREATE OR REPLACE FUNCTION public.has_active_subscription(user_uuid uuid DEFAULT auth.uid())
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM subscriptions
+    WHERE user_id = user_uuid
+      AND (
+        (status = 'active' AND (access_expires_at IS NULL OR access_expires_at > now()))
+        OR (status = 'pending_cancellation' AND access_expires_at IS NOT NULL AND access_expires_at > now())
+        OR (trial_until IS NOT NULL AND trial_until > now())
+      )
+  );
+$function$;

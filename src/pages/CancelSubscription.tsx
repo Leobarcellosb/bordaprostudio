@@ -52,9 +52,11 @@ const CancelSubscription = () => {
   const [done, setDone] = useState<{ refundEligible: boolean; accessUntil: string | null } | null>(null);
 
   const paid = isPaidActive(subscription);
-  const firstPaid = (subscription as Record<string, unknown> | null)?.first_paid_at as string | undefined;
+  // first_paid_at canônico = Fase 2 (webhook); até lá created_at é o proxy (igual ao server).
+  const subRec = subscription as Record<string, unknown> | null;
+  const firstPaid = (subRec?.first_paid_at ?? subRec?.created_at) as string | undefined;
   const daysSince = firstPaid ? Math.floor((Date.now() - new Date(firstPaid).getTime()) / 86_400_000) : null;
-  const refundEligible = !!firstPaid && daysSince !== null && daysSince <= 7;
+  const refundEligible = daysSince !== null && daysSince <= 7;
   const accessUntil = subscription?.access_expires_at ?? null;
   const daysLeft = accessUntil ? Math.max(0, Math.ceil((new Date(accessUntil).getTime() - Date.now()) / 86_400_000)) : null;
 

@@ -103,16 +103,22 @@ Deno.serve(async (req) => {
   const sub = (subs ?? []).find((s) => PAID_STATUSES.has(s.status)) ?? null;
   if (!sub) return json(400, { error: "no_active_subscription" });
 
-  // Elegibilidade de reembolso: <=7 dias da 1ª fatura paga.
-  const firstPaidAt = sub.first_paid_at ? new Date(sub.first_paid_at) : null;
-  const daysSince = firstPaidAt ? Math.floor((Date.now() - firstPaidAt.getTime()) / 86_400_000) : null;
-  const refundEligible = firstPaidAt !== null && daysSince !== null && daysSince <= 7;
+  // Elegibilidade de reembolso: <=7 dias da 1ª fatura paga. first_paid_at canônico
+  // vem na Fase 2 (eduzz-webhook, fora deste commit). Até lá, created_at do row
+  // PAGO é o proxy (a eduzz cria o row na 1ª invoice_paid e não o altera no renewal).
+  const firstPaidRaw = (sub.first_paid_at ?? sub.created_at) as string | null;
+  const firstPaidAt = firstPaidRaw ? new Date(firstPaidRaw) : null;
+  const daysSince = firstPaidAt && !Number.isNaN(firstPaidAt.getTime())
+    ? Math.floor((Date.now() - firstPaidAt.getTime()) / 86_400_000) : null;
+  const refundEligible = daysSince !== null && daysSince <= 7;
 
   const isAnual = (sub.plan_code ?? "").toLowerCase().includes("anual");
   const refundAmount = refundEligible ? (isAnual ? 397.0 : 49.9) : null;
   const nowIso = new Date().toISOString();
   const newStatus = refundEligible ? "pending_refund" : "pending_cancellation";
-  const newAccessExpires = refundEligible ? nowIso : sub.access_expires_at; // corte imediato vs mantém
+  // Null-guard: pending_cancellation NUNCA carrega access_expires_at NULL (seria
+  // acesso permanente p/ grant vitalício). Sem período definido → corta agora.
+  const newAccessExpires = refundEligible ? nowIso : (sub.access_expires_at ?? nowIso);
   const cancelAtPeriodEnd = !refundEligible;
 
   const { data: request, error: reqErr } = await admin
@@ -135,7 +141,12 @@ Deno.serve(async (req) => {
     })
     .select("id")
     .single();
-  if (reqErr) { console.error("[request-cancellation] insert error:", reqErr); return json(500, { error: "request_failed" }); }
+  if (reqErr) {
+    // 23505 = corrida com outro pedido aberto (índice único parcial) → idempotente.
+    if ((reqErr as { code?: string }).code === "23505") return json(200, { ok: true, already_requested: true });
+    console.error("[request-cancellation] insert error:", reqErr);
+    return json(500, { error: "request_failed" });
+  }
 
   const { error: updErr } = await admin
     .from("subscriptions")
