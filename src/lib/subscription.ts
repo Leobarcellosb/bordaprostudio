@@ -3,7 +3,11 @@ import type { Subscription } from "@/types/database.types";
 // Lógica central de acesso. Reusada pelo AuthContext (gating de rota) e pelo
 // hook useSubscriptionStatus (UI) — fonte única, sem divergência.
 
-const PAID_STATUSES = ["active", "approved", "paid"];
+// pending_cancellation = pagou e agendou cancelamento ao fim do período → MANTÉM
+// acesso até access_expires_at (a checagem de expiração abaixo corta no dia certo).
+// pending_refund/refunded/canceled NÃO entram: reembolso corta na hora
+// (access_expires_at=now) e os finais não têm acesso.
+const PAID_STATUSES = ["active", "approved", "paid", "pending_cancellation"];
 const DAY_MS = 86_400_000;
 
 export type SubStatus = "trial" | "active" | "expired" | "none";
