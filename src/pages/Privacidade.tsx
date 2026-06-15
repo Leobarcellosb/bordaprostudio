@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 
 // Política de privacidade completa (LGPD). Pública — usada também como
 // Privacy Policy URL no Google Cloud e no Facebook Login.
-// ⚠️ Leo ajusta depois: CNPJ real onde está "(CNPJ a inserir)".
 
 type Block =
   | { t: "p"; text: string }
@@ -20,7 +19,7 @@ const sections: { h: string; blocks: Block[] }[] = [
   {
     h: "Quem somos",
     blocks: [
-      { t: "p", text: "O Borda Pro é uma plataforma de matrizes de bordado operada por G Bordados (CNPJ a inserir), com sede no Brasil. A gente atende principalmente bordadeiras e bordadeiros que querem encontrar matrizes prontas, calcular preços de encomenda e organizar o trabalho." },
+      { t: "p", text: "O Borda Pro é uma plataforma de matrizes de bordado operada por G Bordados (CNPJ 41.312.751/0001-20), com sede no Brasil. A gente atende principalmente bordadeiras e bordadeiros que querem encontrar matrizes prontas, calcular preços de encomenda e organizar o trabalho." },
       { t: "p", text: "Para fins desta política, “nós”, “Borda Pro” ou “a gente” se referem a essa empresa. “Você” é qualquer pessoa que usa a plataforma." },
     ],
   },
@@ -129,8 +128,8 @@ const sections: { h: string; blocks: Block[] }[] = [
     blocks: [
       { t: "ul", items: [
         "Email: contato@borda.pro",
-        "Empresa: G Bordados",
-        "Responsável pelo tratamento de dados: Leonardo Barcellos",
+        "Empresa: G Bordados (CNPJ 41.312.751/0001-20)",
+        "Encarregado pelo tratamento de dados (DPO): contato@borda.pro",
       ] },
       { t: "p", text: "Pra perguntas legais, manda email com assunto “Privacidade” que a gente encaminha pro lugar certo." },
     ],
@@ -179,7 +178,7 @@ const Privacidade = () => {
 
         <footer className="pt-8 mt-4 border-t border-border/30 text-xs text-muted-foreground space-y-1">
           <p>Esta política foi escrita pra ser entendida por pessoa, não por advogado.</p>
-          <p>© 2026 G Bordados — CNPJ a inserir manualmente pelo Leo depois.</p>
+          <p>© 2026 G Bordados — CNPJ 41.312.751/0001-20.</p>
         </footer>
       </main>
     </div>
