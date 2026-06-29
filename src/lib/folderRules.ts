@@ -65,8 +65,21 @@ export function deriveFoldersForDesign(
   folders: Folder[],
 ): string[] {
   if (manualCategories && manualCategories.length > 0) {
-    const validSlugs = new Set(folders.map((f) => f.slug));
-    return manualCategories.filter((s) => validSlugs.has(s));
+    const bySlug = new Set(folders.map((f) => f.slug)); // slugs já são lowercase
+    const matched = new Set<string>();
+    for (const raw of manualCategories) {
+      const val = raw.trim().toLowerCase();
+      if (!val) continue;
+      if (bySlug.has(val)) { matched.add(val); continue; } // slug (tolera case/espaço)
+      // Dado legado: manual_categories gravado com KEYWORD/variação em vez do
+      // slug. Mapeia pela keyword_rules da pasta (case-insensitive) — senão o
+      // design somia de todas as pastas (perdia capa E contagem).
+      const f = folders.find((fl) => fl.keyword_rules.some((kw) => kw.trim().toLowerCase() === val));
+      if (f) matched.add(f.slug);
+    }
+    if (matched.size > 0) return [...matched];
+    // manual_categories presente mas IRRECONHECÍVEL → NÃO retorna [] (não some):
+    // cai pro auto-match por tags abaixo, que já é case-insensitive.
   }
   const designTags = parseTagsText(tagsText);
   if (designTags.length === 0) return [];
