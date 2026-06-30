@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
 import { deriveFoldersForDesign } from "@/lib/folderRules";
+import { designFitsHoop } from "@/lib/machineFilter";
 
 export interface CategoryFolder {
   id: string;          // slug — match contra manual_categories
@@ -32,6 +33,8 @@ interface RawDesign {
   manual_categories?: string[] | null;
   cover_image: string | null;
   created_at: string;
+  width_mm: number | null;
+  height_mm: number | null;
 }
 
 /**
@@ -45,7 +48,7 @@ interface RawDesign {
  * Pastas vazias APARECEM (admin vê como lacuna de conteúdo).
  */
 export function useLibraryCategories(): UseLibraryCategoriesResult {
-  const { machineFormat } = useUserMachineSettings();
+  const { machineFormat, machineHoopSize } = useUserMachineSettings();
   const { data: folderList = [], isLoading: foldersLoading, error: foldersError } = useFolders();
   const [folders, setFolders] = useState<CategoryFolder[]>([]);
   const [totalDesigns, setTotalDesigns] = useState(0);
@@ -81,8 +84,8 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
       try {
         // Defensive: tenta com manual_categories; se a coluna ainda não
         // existir (migration não rodada), faz fallback sem ela.
-        const fullCols = "id, tags_text, manual_categories, cover_image, created_at";
-        const narrowCols = "id, tags_text, cover_image, created_at";
+        const fullCols = "id, tags_text, manual_categories, cover_image, created_at, width_mm, height_mm";
+        const narrowCols = "id, tags_text, cover_image, created_at, width_mm, height_mm";
 
         const tryFetchDesigns = async () => {
           const res = await db
@@ -136,7 +139,11 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
         for (const d of designs) {
           if (globalRecent.length < 4 && d.cover_image) globalRecent.push(d.cover_image);
 
-          const isCompatible = compatibleIds ? compatibleIds.has(d.id) : true;
+          // Compatível = formato (kit_arquivos) E cabe no bastidor por DIMENSÃO
+          // (designFitsHoop, rotação + fail-open). Antes só checava formato — o
+          // hoop nem entrava na contagem das pastas.
+          const formatOk = compatibleIds ? compatibleIds.has(d.id) : true;
+          const isCompatible = formatOk && designFitsHoop(d.width_mm, d.height_mm, machineHoopSize);
           if (isCompatible) globalCompatible++;
 
           // Um design pode entrar em várias pastas — loop todas elas.
@@ -193,7 +200,7 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
       cancelled = true;
       runRef.current = null;
     };
-  }, [machineFormat, folderList, foldersLoading]); // deps INALTERADOS
+  }, [machineFormat, machineHoopSize, folderList, foldersLoading]); // recalcula ao trocar hoop
 
   return {
     folders,

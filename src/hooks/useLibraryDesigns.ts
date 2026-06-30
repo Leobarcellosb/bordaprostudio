@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
 import { tagsForFolder } from "@/lib/folderRules";
+import { designFitsHoop } from "@/lib/machineFilter";
 
 const PAGE_SIZE = 24;
 
@@ -218,7 +219,9 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         );
         const formatMatch = !machineFormatUpper
           || formats.some((f) => f.toUpperCase() === machineFormatUpper);
-        const hoopMatch = !machineHoopSize || r.hoop_size === machineHoopSize;
+        // Compatibilidade de bastidor por DIMENSÃO (rotação + fail-open), não
+        // mais string match em hoop_size. width_mm/height_mm vêm no SELECT "*".
+        const hoopMatch = designFitsHoop(r.width_mm, r.height_mm, machineHoopSize);
         return {
           ...r,
           category_name: r.categories?.name ?? null,

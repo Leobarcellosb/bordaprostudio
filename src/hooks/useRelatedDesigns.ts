@@ -34,7 +34,7 @@ export function useRelatedDesigns(designId: string | undefined, design: any | nu
 
         let query = db
           .from("designs")
-          .select("id, name, generated_title, cover_image, tags_text, category_id, hoop_size, categories(name)")
+          .select("id, name, generated_title, cover_image, tags_text, category_id, hoop_size, width_mm, height_mm, categories(name)")
           .eq("is_published", true)
           .neq("id", designId)
           .limit(100)

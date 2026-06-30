@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "./SectionHeader";
 import { DesignCarousel } from "./DesignCarousel";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+import { designFitsHoop } from "@/lib/machineFilter";
 
 export const HoopDesignsSection = () => {
   const [designs, setDesigns] = useState<any[]>([]);
@@ -17,35 +18,20 @@ export const HoopDesignsSection = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        // Prioritize matching hoop, but fill with others if needed
-        const { data: matched } = await db
+        // "Cabe no bastidor" agora é por DIMENSÃO (designFitsHoop), não bucket
+        // hoop_size. Busca um pool recente e filtra pelos que CABEM (rotação +
+        // fail-open), pegando 12. (Antes: .eq("hoop_size") = bucket exato.)
+        const { data } = await db
           .from("designs")
           .select("*, categories(name)")
           .eq("is_published", true)
-          .eq("hoop_size", hoopSize)
           .order("created_at", { ascending: false })
-          .limit(12);
+          .limit(120);
 
-        let results = matched || [];
-
-        // If less than 12, fill with other sizes
-        if (results.length < 12) {
-          const existingIds = results.map((d: any) => d.id);
-          const remaining = 12 - results.length;
-          const { data: others } = await db
-            .from("designs")
-            .select("*, categories(name)")
-            .eq("is_published", true)
-            .neq("hoop_size", hoopSize)
-            .order("created_at", { ascending: false })
-            .limit(remaining);
-
-          if (others) {
-            results = [...results, ...others.filter((d: any) => !existingIds.includes(d.id))];
-          }
-        }
-
-        setDesigns(results.slice(0, 12));
+        const fitting = (data || []).filter((d: any) =>
+          designFitsHoop(d.width_mm, d.height_mm, machineHoopSize),
+        );
+        setDesigns(fitting.slice(0, 12));
       } catch (err) {
         console.error("HoopDesigns error:", err);
       } finally {
@@ -53,7 +39,7 @@ export const HoopDesignsSection = () => {
       }
     };
     fetch();
-  }, [hoopSize]);
+  }, [machineHoopSize]);
 
   if (!loading && designs.length === 0) return null;
 

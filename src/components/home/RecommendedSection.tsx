@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { SectionHeader } from "./SectionHeader";
 import { DesignCarousel } from "./DesignCarousel";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
+import { designFitsHoop } from "@/lib/machineFilter";
 
 export const RecommendedSection = () => {
   const { user } = useAuth();
@@ -59,11 +60,13 @@ export const RecommendedSection = () => {
           .eq("is_published", true);
 
         if (categoryIds.length > 0) query = query.in("category_id", categoryIds);
-        if (machineHoopSize) query = query.eq("hoop_size", machineHoopSize);
+        // Hoop por DIMENSÃO (client) — não mais .eq("hoop_size") bucket. Pool
+        // maior (60) pra sobrar ≥12 após filtrar por cabimento + formato.
+        const { data } = await query.order("created_at", { ascending: false }).limit(60);
 
-        const { data } = await query.order("created_at", { ascending: false }).limit(24);
-
-        let filtered = data || [];
+        let filtered = (data || []).filter((d: any) =>
+          designFitsHoop(d.width_mm, d.height_mm, machineHoopSize),
+        );
 
         if (machineFormat && filtered.length > 0) {
           const ids = filtered.map((d: any) => d.id);
