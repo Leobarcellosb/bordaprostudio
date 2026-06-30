@@ -87,32 +87,61 @@ export function useLibraryCategories(): UseLibraryCategoriesResult {
         const fullCols = "id, tags_text, manual_categories, cover_image, created_at, width_mm, height_mm";
         const narrowCols = "id, tags_text, cover_image, created_at, width_mm, height_mm";
 
+        // PostgREST corta em 1000 linhas/request (db-max-rows). Buscar o acervo
+        // inteiro SEM paginar truncava em 1000 designs (e 1000 linhas de
+        // kit_arquivos): pastas de designs mais ANTIGOS — fora das 1000 mais
+        // recentes — zeravam ("Sem matrizes compatíveis"), e o set de formato
+        // ficava incompleto. Pagina-se os DOIS fetches em páginas de 1000.
+        const PAGE = 1000;
+
+        const fetchAllDesigns = async (cols: string) => {
+          let all: RawDesign[] = [];
+          for (let from = 0; ; from += PAGE) {
+            const res = await db
+              .from("designs")
+              .select(cols)
+              .eq("is_published", true)
+              .order("created_at", { ascending: false })
+              .range(from, from + PAGE - 1);
+            if (res.error) return { data: null as RawDesign[] | null, error: res.error };
+            const rows = (res.data ?? []) as unknown as RawDesign[];
+            all = all.concat(rows);
+            if (rows.length < PAGE) break;
+          }
+          return { data: all as RawDesign[] | null, error: null };
+        };
+
         const tryFetchDesigns = async () => {
-          const res = await db
-            .from("designs")
-            .select(fullCols)
-            .eq("is_published", true)
-            .order("created_at", { ascending: false });
-          if (
-            res.error &&
-            /manual_categories/i.test(res.error.message ?? "")
-          ) {
+          const res = await fetchAllDesigns(fullCols);
+          if (res.error && /manual_categories/i.test(res.error.message ?? "")) {
             console.warn(
               "[useLibraryCategories] manual_categories ausente — rode a migration. Fallback sem o override manual.",
             );
-            return await db
-              .from("designs")
-              .select(narrowCols)
-              .eq("is_published", true)
-              .order("created_at", { ascending: false });
+            return await fetchAllDesigns(narrowCols);
           }
           return res;
+        };
+
+        const fetchAllFormatIds = async (format: string) => {
+          let all: { design_id: string }[] = [];
+          for (let from = 0; ; from += PAGE) {
+            const res = await db
+              .from("kit_arquivos")
+              .select("design_id")
+              .ilike("format", format)
+              .range(from, from + PAGE - 1);
+            if (res.error) return { data: null as { design_id: string }[] | null, error: res.error };
+            const rows = (res.data ?? []) as { design_id: string }[];
+            all = all.concat(rows);
+            if (rows.length < PAGE) break;
+          }
+          return { data: all as { design_id: string }[] | null, error: null };
         };
 
         const [designsRes, formatRes] = await Promise.all([
           tryFetchDesigns(),
           machineFormat
-            ? db.from("kit_arquivos").select("design_id").ilike("format", machineFormat)
+            ? fetchAllFormatIds(machineFormat)
             : Promise.resolve({ data: null as { design_id: string }[] | null, error: null }),
         ]);
 
