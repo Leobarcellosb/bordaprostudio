@@ -28,6 +28,7 @@ import { WhatsAppListModal } from "@/components/WhatsAppListModal";
 import { useUserMachineSettings, MACHINE_FORMATS } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
 import { findFolderBySlug } from "@/lib/folderRules";
+import { isFolderVisibleForUser } from "@/lib/machineFilter";
 
 type ViewMode = "folders" | "all";
 
@@ -64,7 +65,7 @@ const LibraryPage = () => {
     toggleFavoriteMutation.mutate({ kitId, isFavorited: favoriteIds.has(kitId) });
   const { t } = useTranslation();
   const { machineFormat, machineHoopSize } = useUserMachineSettings();
-  const { isAdmin } = useAuth();
+  const { isAdmin, roleResolved } = useAuth();
   const { data: folderList = [] } = useFolders();
 
   // Admin: ver todos os formatos (ignora filtro de máquina) + análise de
@@ -116,11 +117,22 @@ const LibraryPage = () => {
     error: foldersError,
   } = useLibraryCategories();
 
-  // Pastas vazias só aparecem pra admin (sinal de lacuna de conteúdo).
-  // User comum vê só pastas com pelo menos 1 design.
+  // Esconde do usuário comum as pastas SEM matriz compatível com o equipamento
+  // dele (formato E bastidor — compatibleCount já vem de useLibraryCategories
+  // via designFitsHoop + formato). Reduz o ruído de "Sem matrizes compatíveis".
+  // Admin vê TODAS (gestão: pasta nova ainda sem matriz, editar keyword_rules).
+  // Fail-open (mostra tudo) quando NÃO dá pra avaliar: perfil sem equipamento
+  // (nem formato nem bastidor) OU usuário sem NENHUMA compatível no acervo
+  // (ex.: formato sem cobertura) — esconder tudo = biblioteca vazia, pior.
+  const equipmentKnown = !!machineFormat || !!machineHoopSize;
+  const showAllFolders =
+    !roleResolved ||              // role ainda não resolveu → não esconde (pode ser admin)
+    isAdmin ||                    // admin vê tudo (gestão de pastas)
+    !equipmentKnown ||            // perfil sem equipamento → fail-open
+    foldersTotalCompatible === 0; // nada compatível no acervo → mostra tudo (evita biblioteca vazia)
   const visibleFolders = useMemo(
-    () => (isAdmin ? folders : folders.filter((f) => f.totalCount > 0)),
-    [folders, isAdmin],
+    () => folders.filter((f) => isFolderVisibleForUser(f.compatibleCount, showAllFolders)),
+    [folders, showAllFolders],
   );
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);

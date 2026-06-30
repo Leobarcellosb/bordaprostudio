@@ -32,6 +32,22 @@ export function designFitsHoop(
 }
 
 /**
+ * Pasta deve aparecer pro usuário na biblioteca?
+ *
+ * `showAll=true` → sempre mostra. Use para ADMIN (gestão: pasta nova ainda sem
+ * matriz, editar keyword_rules) E para fail-open (quando não dá pra avaliar a
+ * compatibilidade — perfil sem equipamento, ou usuário sem NENHUMA matriz
+ * compatível no acervo: esconder tudo = biblioteca vazia, pior que o ruído).
+ *
+ * Caso contrário, a pasta só aparece se tem ≥1 matriz compatível com o
+ * equipamento (formato E bastidor — a contagem já vem calculada por
+ * useLibraryCategories via designFitsHoop + formato).
+ */
+export function isFolderVisibleForUser(compatibleCount: number, showAll: boolean): boolean {
+  return showAll || compatibleCount > 0;
+}
+
+/**
  * Filters design IDs to only those that have files in the given format.
  * Returns a Set of valid design IDs.
  */
