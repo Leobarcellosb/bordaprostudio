@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/db";
 import { useUserMachineSettings } from "@/hooks/useUserMachineSettings";
 import { useFolders } from "@/hooks/useFolders";
@@ -60,6 +60,14 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   const [compatibleCount, setCompatibleCount] = useState(0);
   const [designsError, setDesignsError] = useState<Error | null>(null);
 
+  // Guarda contra resposta OBSOLETA. Toggles/digitação disparam fetches
+  // concorrentes (não há AbortController). Sem isto, um fetch antigo que
+  // resolve DEPOIS sobrescreve o resultado do mais recente. Bug real: ligar
+  // "Ver todos os formatos" dispara um fetch SEM busca (count exato no acervo
+  // inteiro + embed = lento, ~1600) que vencia o fetch da busca (filtrado,
+  // rápido) → a busca "não filtrava". Só a ÚLTIMA req chamada aplica estado.
+  const latestRequestRef = useRef(0);
+
   // Load categories once
   useEffect(() => {
     db.from("categories").select("*").eq("is_active", true).order("name")
@@ -68,6 +76,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
   }, []);
 
   const fetchDesigns = useCallback(async () => {
+    const reqId = ++latestRequestRef.current;
     setIsLoading(true);
     setDesignsError(null);
     try {
@@ -191,6 +200,10 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         if (error) throw error;
       }
 
+      // Resposta obsoleta? (um fetch mais novo já foi disparado) → descarta,
+      // não toca no estado. Senão este resultado antigo sobrescreve o atual.
+      if (reqId !== latestRequestRef.current) return;
+
       const machineFormatUpper = machineFormat?.toUpperCase() ?? null;
       const rawRows = (data ?? []) as Array<Record<string, any>>;
 
@@ -252,6 +265,8 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
           db.from("downloads").select("kit_id").in("kit_id", designIds),
         ]);
 
+        if (reqId !== latestRequestRef.current) return;
+
         const fileMap: Record<string, string[]> = {};
         (filesRes.data || []).forEach((f: any) => {
           if (!fileMap[f.design_id]) fileMap[f.design_id] = [];
@@ -269,6 +284,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
         setDownloadCounts({});
       }
     } catch (err) {
+      if (reqId !== latestRequestRef.current) return;
       console.error("[useLibraryDesigns] error:", err);
       setDesigns([]);
       setTotalCount(0);
@@ -279,7 +295,7 @@ export function useLibraryDesigns(options: UseLibraryDesignsOptions): DesignResu
       // uma falha real de RLS/infra (anti-padrão do useFolders original).
       setDesignsError(err instanceof Error ? err : new Error(String(err)));
     } finally {
-      setIsLoading(false);
+      if (reqId === latestRequestRef.current) setIsLoading(false);
     }
   }, [search, categoryFilter, stitchRange, sortBy, page, machineFormat, machineHoopSize, showAllFormats, gapFormat, folderFilter, folderList]);
 
